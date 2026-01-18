@@ -114,6 +114,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Define actual color values for Tailwind to use */
+  --color-primary-rgb: 224 72% 59%;
+  --color-secondary-rgb: 0 0% 96%;
+  --color-muted-rgb: 0 0% 92%;
+  --color-accent-rgb: 46 100% 52%;
 }
 
 @layer base {
@@ -147,5 +153,19 @@
 
   .gradient-accent {
     background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(224 87% 65%) 100%);
+  }
+
+  .button-outline-hover {
+    &:hover {
+      background-color: hsl(var(--primary) / 0.1);
+      border-color: hsl(var(--primary));
+    }
+  }
+
+  .dark .button-outline-hover {
+    &:hover {
+      background-color: hsl(var(--primary) / 0.2);
+      border-color: hsl(var(--primary));
+    }
   }
 }
