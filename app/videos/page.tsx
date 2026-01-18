@@ -122,7 +122,7 @@ export default function VideoLibrary() {
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full flex flex-col">
       <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
         <Play className="w-12 h-12 text-primary opacity-40 group-hover:scale-110 transition-transform" />
-        <Badge className="absolute top-2 right-2 bg-black/60">
+        <Badge className="absolute top-2 right-2 bg-black/80 text-white">
           {formatDuration(video.duration)}
         </Badge>
       </div>
@@ -151,7 +151,7 @@ export default function VideoLibrary() {
       <CardContent className="p-6 flex items-start gap-6">
         <div className="relative w-40 h-24 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
           <Play className="w-8 h-8 text-primary opacity-40" />
-          <Badge className="absolute top-1 right-1 bg-black/60 text-xs">
+          <Badge className="absolute top-1 right-1 bg-black/80 text-white text-xs">
             {formatDuration(video.duration)}
           </Badge>
         </div>

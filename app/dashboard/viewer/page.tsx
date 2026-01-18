@@ -93,7 +93,7 @@ export default function ViewerDashboard() {
     <Card className="overflow-hidden hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 cursor-pointer group border-border/50 hover:border-primary/30">
       <div className="relative aspect-video bg-gradient-to-br from-secondary to-secondary/50 dark:from-primary/15 dark:to-accent/10 flex items-center justify-center overflow-hidden">
         <Play className="w-12 h-12 text-primary opacity-30 group-hover:opacity-60 group-hover:scale-110 transition-all duration-300" />
-        <Badge className="absolute top-2 right-2 bg-black/70 hover:bg-black/80 backdrop-blur-sm border-white/10">
+        <Badge className="absolute top-2 right-2 bg-black/80 text-white">
           {formatDuration(video.duration)}
         </Badge>
       </div>
@@ -186,7 +186,7 @@ export default function ViewerDashboard() {
               >
                 <div className="relative aspect-video bg-gradient-to-br from-secondary to-secondary/50 dark:from-primary/15 dark:to-accent/10 flex items-center justify-center overflow-hidden">
                   <Play className="w-16 h-16 text-primary opacity-30 group-hover:opacity-60 group-hover:scale-110 transition-all duration-300" />
-                  <Badge className="absolute top-3 right-3 bg-black/70 hover:bg-black/80 backdrop-blur-sm border-white/10">
+                  <Badge className="absolute top-3 right-3 bg-black/80 text-white">
                     {formatDuration(video.duration)}
                   </Badge>
                 </div>

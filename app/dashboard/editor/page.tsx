@@ -117,7 +117,7 @@ export default function EditorDashboard() {
                       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                         <Play className="w-8 h-8 text-primary opacity-50" />
                       </div>
-                      <Badge className="absolute top-2 right-2 bg-black/60">
+                      <Badge className="absolute top-2 right-2 bg-black/80 text-white">
                         {formatDuration(video.duration)}
                       </Badge>
                     </div>
