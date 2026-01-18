@@ -6,11 +6,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Upload, Play, Eye, Edit2, Trash2, Code } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Upload, Play, Eye, Edit2, Trash2, Code, Copy, Check } from 'lucide-react';
 import { Video } from '@/types';
 import Image from 'next/image';
 
 export default function EditorDashboard() {
+  const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [embedWidth, setEmbedWidth] = useState('560');
+  const [embedHeight, setEmbedHeight] = useState('315');
+  const [autoplay, setAutoplay] = useState(false);
+  const [controls, setControls] = useState(true);
+  const [loop, setLoop] = useState(false);
+  
   const [videos, setVideos] = useState<Video[]>([
     {
       id: '1',
@@ -62,6 +81,37 @@ export default function EditorDashboard() {
       return `${hours}h ${minutes}m`;
     }
     return `${minutes}m`;
+  };
+
+  const handleEmbed = (video: Video) => {
+    setSelectedVideo(video);
+    setEmbedDialogOpen(true);
+    setCopied(false);
+  };
+
+  const getEmbedCode = (video: Video) => {
+    const params = [];
+    if (autoplay) params.push('autoplay=1');
+    if (!controls) params.push('controls=0');
+    if (loop) params.push('loop=1');
+    const queryString = params.length > 0 ? `?${params.join('&')}` : '';
+    
+    return `<iframe 
+  width="${embedWidth}" 
+  height="${embedHeight}" 
+  src="${window.location.origin}/embed/${video.id}${queryString}" 
+  frameborder="0" 
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+  allowfullscreen>
+</iframe>`;
+  };
+
+  const copyToClipboard = () => {
+    if (selectedVideo) {
+      navigator.clipboard.writeText(getEmbedCode(selectedVideo));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const stats = [
@@ -138,7 +188,7 @@ export default function EditorDashboard() {
                           <Edit2 className="w-3 h-3" />
                           Edit
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEmbed(video)}>
                           <Code className="w-3 h-3" />
                           Embed
                         </Button>
@@ -164,6 +214,126 @@ export default function EditorDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Embed Dialog */}
+      <Dialog open={embedDialogOpen} onOpenChange={setEmbedDialogOpen}>
+        <DialogContent className="bg-background border border-border max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Embed Video</DialogTitle>
+            <DialogDescription>
+              Configure and copy the embed code for your website
+            </DialogDescription>
+          </DialogHeader>
+          {selectedVideo && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Video Title</label>
+                <p className="text-sm text-muted-foreground">{selectedVideo.title}</p>
+              </div>
+
+              <Tabs defaultValue="code" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="code">Code</TabsTrigger>
+                  <TabsTrigger value="configure">Configure</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="code" className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Embed Code</label>
+                    <div className="relative">
+                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-64 whitespace-pre-wrap break-all">
+                        <code>{getEmbedCode(selectedVideo)}</code>
+                      </pre>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={copyToClipboard} 
+                    className="w-full gap-2"
+                    variant={copied ? "secondary" : "default"}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy to Clipboard
+                      </>
+                    )}
+                  </Button>
+                </TabsContent>
+
+                <TabsContent value="configure" className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="width">Width (px)</Label>
+                        <Input
+                          id="width"
+                          type="number"
+                          value={embedWidth}
+                          onChange={(e) => setEmbedWidth(e.target.value)}
+                          placeholder="560"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="height">Height (px)</Label>
+                        <Input
+                          id="height"
+                          type="number"
+                          value={embedHeight}
+                          onChange={(e) => setEmbedHeight(e.target.value)}
+                          placeholder="315"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="autoplay">Autoplay</Label>
+                          <p className="text-xs text-muted-foreground">Start playing automatically</p>
+                        </div>
+                        <Switch
+                          id="autoplay"
+                          checked={autoplay}
+                          onCheckedChange={setAutoplay}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="controls">Show Controls</Label>
+                          <p className="text-xs text-muted-foreground">Display video controls</p>
+                        </div>
+                        <Switch
+                          id="controls"
+                          checked={controls}
+                          onCheckedChange={setControls}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="loop">Loop</Label>
+                          <p className="text-xs text-muted-foreground">Replay video continuously</p>
+                        </div>
+                        <Switch
+                          id="loop"
+                          checked={loop}
+                          onCheckedChange={setLoop}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
