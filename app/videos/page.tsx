@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Play, Eye, Filter, Grid, List } from 'lucide-react';
+import { Play, Eye, Filter, Grid, List, Plus } from 'lucide-react';
 import { Video } from '@/types';
 
 export default function VideoLibrary() {
@@ -187,9 +187,15 @@ export default function VideoLibrary() {
     <DashboardLayout title="Video Library">
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Video Library</h1>
-          <p className="text-muted-foreground">Browse and watch videos</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Video Library</h1>
+            <p className="text-muted-foreground">Browse and watch videos</p>
+          </div>
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" />
+            New Video
+          </Button>
         </div>
 
         {/* Search and Filters */}

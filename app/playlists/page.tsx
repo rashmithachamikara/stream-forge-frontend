@@ -98,7 +98,7 @@ export default function PlaylistsPage() {
                 New Playlist
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="bg-background border border-border">
               <DialogHeader>
                 <DialogTitle>Create New Playlist</DialogTitle>
                 <DialogDescription>Create a new playlist to organize videos</DialogDescription>
