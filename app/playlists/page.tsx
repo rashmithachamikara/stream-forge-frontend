@@ -93,7 +93,7 @@ export default function PlaylistsPage() {
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 gradient-primary text-white font-medium">
                 <Plus className="w-4 h-4" />
                 New Playlist
               </Button>
