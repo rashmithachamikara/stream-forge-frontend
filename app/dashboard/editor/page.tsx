@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Upload, Play, Eye } from 'lucide-react';
+import { Plus, Upload, Play, Eye, Edit2, Trash2, Code } from 'lucide-react';
 import { Video } from '@/types';
 import Image from 'next/image';
 
@@ -134,11 +134,16 @@ export default function EditorDashboard() {
                         <span>{video.uploadedAt.toLocaleDateString()}</span>
                       </div>
                       <div className="flex gap-2 mt-4">
-                        <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Edit2 className="w-3 h-3" />
                           Edit
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1 bg-transparent">
-                          Delete
+                        <Button variant="outline" size="sm" className="flex-1">
+                          <Code className="w-3 h-3" />
+                          Embed
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </CardContent>
