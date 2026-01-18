@@ -138,7 +138,7 @@ export default function VideoLibrary() {
           </span>
           <span>{video.uploadedAt.toLocaleDateString()}</span>
         </div>
-        <Button className="w-full mt-4 gap-2">
+        <Button className="w-full mt-4 gap-2" variant="outline">
           <Play className="w-4 h-4" />
           Watch
         </Button>
@@ -173,7 +173,7 @@ export default function VideoLibrary() {
               {video.views} views
             </span>
             <span>{video.uploadedAt.toLocaleDateString()}</span>
-            <Button size="sm">
+            <Button size="sm" variant="outline">
               <Play className="w-3 h-3 mr-1" />
               Watch
             </Button>
