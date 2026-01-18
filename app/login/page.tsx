@@ -144,7 +144,7 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Button type="submit" size="lg" className="w-full h-11 text-base gradient-primary font-semibold" disabled={isLoading}>
+              <Button type="submit" size="lg" className="w-full h-11 text-base gradient-primary font-semibold text-white cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
 
