@@ -16,6 +16,7 @@
   --secondary-foreground: 0 0% 9%;
   --muted: 0 0% 92%;
   --muted-foreground: 0 0% 45%;
+  --placeholder: 0 0% 62%;
   --accent: 46 100% 52%;
   --accent-foreground: 0 0% 3%;
   --destructive: 0 84% 60%;
@@ -52,6 +53,7 @@
   --secondary-foreground: 0 0% 97%;
   --muted: 222 84% 20%;
   --muted-foreground: 0 0% 60%;
+  --placeholder: 0 0% 50%;
   --accent: 46 100% 52%;
   --accent-foreground: 222 84% 5%;
   --destructive: 0 84% 60%;
@@ -87,6 +89,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-placeholder: var(--placeholder);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -120,6 +123,12 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--placeholder));
+    font-style: italic;
   }
 }
 
