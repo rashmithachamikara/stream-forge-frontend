@@ -82,7 +82,10 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
                 <p className="text-xs text-muted-foreground mt-1 capitalize">Role: {user?.role}</p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/settings')} className="cursor-pointer">
+              <DropdownMenuItem 
+                onClick={() => router.push(user?.role === 'admin' ? '/admin/settings' : '/settings')} 
+                className="cursor-pointer"
+              >
                 <Settings className="w-4 h-4 mr-2" />
                 <span>Settings</span>
               </DropdownMenuItem>
