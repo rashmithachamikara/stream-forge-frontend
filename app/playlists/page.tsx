@@ -184,7 +184,7 @@ export default function PlaylistsPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 bg-transparent" size="sm">
+                    <Button variant="outline" className="flex-1 bg-transparent h-10">
                       <Play className="w-4 h-4 mr-1" />
                       Play
                     </Button>
