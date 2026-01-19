@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Share2, Bookmark, ThumbsUp, MoreVertical, Eye, Calendar } from 'lucide-react';
+import { Share2, Bookmark, ThumbsUp, MoreVertical, Eye, Calendar, Play } from 'lucide-react';
 import { Video, Bookmark as BookmarkType } from '@/types';
 
 export default function WatchVideoPage({ params }: { params: { id: string } }) {
@@ -17,7 +17,7 @@ export default function WatchVideoPage({ params }: { params: { id: string } }) {
     id: params.id,
     title: 'Getting Started with Stream Forge',
     description: 'Learn the basics of Stream Forge in this comprehensive tutorial. We cover user roles, video management, and core features.',
-    thumbnail: '/placeholder.jpg',
+    thumbnail: '/thumbnail-onboarding.svg',
     duration: 600,
     uploadedBy: 'Jane Editor',
     uploadedAt: new Date('2024-02-15'),
@@ -91,7 +91,7 @@ export default function WatchVideoPage({ params }: { params: { id: string } }) {
       id: '2',
       title: 'Advanced Features Tour',
       description: 'Deep dive into advanced features',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-advanced.svg',
       duration: 1200,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-10'),
@@ -106,7 +106,7 @@ export default function WatchVideoPage({ params }: { params: { id: string } }) {
       id: '3',
       title: 'Video Upload Guide',
       description: 'How to upload and manage videos',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-tutorial.svg',
       duration: 900,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-01'),
@@ -292,8 +292,17 @@ export default function WatchVideoPage({ params }: { params: { id: string } }) {
             <h2 className="text-2xl font-bold text-foreground mb-4">Related Videos</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {relatedVideos.map((relatedVideo) => (
-                <Card key={relatedVideo.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-                  <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5" />
+                <Card key={relatedVideo.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+                  <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
+                    <img 
+                      src={relatedVideo.thumbnail} 
+                      alt={relatedVideo.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <Play className="w-10 h-10 text-white opacity-0 group-hover:opacity-90 transition-opacity drop-shadow-lg" />
+                    </div>
+                  </div>
                   <CardContent className="p-4">
                     <h3 className="font-semibold line-clamp-2 mb-2">{relatedVideo.title}</h3>
                     <p className="text-xs text-muted-foreground line-clamp-1">{relatedVideo.description}</p>

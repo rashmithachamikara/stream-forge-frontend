@@ -35,7 +35,7 @@ export default function EditorDashboard() {
       id: '1',
       title: 'Getting Started with Stream Forge',
       description: 'Learn the basics of our platform',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-onboarding.svg',
       duration: 600,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-15'),
@@ -53,7 +53,7 @@ export default function EditorDashboard() {
       id: '2',
       title: 'Advanced Features Tour',
       description: 'Explore advanced features',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-advanced.svg',
       duration: 1200,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-10'),
@@ -161,11 +161,15 @@ export default function EditorDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredVideos.map((video) => (
-                  <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                  <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
                     <div className="relative aspect-video bg-muted">
-                      {/* Placeholder thumbnail */}
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                        <Play className="w-8 h-8 text-primary opacity-50" />
+                      <img 
+                        src={video.thumbnail} 
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <Play className="w-8 h-8 text-white opacity-0 group-hover:opacity-90 transition-opacity drop-shadow-lg" />
                       </div>
                       <Badge className="absolute top-2 right-2 bg-black/80 text-white">
                         {formatDuration(video.duration)}

@@ -22,7 +22,7 @@ export default function VideoLibrary() {
       id: '1',
       title: 'Getting Started with Stream Forge',
       description: 'Learn the basics of our platform in this comprehensive tutorial.',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-onboarding.svg',
       duration: 600,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-15'),
@@ -37,7 +37,7 @@ export default function VideoLibrary() {
       id: '2',
       title: 'Advanced Features Tour',
       description: 'Explore the advanced features and capabilities.',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-advanced.svg',
       duration: 1200,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-10'),
@@ -52,7 +52,7 @@ export default function VideoLibrary() {
       id: '3',
       title: 'Company Training Session',
       description: 'Q1 2024 company-wide training session.',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-training.svg',
       duration: 2400,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-05'),
@@ -67,7 +67,7 @@ export default function VideoLibrary() {
       id: '4',
       title: 'Product Demo',
       description: 'See our new features in action.',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-demo.svg',
       duration: 900,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-01-28'),
@@ -121,7 +121,14 @@ export default function VideoLibrary() {
   const VideoCardGrid = ({ video }: { video: Video }) => (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full flex flex-col">
       <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
-        <Play className="w-12 h-12 text-primary opacity-40 group-hover:scale-110 transition-transform" />
+        <img 
+          src={video.thumbnail} 
+          alt={video.title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+          <Play className="w-12 h-12 text-white opacity-0 group-hover:opacity-90 group-hover:scale-110 transition-all drop-shadow-lg" />
+        </div>
         <Badge className="absolute top-2 right-2 bg-black/80 text-white">
           {formatDuration(video.duration)}
         </Badge>
@@ -150,7 +157,14 @@ export default function VideoLibrary() {
     <Card className="hover:shadow-md transition-shadow cursor-pointer">
       <CardContent className="p-6 flex items-start gap-6">
         <div className="relative w-40 h-24 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-          <Play className="w-8 h-8 text-primary opacity-40" />
+          <img 
+            src={video.thumbnail} 
+            alt={video.title}
+            className="w-full h-full object-cover rounded-lg"
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Play className="w-8 h-8 text-white opacity-70 drop-shadow-lg" />
+          </div>
           <Badge className="absolute top-1 right-1 bg-black/80 text-white text-xs">
             {formatDuration(video.duration)}
           </Badge>

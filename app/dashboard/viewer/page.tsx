@@ -14,7 +14,7 @@ export default function ViewerDashboard() {
       id: '1',
       title: 'Getting Started with Stream Forge',
       description: 'Learn the basics of our platform in this comprehensive tutorial.',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-onboarding.svg',
       duration: 600,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-15'),
@@ -31,7 +31,7 @@ export default function ViewerDashboard() {
       id: '2',
       title: 'Advanced Features Tour',
       description: 'Explore the advanced features and capabilities of Stream Forge.',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-advanced.svg',
       duration: 1200,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-10'),
@@ -48,7 +48,7 @@ export default function ViewerDashboard() {
       id: '3',
       title: 'Company Training Session',
       description: 'Q1 2024 company-wide training on new processes.',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-training.svg',
       duration: 2400,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-02-05'),
@@ -63,7 +63,7 @@ export default function ViewerDashboard() {
       id: '4',
       title: 'Product Demo',
       description: 'See our new features in action.',
-      thumbnail: '/placeholder.jpg',
+      thumbnail: '/thumbnail-demo.svg',
       duration: 900,
       uploadedBy: 'Jane Editor',
       uploadedAt: new Date('2024-01-28'),
@@ -92,7 +92,14 @@ export default function ViewerDashboard() {
   const VideoCard = ({ video }: { video: Video }) => (
     <Card className="overflow-hidden hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 cursor-pointer group border-border/50 hover:border-primary/30">
       <div className="relative aspect-video bg-gradient-to-br from-secondary to-secondary/50 dark:from-primary/15 dark:to-accent/10 flex items-center justify-center overflow-hidden">
-        <Play className="w-12 h-12 text-primary opacity-30 group-hover:opacity-60 group-hover:scale-110 transition-all duration-300" />
+        <img 
+          src={video.thumbnail} 
+          alt={video.title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+          <Play className="w-12 h-12 text-white opacity-0 group-hover:opacity-90 group-hover:scale-110 transition-all duration-300 drop-shadow-lg" />
+        </div>
         <Badge className="absolute top-2 right-2 bg-black/80 text-white">
           {formatDuration(video.duration)}
         </Badge>
@@ -185,7 +192,14 @@ export default function ViewerDashboard() {
                 className="overflow-hidden hover:shadow-2xl dark:hover:shadow-2xl transition-all duration-300 cursor-pointer group flex flex-col border-border/50 hover:border-primary/30"
               >
                 <div className="relative aspect-video bg-gradient-to-br from-secondary to-secondary/50 dark:from-primary/15 dark:to-accent/10 flex items-center justify-center overflow-hidden">
-                  <Play className="w-16 h-16 text-primary opacity-30 group-hover:opacity-60 group-hover:scale-110 transition-all duration-300" />
+                  <img 
+                    src={video.thumbnail} 
+                    alt={video.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <Play className="w-16 h-16 text-white opacity-0 group-hover:opacity-90 group-hover:scale-110 transition-all duration-300 drop-shadow-lg" />
+                  </div>
                   <Badge className="absolute top-3 right-3 bg-black/80 text-white">
                     {formatDuration(video.duration)}
                   </Badge>
