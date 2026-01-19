@@ -146,7 +146,7 @@ export default function EditorDashboard() {
               <CardTitle>Your Videos</CardTitle>
               <CardDescription>Manage and organize your uploaded videos</CardDescription>
             </div>
-            <Button className="gap-2" onClick={() => window.location.href = '/videos/upload'}>
+            <Button className="gap-2 gradient-primary text-white font-medium" onClick={() => window.location.href = '/videos/upload'}>
               <Upload className="w-4 h-4" />
               Upload Video
             </Button>
@@ -208,7 +208,7 @@ export default function EditorDashboard() {
               {filteredVideos.length === 0 && (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">No videos found</p>
-                  <Button className="gap-2" onClick={() => window.location.href = '/videos/upload'}>
+                  <Button className="gap-2 gradient-primary text-white font-medium" onClick={() => window.location.href = '/videos/upload'}>
                     <Plus className="w-4 h-4" />
                     Upload Your First Video
                   </Button>
