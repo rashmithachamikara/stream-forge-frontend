@@ -206,7 +206,10 @@ export default function VideoLibrary() {
             <h1 className="text-3xl font-bold text-foreground">Video Library</h1>
             <p className="text-muted-foreground">Browse and watch videos</p>
           </div>
-          <Button className="gap-2 gradient-primary text-white font-medium">
+          <Button 
+            className="gap-2 gradient-primary text-white font-medium"
+            onClick={() => window.location.href = '/videos/upload'}
+          >
             <Plus className="w-4 h-4" />
             New Video
           </Button>
