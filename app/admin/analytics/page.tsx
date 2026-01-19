@@ -19,25 +19,66 @@ import { VideoAnalytics } from '@/types';
 
 // Simple line chart component
 const LineChart = ({ data }: { data: { date: string; views: number }[] }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center text-muted-foreground">
+        No data available
+      </div>
+    );
+  }
+
   const maxViews = Math.max(...data.map((d) => d.views));
-  const chartHeight = 200;
+  const minViews = Math.min(...data.map((d) => d.views));
+  const chartHeight = 180;
 
   return (
-    <div className="w-full h-64 flex flex-col items-end gap-1">
-      <div className="flex items-end gap-0.5 h-full w-full">
-        {data.map((point, idx) => {
-          const height = (point.views / maxViews) * chartHeight;
-          return (
-            <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className="w-full bg-gradient-to-t from-primary to-primary/60 rounded-t-sm transition-all hover:from-primary/80 hover:to-primary/40"
-                style={{ height: `${height}px` }}
-                title={`${point.views} views on ${point.date}`}
-              />
-              <span className="text-xs text-muted-foreground">{point.date}</span>
+    <div className="w-full">
+      {/* Chart Info */}
+      <div className="flex items-center justify-between mb-4 px-2">
+        <div className="text-sm text-muted-foreground">
+          Total views: <span className="font-semibold text-foreground">{data.reduce((sum, d) => sum + d.views, 0).toLocaleString()}</span>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Range: <span className="font-semibold text-foreground">{minViews}</span> - <span className="font-semibold text-foreground">{maxViews}</span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="w-full">
+        {/* Chart bars container */}
+        <div className="flex items-end gap-0.5 px-2 pb-2 border-b-2 border-border" style={{ height: `${chartHeight + 10}px` }}>
+          {data.map((point, idx) => {
+            const height = maxViews > 0 ? Math.max((point.views / maxViews) * chartHeight, 4) : 4;
+            return (
+              <div key={idx} className="flex-1 h-full flex flex-col justify-end group">
+                <div className="relative w-full flex flex-col items-center justify-end">
+                  {/* Tooltip on hover */}
+                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-popover text-popover-foreground px-2 py-1 rounded shadow-lg text-xs whitespace-nowrap z-10 pointer-events-none">
+                    <div className="font-semibold">{point.views} views</div>
+                    <div className="text-muted-foreground">{point.date}</div>
+                  </div>
+                  <div
+                    className="w-full bg-gradient-to-t from-blue-500 to-blue-400 dark:from-blue-600 dark:to-blue-500 rounded-t-sm transition-all hover:from-blue-600 hover:to-blue-500 dark:hover:from-blue-500 dark:hover:to-blue-400 cursor-pointer border-t-2 border-blue-600 dark:border-blue-400"
+                    style={{ height: `${height}px` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Date labels - x-axis */}
+        <div className="flex gap-0.5 px-2 pt-2">
+          {data.map((point, idx) => (
+            <div key={idx} className="flex-1 flex justify-center">
+              {(idx % 4 === 0 || idx === data.length - 1) && (
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  {point.date}
+                </span>
+              )}
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -61,43 +102,83 @@ export default function AnalyticsDashboard() {
     { date: 'Feb 8', views: 280 },
     { date: 'Feb 9', views: 300 },
     { date: 'Feb 10', views: 320 },
+    { date: 'Feb 11', views: 290 },
+    { date: 'Feb 12', views: 310 },
+    { date: 'Feb 13', views: 340 },
+    { date: 'Feb 14', views: 380 },
+    { date: 'Feb 15', views: 420 },
+    { date: 'Feb 16', views: 400 },
+    { date: 'Feb 17', views: 390 },
+    { date: 'Feb 18', views: 410 },
+    { date: 'Feb 19', views: 450 },
+    { date: 'Feb 20', views: 480 },
+    { date: 'Feb 21', views: 460 },
+    { date: 'Feb 22', views: 490 },
+    { date: 'Feb 23', views: 510 },
+    { date: 'Feb 24', views: 530 },
+    { date: 'Feb 25', views: 520 },
+    { date: 'Feb 26', views: 550 },
+    { date: 'Feb 27', views: 580 },
+    { date: 'Feb 28', views: 600 },
+    { date: 'Feb 29', views: 620 },
   ];
 
   const videoAnalytics: VideoAnalytics[] = [
     {
       videoId: '1',
       title: 'Getting Started with Stream Forge',
-      views: 234,
+      views: 1234,
       avgWatchTime: 420,
       completionRate: 78,
     },
     {
       videoId: '2',
       title: 'Advanced Features Tour',
-      views: 156,
+      views: 856,
       avgWatchTime: 890,
       completionRate: 65,
     },
     {
       videoId: '3',
       title: 'Company Training Session',
-      views: 89,
+      views: 789,
       avgWatchTime: 1950,
       completionRate: 82,
     },
     {
       videoId: '4',
       title: 'Product Demo',
-      views: 342,
+      views: 1542,
       avgWatchTime: 720,
       completionRate: 71,
     },
     {
       videoId: '5',
       title: 'Video Upload Guide',
-      views: 198,
+      views: 698,
       avgWatchTime: 540,
       completionRate: 69,
+    },
+    {
+      videoId: '6',
+      title: 'Security Best Practices',
+      views: 543,
+      avgWatchTime: 980,
+      completionRate: 75,
+    },
+    {
+      videoId: '7',
+      title: 'API Integration Tutorial',
+      views: 432,
+      avgWatchTime: 1200,
+      completionRate: 68,
+    },
+    {
+      videoId: '8',
+      title: 'Mobile App Overview',
+      views: 876,
+      avgWatchTime: 650,
+      completionRate: 73,
     },
   ];
 
@@ -260,9 +341,9 @@ export default function AnalyticsDashboard() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+                            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden border border-border">
                               <div
-                                className="h-full bg-primary"
+                                className="h-full bg-blue-500 dark:bg-blue-600"
                                 style={{
                                   width: `${video.completionRate}%`,
                                 }}
@@ -298,9 +379,9 @@ export default function AnalyticsDashboard() {
               {['9:00 AM', '2:00 PM', '6:00 PM'].map((time, idx) => (
                 <div key={idx} className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{time}</span>
-                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden border border-border">
                     <div
-                      className="h-full bg-primary"
+                      className="h-full bg-green-500 dark:bg-green-600"
                       style={{ width: `${[85, 65, 95][idx]}%` }}
                     />
                   </div>
@@ -321,9 +402,9 @@ export default function AnalyticsDashboard() {
               {['Desktop', 'Mobile', 'Tablet'].map((device, idx) => (
                 <div key={idx} className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{device}</span>
-                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden border border-border">
                     <div
-                      className="h-full bg-primary"
+                      className="h-full bg-purple-500 dark:bg-purple-600"
                       style={{ width: `${[65, 25, 10][idx]}%` }}
                     />
                   </div>
@@ -344,9 +425,9 @@ export default function AnalyticsDashboard() {
               {['US', 'EU', 'APAC'].map((region, idx) => (
                 <div key={idx} className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{region}</span>
-                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden border border-border">
                     <div
-                      className="h-full bg-primary"
+                      className="h-full bg-orange-500 dark:bg-orange-600"
                       style={{ width: `${[60, 30, 10][idx]}%` }}
                     />
                   </div>
