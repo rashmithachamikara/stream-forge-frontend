@@ -30,7 +30,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { RoleChip } from '@/components/RoleChip';
-import { User } from '@/types';
+import { RoleFilter, USER_ROLE_FILTER_OPTIONS, USER_ROLE_OPTIONS } from '@/lib/roles';
+import { User, UserRole } from '@/types';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([
@@ -72,14 +73,14 @@ export default function UserManagement() {
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'editor' | 'viewer'>('all');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{ name: string; email: string; role: UserRole; password: string }>({
     name: '',
     email: '',
-    role: 'viewer' as const,
+    role: 'viewer',
     password: '',
   });
 
@@ -225,13 +226,15 @@ export default function UserManagement() {
                     <select
                       value={newUser.role}
                       onChange={(e) =>
-                        setNewUser({ ...newUser, role: e.target.value as any })
+                        setNewUser({ ...newUser, role: e.target.value as UserRole })
                       }
                       className="w-full px-3 py-2 h-10 border border-input bg-background dark:bg-secondary rounded-lg text-sm"
                     >
-                      <option value="viewer">Viewer</option>
-                      <option value="editor">Editor</option>
-                      <option value="admin">Admin</option>
+                      {USER_ROLE_OPTIONS.map((roleOption) => (
+                        <option key={roleOption.value} value={roleOption.value}>
+                          {roleOption.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <Button type="submit" className="w-full h-10 gradient-primary text-white font-medium">
@@ -254,14 +257,15 @@ export default function UserManagement() {
                 <select
                   value={roleFilter}
                   onChange={(e) =>
-                    setRoleFilter(e.target.value as 'all' | 'admin' | 'editor' | 'viewer')
+                    setRoleFilter(e.target.value as RoleFilter)
                   }
                   className="h-10 px-3 border border-input bg-background dark:bg-secondary rounded-lg text-sm"
                 >
-                  <option value="all">All Roles</option>
-                  <option value="admin">Admin</option>
-                  <option value="editor">Editor</option>
-                  <option value="viewer">Viewer</option>
+                  {USER_ROLE_FILTER_OPTIONS.map((roleOption) => (
+                    <option key={roleOption.value} value={roleOption.value}>
+                      {roleOption.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -381,13 +385,15 @@ export default function UserManagement() {
                   <select
                     value={editingUser.role}
                     onChange={(e) =>
-                      setEditingUser({ ...editingUser, role: e.target.value as any })
+                      setEditingUser({ ...editingUser, role: e.target.value as UserRole })
                     }
                     className="w-full px-3 py-2 h-10 border border-input bg-background dark:bg-secondary rounded-lg text-sm"
                   >
-                    <option value="viewer">Viewer</option>
-                    <option value="editor">Editor</option>
-                    <option value="admin">Admin</option>
+                    {USER_ROLE_OPTIONS.map((roleOption) => (
+                      <option key={roleOption.value} value={roleOption.value}>
+                        {roleOption.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <Button type="submit" className="w-full h-10 gradient-primary text-white font-medium">

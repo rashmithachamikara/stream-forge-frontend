@@ -23,7 +23,8 @@ import {
 } from '@/components/ui/dialog';
 import { Users, Video, Eye, TrendingUp, Plus, Edit2, Trash2 } from 'lucide-react';
 import { RoleChip } from '@/components/RoleChip';
-import { User } from '@/types';
+import { USER_ROLE_OPTIONS } from '@/lib/roles';
+import { User, UserRole } from '@/types';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([
@@ -52,10 +53,10 @@ export default function AdminDashboard() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{ name: string; email: string; role: UserRole; password: string }>({
     name: '',
     email: '',
-    role: 'viewer' as const,
+    role: 'viewer',
     password: '',
   });
 
@@ -172,13 +173,15 @@ export default function AdminDashboard() {
                     <select
                       value={newUser.role}
                       onChange={(e) =>
-                        setNewUser({ ...newUser, role: e.target.value as any })
+                        setNewUser({ ...newUser, role: e.target.value as UserRole })
                       }
                       className="w-full px-3 py-2 border border-input bg-background rounded-md text-sm"
                     >
-                      <option value="viewer">Viewer</option>
-                      <option value="editor">Editor</option>
-                      <option value="admin">Admin</option>
+                      {USER_ROLE_OPTIONS.map((roleOption) => (
+                        <option key={roleOption.value} value={roleOption.value}>
+                          {roleOption.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <Button type="submit" className="w-full">
