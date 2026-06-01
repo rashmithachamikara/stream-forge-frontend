@@ -1,4 +1,3 @@
-import axios, { AxiosInstance } from 'axios';
 import { User } from '@/features/auth/types';
 import { Video } from '@/features/videos/types';
 import { Playlist } from '@/features/playlists/types';
@@ -10,47 +9,57 @@ import { ApiResponse, PaginatedResponse } from '@/shared/types/api';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.streamforge.local';
 
 class ApiClient {
-  private client: AxiosInstance;
   private token: string | null = null;
 
   constructor() {
-    this.client = axios.create({
-      baseURL: API_BASE_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
     // Load token from localStorage
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('authToken');
-      if (this.token) {
-        this.setAuthToken(this.token);
-      }
     }
-
-    // Add response interceptor for token refresh
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Token expired - clear and redirect to login
-          this.clearAuth();
-        }
-        return Promise.reject(error);
-      }
-    );
   }
 
   setAuthToken(token: string) {
     this.token = token;
-    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
 
   clearAuth() {
     this.token = null;
-    delete this.client.defaults.headers.common['Authorization'];
-    localStorage.removeItem('authToken');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+    }
+  }
+
+  private async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    const isFormData = options.body instanceof FormData;
+    const headers = new Headers(options.headers);
+
+    if (!isFormData && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    if (this.token) {
+      headers.set('Authorization', `Bearer ${this.token}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401) {
+      this.clearAuth();
+    }
+
+    const data = await response.json().catch(() => undefined);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data?.error || data?.message || 'Request failed',
+      };
+    }
+
+    return data;
   }
 
   // Authentication Endpoints
@@ -118,8 +127,7 @@ class ApiClient {
 
   async getCurrentUser(): Promise<ApiResponse<User>> {
     try {
-      const response = await this.client.get('/auth/me');
-      return response.data;
+      return await this.request<User>('/auth/me');
     } catch (error) {
       return {
         success: false,
@@ -131,8 +139,7 @@ class ApiClient {
   // Video Endpoints
   async getVideos(page: number = 1, pageSize: number = 20): Promise<ApiResponse<PaginatedResponse<Video>>> {
     try {
-      const response = await this.client.get(`/videos?page=${page}&pageSize=${pageSize}`);
-      return response.data;
+      return await this.request<PaginatedResponse<Video>>(`/videos?page=${page}&pageSize=${pageSize}`);
     } catch (error) {
       return {
         success: false,
@@ -144,8 +151,7 @@ class ApiClient {
   async searchVideos(query: string, filters?: Record<string, string>): Promise<ApiResponse<Video[]>> {
     try {
       const params = new URLSearchParams({ q: query, ...filters });
-      const response = await this.client.get(`/videos/search?${params.toString()}`);
-      return response.data;
+      return await this.request<Video[]>(`/videos/search?${params.toString()}`);
     } catch (error) {
       return {
         success: false,
@@ -156,8 +162,7 @@ class ApiClient {
 
   async getVideoById(id: string): Promise<ApiResponse<Video>> {
     try {
-      const response = await this.client.get(`/videos/${id}`);
-      return response.data;
+      return await this.request<Video>(`/videos/${id}`);
     } catch (error) {
       return {
         success: false,
@@ -168,12 +173,10 @@ class ApiClient {
 
   async uploadVideo(formData: FormData): Promise<ApiResponse<Video>> {
     try {
-      const response = await this.client.post('/videos/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      return await this.request<Video>('/videos/upload', {
+        method: 'POST',
+        body: formData,
       });
-      return response.data;
     } catch (error) {
       return {
         success: false,
@@ -184,8 +187,10 @@ class ApiClient {
 
   async updateVideo(id: string, data: Partial<Video>): Promise<ApiResponse<Video>> {
     try {
-      const response = await this.client.put(`/videos/${id}`, data);
-      return response.data;
+      return await this.request<Video>(`/videos/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
     } catch (error) {
       return {
         success: false,
@@ -196,8 +201,9 @@ class ApiClient {
 
   async deleteVideo(id: string): Promise<ApiResponse<void>> {
     try {
-      const response = await this.client.delete(`/videos/${id}`);
-      return response.data;
+      return await this.request<void>(`/videos/${id}`, {
+        method: 'DELETE',
+      });
     } catch (error) {
       return {
         success: false,
@@ -209,8 +215,7 @@ class ApiClient {
   // User Management (Admin)
   async getUsers(page: number = 1, pageSize: number = 20): Promise<ApiResponse<PaginatedResponse<User>>> {
     try {
-      const response = await this.client.get(`/admin/users?page=${page}&pageSize=${pageSize}`);
-      return response.data;
+      return await this.request<PaginatedResponse<User>>(`/admin/users?page=${page}&pageSize=${pageSize}`);
     } catch (error) {
       return {
         success: false,
@@ -221,8 +226,10 @@ class ApiClient {
 
   async createUser(userData: Partial<User> & { password: string }): Promise<ApiResponse<User>> {
     try {
-      const response = await this.client.post('/admin/users', userData);
-      return response.data;
+      return await this.request<User>('/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
     } catch (error) {
       return {
         success: false,
@@ -233,8 +240,10 @@ class ApiClient {
 
   async updateUser(id: string, userData: Partial<User>): Promise<ApiResponse<User>> {
     try {
-      const response = await this.client.put(`/admin/users/${id}`, userData);
-      return response.data;
+      return await this.request<User>(`/admin/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(userData),
+      });
     } catch (error) {
       return {
         success: false,
@@ -245,8 +254,9 @@ class ApiClient {
 
   async deleteUser(id: string): Promise<ApiResponse<void>> {
     try {
-      const response = await this.client.delete(`/admin/users/${id}`);
-      return response.data;
+      return await this.request<void>(`/admin/users/${id}`, {
+        method: 'DELETE',
+      });
     } catch (error) {
       return {
         success: false,
@@ -258,13 +268,12 @@ class ApiClient {
   // Analytics Endpoints
   async getAnalytics(startDate: Date, endDate: Date): Promise<ApiResponse<VideoAnalytics[]>> {
     try {
-      const response = await this.client.get('/admin/analytics', {
-        params: {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-        },
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
       });
-      return response.data;
+
+      return await this.request<VideoAnalytics[]>(`/admin/analytics?${params.toString()}`);
     } catch (error) {
       return {
         success: false,
@@ -276,8 +285,7 @@ class ApiClient {
   // Playlist Endpoints
   async getPlaylists(): Promise<ApiResponse<Playlist[]>> {
     try {
-      const response = await this.client.get('/playlists');
-      return response.data;
+      return await this.request<Playlist[]>('/playlists');
     } catch (error) {
       return {
         success: false,
@@ -288,8 +296,10 @@ class ApiClient {
 
   async createPlaylist(data: Partial<Playlist>): Promise<ApiResponse<Playlist>> {
     try {
-      const response = await this.client.post('/playlists', data);
-      return response.data;
+      return await this.request<Playlist>('/playlists', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
     } catch (error) {
       return {
         success: false,
@@ -300,8 +310,10 @@ class ApiClient {
 
   async addVideoToPlaylist(playlistId: string, videoId: string): Promise<ApiResponse<Playlist>> {
     try {
-      const response = await this.client.post(`/playlists/${playlistId}/videos`, { videoId });
-      return response.data;
+      return await this.request<Playlist>(`/playlists/${playlistId}/videos`, {
+        method: 'POST',
+        body: JSON.stringify({ videoId }),
+      });
     } catch (error) {
       return {
         success: false,
@@ -313,8 +325,7 @@ class ApiClient {
   // Notification Endpoints
   async getNotifications(): Promise<ApiResponse<Notification[]>> {
     try {
-      const response = await this.client.get('/notifications');
-      return response.data;
+      return await this.request<Notification[]>('/notifications');
     } catch (error) {
       return {
         success: false,
@@ -325,8 +336,9 @@ class ApiClient {
 
   async markNotificationAsRead(id: string): Promise<ApiResponse<void>> {
     try {
-      const response = await this.client.put(`/notifications/${id}/read`);
-      return response.data;
+      return await this.request<void>(`/notifications/${id}/read`, {
+        method: 'PUT',
+      });
     } catch (error) {
       return {
         success: false,
