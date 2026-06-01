@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { UserRole } from '@/types';
+import { useAuth } from '@/features/auth/AuthContext';
+import { UserRole } from '@/features/auth/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

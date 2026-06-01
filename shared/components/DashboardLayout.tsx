@@ -4,7 +4,7 @@ import React from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { ProtectedRoute } from './ProtectedRoute';
-import { UserRole } from '@/types';
+import { UserRole } from '@/features/auth/types';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;

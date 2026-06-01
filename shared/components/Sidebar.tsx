@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
+import { cn } from '@/shared/lib/utils';
 import {
   LayoutDashboard,
   Users,

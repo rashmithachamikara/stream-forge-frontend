@@ -1,4 +1,4 @@
-import { UserRole } from '@/types';
+import { UserRole } from '@/features/auth/types';
 
 export type RoleFilter = 'all' | UserRole;
 

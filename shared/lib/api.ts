@@ -1,5 +1,10 @@
 import axios, { AxiosInstance } from 'axios';
-import { User, ApiResponse, PaginatedResponse, Video, Playlist, Notification, VideoAnalytics } from '@/types';
+import { User } from '@/features/auth/types';
+import { Video } from '@/features/videos/types';
+import { Playlist } from '@/features/playlists/types';
+import { Notification } from '@/features/notifications/types';
+import { VideoAnalytics } from '@/features/admin/types';
+import { ApiResponse, PaginatedResponse } from '@/shared/types/api';
 
 // Mock API base URL - replace with actual API endpoint
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.streamforge.local';
