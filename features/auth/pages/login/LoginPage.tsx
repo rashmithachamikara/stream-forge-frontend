@@ -148,27 +148,9 @@ export default function LoginPage() {
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
 
-              <div className="mt-6 p-4 bg-secondary/50 dark:bg-muted/30 rounded-xl border border-border/30">
-                <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Demo Credentials</p>
-                <div className="space-y-2.5 text-xs">
-                  <div className="flex justify-between items-start">
-                    <span className="text-muted-foreground">Admin</span>
-                    <span className="font-mono text-foreground">admin@streamforge.com</span>
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <span className="text-muted-foreground">Editor</span>
-                    <span className="font-mono text-foreground">editor@streamforge.com</span>
-                  </div>
-                  <div className="flex justify-between items-start">
-                    <span className="text-muted-foreground">Viewer</span>
-                    <span className="font-mono text-foreground">viewer@streamforge.com</span>
-                  </div>
-                  <div className="pt-2 border-t border-border/30 flex justify-between items-start">
-                    <span className="text-muted-foreground">Password</span>
-                    <span className="font-mono text-foreground">password</span>
-                  </div>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Use the credentials provisioned by your Stream Forge administrator.
+              </p>
             </form>
           </CardContent>
         </Card>

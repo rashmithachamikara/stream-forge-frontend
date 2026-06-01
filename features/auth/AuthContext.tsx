@@ -12,43 +12,148 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const ACCESS_TOKEN_KEY = 'authToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+const ACCESS_TOKEN_EXPIRES_AT_KEY = 'accessTokenExpiresAt';
+const REFRESH_TOKEN_EXPIRES_AT_KEY = 'refreshTokenExpiresAt';
+
+const isExpired = (expiresAt: string | null) => {
+  if (!expiresAt) {
+    return true;
+  }
+
+  const expiryTime = new Date(expiresAt).getTime();
+  return Number.isNaN(expiryTime) || expiryTime <= Date.now();
+};
+
+const clearStoredAuth = () => {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(ACCESS_TOKEN_EXPIRES_AT_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_EXPIRES_AT_KEY);
+  localStorage.removeItem('user');
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     token: null,
+    refreshToken: null,
+    accessTokenExpiresAt: null,
+    refreshTokenExpiresAt: null,
     isLoading: true,
     error: null,
   });
 
+  const setSession = useCallback((session: {
+    user: User;
+    token: string;
+    refreshToken: string;
+    accessTokenExpiresAt: string;
+    refreshTokenExpiresAt: string;
+  }) => {
+    localStorage.setItem(ACCESS_TOKEN_KEY, session.token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, session.refreshToken);
+    localStorage.setItem(ACCESS_TOKEN_EXPIRES_AT_KEY, session.accessTokenExpiresAt);
+    localStorage.setItem(REFRESH_TOKEN_EXPIRES_AT_KEY, session.refreshTokenExpiresAt);
+    apiClient.setAuthToken(session.token);
+
+    setAuthState({
+      user: session.user,
+      token: session.token,
+      refreshToken: session.refreshToken,
+      accessTokenExpiresAt: session.accessTokenExpiresAt,
+      refreshTokenExpiresAt: session.refreshTokenExpiresAt,
+      isLoading: false,
+      error: null,
+    });
+  }, []);
+
+  const clearAuthState = useCallback((error: string | null = null) => {
+    apiClient.clearAuth();
+    clearStoredAuth();
+    setAuthState({
+      user: null,
+      token: null,
+      refreshToken: null,
+      accessTokenExpiresAt: null,
+      refreshTokenExpiresAt: null,
+      isLoading: false,
+      error,
+    });
+  }, []);
+
   // Initialize auth state from localStorage
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const userStr = localStorage.getItem('user');
+    const initializeAuth = async () => {
+      const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      const accessTokenExpiresAt = localStorage.getItem(ACCESS_TOKEN_EXPIRES_AT_KEY);
+      const refreshTokenExpiresAt = localStorage.getItem(REFRESH_TOKEN_EXPIRES_AT_KEY);
 
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        apiClient.setAuthToken(token);
-        setAuthState({
-          user,
-          token,
-          isLoading: false,
-          error: null,
-        });
-      } catch (error) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        setAuthState({
-          user: null,
-          token: null,
-          isLoading: false,
-          error: null,
-        });
+      if (!token || !refreshToken || !accessTokenExpiresAt || !refreshTokenExpiresAt) {
+        clearAuthState();
+        return;
       }
-    } else {
-      setAuthState((prev) => ({ ...prev, isLoading: false }));
-    }
-  }, []);
+
+      if (isExpired(refreshTokenExpiresAt)) {
+        clearAuthState();
+        return;
+      }
+
+      let activeToken = token;
+      let activeRefreshToken = refreshToken;
+      let activeAccessTokenExpiresAt = accessTokenExpiresAt;
+      let activeRefreshTokenExpiresAt = refreshTokenExpiresAt;
+
+      if (isExpired(accessTokenExpiresAt)) {
+        const refreshResponse = await apiClient.refreshAuth(refreshToken);
+
+        if (!refreshResponse.success || !refreshResponse.data) {
+          clearAuthState();
+          return;
+        }
+
+        activeToken = refreshResponse.data.token;
+        activeRefreshToken = refreshResponse.data.refreshToken;
+        activeAccessTokenExpiresAt = refreshResponse.data.accessTokenExpiresAt;
+        activeRefreshTokenExpiresAt = refreshResponse.data.refreshTokenExpiresAt;
+      } else {
+        apiClient.setAuthToken(token);
+      }
+
+      const userResponse = await apiClient.getCurrentUser();
+
+      if (userResponse.success && userResponse.data) {
+        setSession({
+          user: userResponse.data,
+          token: activeToken,
+          refreshToken: activeRefreshToken,
+          accessTokenExpiresAt: activeAccessTokenExpiresAt,
+          refreshTokenExpiresAt: activeRefreshTokenExpiresAt,
+        });
+        return;
+      }
+
+      const refreshResponse = await apiClient.refreshAuth(activeRefreshToken);
+
+      if (refreshResponse.success && refreshResponse.data) {
+        const retryUserResponse = await apiClient.getCurrentUser();
+
+        if (retryUserResponse.success && retryUserResponse.data) {
+          setSession({
+            ...refreshResponse.data,
+            user: retryUserResponse.data,
+          });
+          return;
+        }
+      }
+
+      clearAuthState();
+    };
+
+    initializeAuth();
+  }, [clearAuthState, setSession]);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
@@ -57,18 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await apiClient.login(email, password);
 
       if (response.success && response.data) {
-        const { user, token } = response.data;
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        apiClient.setAuthToken(token);
-
-        setAuthState({
-          user,
-          token,
-          isLoading: false,
-          error: null,
-        });
-
+        setSession(response.data);
         return true;
       } else {
         setAuthState((prev) => ({
@@ -87,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
       return false;
     }
-  }, []);
+  }, [setSession]);
 
   const logout = useCallback(async () => {
     setAuthState((prev) => ({ ...prev, isLoading: true }));
@@ -97,16 +191,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      setAuthState({
-        user: null,
-        token: null,
-        isLoading: false,
-        error: null,
-      });
+      clearAuthState();
     }
-  }, []);
+  }, [clearAuthState]);
 
   return (
     <AuthContext.Provider

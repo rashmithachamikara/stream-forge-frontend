@@ -1,15 +1,60 @@
-import { User } from '@/features/auth/types';
+import { AuthResponseDto, AuthSession, AuthUserDto, User, UserRole } from '@/features/auth/types';
 import { Video } from '@/features/videos/types';
 import { Playlist } from '@/features/playlists/types';
 import { Notification } from '@/features/notifications/types';
 import { VideoAnalytics } from '@/features/admin/types';
 import { ApiResponse, PaginatedResponse } from '@/shared/types/api';
 
-// Mock API base URL - replace with actual API endpoint
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.streamforge.local';
+const API_V1_PREFIX = '/api/v1';
+
+const roleMap: Record<number, UserRole> = {
+  1: 'admin',
+  2: 'editor',
+  3: 'viewer',
+};
+
+const normalizeApiBaseUrl = (url: string) => url.replace(/\/+$/, '');
+
+const mapAuthUser = (user: AuthUserDto): User => {
+  const role = user.role ? roleMap[user.role] : undefined;
+
+  if (!user.id || !user.email || !user.name || !role) {
+    throw new Error('Invalid auth user response');
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role,
+    createdAt: new Date(),
+  };
+};
+
+const mapAuthResponse = (response: AuthResponseDto): AuthSession => {
+  if (
+    !response.user ||
+    !response.accessToken ||
+    !response.refreshToken ||
+    !response.accessTokenExpiresAt ||
+    !response.refreshTokenExpiresAt
+  ) {
+    throw new Error('Invalid auth response');
+  }
+
+  return {
+    user: mapAuthUser(response.user),
+    token: response.accessToken,
+    refreshToken: response.refreshToken,
+    accessTokenExpiresAt: response.accessTokenExpiresAt,
+    refreshTokenExpiresAt: response.refreshTokenExpiresAt,
+  };
+};
 
 class ApiClient {
   private token: string | null = null;
+  private baseUrl = normalizeApiBaseUrl(API_BASE_URL);
 
   constructor() {
     // Load token from localStorage
@@ -29,7 +74,7 @@ class ApiClient {
     }
   }
 
-  private async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  private async requestRaw<T>(path: string, options: RequestInit = {}): Promise<T> {
     const isFormData = options.body instanceof FormData;
     const headers = new Headers(options.headers);
 
@@ -41,7 +86,7 @@ class ApiClient {
       headers.set('Authorization', `Bearer ${this.token}`);
     }
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(`${this.baseUrl}${path}`, {
       ...options,
       headers,
     });
@@ -53,85 +98,85 @@ class ApiClient {
     const data = await response.json().catch(() => undefined);
 
     if (!response.ok) {
-      return {
-        success: false,
-        error: data?.error || data?.message || 'Request failed',
-      };
+      throw new Error(data?.error || data?.message || 'Request failed');
     }
 
     return data;
   }
 
-  // Authentication Endpoints
-  async login(email: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> {
-    // Mock login for demo purposes
-    const mockUsers: Record<string, { user: User; password: string }> = {
-      'admin@streamforge.com': {
-        password: 'password',
-        user: {
-          id: '1',
-          email: 'admin@streamforge.com',
-          name: 'Admin User',
-          role: 'admin',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      },
-      'editor@streamforge.com': {
-        password: 'password',
-        user: {
-          id: '2',
-          email: 'editor@streamforge.com',
-          name: 'Editor User',
-          role: 'editor',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      },
-      'viewer@streamforge.com': {
-        password: 'password',
-        user: {
-          id: '3',
-          email: 'viewer@streamforge.com',
-          name: 'Viewer User',
-          role: 'viewer',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      },
-    };
-
-    const mockUser = mockUsers[email];
-    if (mockUser && mockUser.password === password) {
-      // Generate a mock token
-      const token = `mock_token_${btoa(email)}_${Date.now()}`;
+  private async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    try {
+      const data = await this.requestRaw<T>(path, options);
       return {
         success: true,
-        data: {
-          user: mockUser.user,
-          token,
-        },
+        data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Request failed',
       };
     }
+  }
 
-    return {
-      success: false,
-      error: 'Invalid email or password',
-    };
+  // Authentication Endpoints
+  async login(email: string, password: string): Promise<ApiResponse<AuthSession>> {
+    try {
+      const response = await this.requestRaw<AuthResponseDto>(`${API_V1_PREFIX}/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      const session = mapAuthResponse(response);
+      this.setAuthToken(session.token);
+
+      return {
+        success: true,
+        data: session,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Invalid email or password',
+      };
+    }
+  }
+
+  async refreshAuth(refreshToken: string): Promise<ApiResponse<AuthSession>> {
+    try {
+      const response = await this.requestRaw<AuthResponseDto>(`${API_V1_PREFIX}/auth/refresh`, {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      });
+      const session = mapAuthResponse(response);
+      this.setAuthToken(session.token);
+
+      return {
+        success: true,
+        data: session,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to refresh session',
+      };
+    }
   }
 
   async logout(): Promise<void> {
-    // Mock logout - no API call needed since this is a demo
     this.clearAuth();
   }
 
   async getCurrentUser(): Promise<ApiResponse<User>> {
     try {
-      return await this.request<User>('/auth/me');
+      const user = await this.requestRaw<AuthUserDto>(`${API_V1_PREFIX}/auth/me`);
+      return {
+        success: true,
+        data: mapAuthUser(user),
+      };
     } catch (error) {
       return {
         success: false,
-        error: 'Failed to fetch user',
+        error: error instanceof Error ? error.message : 'Failed to fetch user',
       };
     }
   }
