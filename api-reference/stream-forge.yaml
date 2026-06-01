@@ -1,0 +1,693 @@
+{
+  "openapi": "3.0.1",
+  "info": { "title": "StreamForge API", "version": "v1" },
+  "paths":
+    {
+      "/api/v1/auth/register":
+        {
+          "post":
+            {
+              "tags": ["Auth"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RegisterRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RegisterRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RegisterRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/auth/login":
+        {
+          "post":
+            {
+              "tags": ["Auth"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            { "$ref": "#/components/schemas/LoginRequestDto" },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            { "$ref": "#/components/schemas/LoginRequestDto" },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            { "$ref": "#/components/schemas/LoginRequestDto" },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/auth/refresh":
+        {
+          "post":
+            {
+              "tags": ["Auth"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RefreshTokenRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RefreshTokenRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RefreshTokenRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/auth/me":
+        {
+          "get":
+            {
+              "tags": ["Auth"],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/AuthUserDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/AuthUserDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/AuthUserDto" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/weatherforecast":
+        {
+          "get":
+            {
+              "tags": ["StreamForge.Api"],
+              "operationId": "GetWeatherForecast",
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/WeatherForecast",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/uploads/sessions":
+        {
+          "post":
+            {
+              "tags": ["UploadSessions"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateUploadSessionRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateUploadSessionRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateUploadSessionRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CreateUploadSessionResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CreateUploadSessionResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CreateUploadSessionResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/uploads/sessions/{sessionId}/target":
+        {
+          "get":
+            {
+              "tags": ["UploadSessions"],
+              "parameters":
+                [
+                  {
+                    "name": "sessionId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "partNumber",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "partSize",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int64" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadTargetDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadTargetDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadTargetDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/uploads/sessions/{sessionId}/parts/{partNumber}":
+        {
+          "post":
+            {
+              "tags": ["UploadSessions"],
+              "parameters":
+                [
+                  {
+                    "name": "sessionId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "partNumber",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "multipart/form-data":
+                        {
+                          "schema":
+                            {
+                              "required": ["checksum", "file"],
+                              "type": "object",
+                              "properties":
+                                {
+                                  "file":
+                                    { "type": "string", "format": "binary" },
+                                  "checksum": { "type": "string" },
+                                },
+                            },
+                          "encoding":
+                            {
+                              "file": { "style": "form" },
+                              "checksum": { "style": "form" },
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadPartResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadPartResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadPartResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/uploads/sessions/{sessionId}/complete":
+        {
+          "post":
+            {
+              "tags": ["UploadSessions"],
+              "parameters":
+                [
+                  {
+                    "name": "sessionId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CompleteUploadSessionRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CompleteUploadSessionRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CompleteUploadSessionRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CompleteUploadSessionResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CompleteUploadSessionResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CompleteUploadSessionResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+  "components":
+    {
+      "schemas":
+        {
+          "AuthResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "user": { "$ref": "#/components/schemas/AuthUserDto" },
+                  "accessToken": { "type": "string", "nullable": true },
+                  "refreshToken": { "type": "string", "nullable": true },
+                  "accessTokenExpiresAt":
+                    { "type": "string", "format": "date-time" },
+                  "refreshTokenExpiresAt":
+                    { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
+          "AuthUserDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "nullable": true },
+                  "email": { "type": "string", "nullable": true },
+                  "role": { "$ref": "#/components/schemas/UserRole" },
+                },
+              "additionalProperties": false,
+            },
+          "CompleteUploadSessionRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "sessionId": { "type": "string", "format": "uuid" },
+                  "fileName": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "CompleteUploadSessionResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "sessionId": { "type": "string", "format": "uuid" },
+                  "videoId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "status": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "CreateUploadSessionRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "title": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "totalSize": { "type": "integer", "format": "int64" },
+                  "contentType": { "type": "string", "nullable": true },
+                  "categoryId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "CreateUploadSessionResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "sessionId": { "type": "string", "format": "uuid" },
+                  "expiresAt": { "type": "string", "format": "date-time" },
+                  "videoTitle": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "LoginRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "email": { "type": "string", "nullable": true },
+                  "password": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "RefreshTokenRequestDto":
+            {
+              "type": "object",
+              "properties":
+                { "refreshToken": { "type": "string", "nullable": true } },
+              "additionalProperties": false,
+            },
+          "RegisterRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "name": { "type": "string", "nullable": true },
+                  "email": { "type": "string", "nullable": true },
+                  "password": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "UploadPartResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "sessionId": { "type": "string", "format": "uuid" },
+                  "partNumber": { "type": "integer", "format": "int32" },
+                  "isComplete": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "UploadTargetDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "type": { "type": "string", "nullable": true },
+                  "url": { "type": "string", "nullable": true },
+                  "headers":
+                    {
+                      "type": "object",
+                      "additionalProperties": { "type": "string" },
+                      "nullable": true,
+                    },
+                  "httpMethod": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "UserRole":
+            { "enum": [1, 2, 3], "type": "integer", "format": "int32" },
+          "WeatherForecast":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "date": { "type": "string", "format": "date" },
+                  "temperatureC": { "type": "integer", "format": "int32" },
+                  "summary": { "type": "string", "nullable": true },
+                  "temperatureF":
+                    { "type": "integer", "format": "int32", "readOnly": true },
+                },
+              "additionalProperties": false,
+            },
+        },
+      "securitySchemes":
+        {
+          "Bearer":
+            {
+              "type": "http",
+              "description": "Enter JWT token as: Bearer {token}",
+              "scheme": "bearer",
+              "bearerFormat": "JWT",
+            },
+        },
+    },
+  "security": [{ "Bearer": [] }],
+}
