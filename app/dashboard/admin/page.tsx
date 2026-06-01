@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { Users, Video, Eye, TrendingUp, Plus, Edit2, Trash2 } from 'lucide-react';
+import { RoleChip } from '@/components/RoleChip';
 import { User } from '@/types';
 
 export default function AdminDashboard() {
@@ -89,15 +89,6 @@ export default function AdminDashboard() {
 
   const handleDeleteUser = (id: string) => {
     setUsers(users.filter((user) => user.id !== id));
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    const colors = {
-      admin: 'bg-primary text-primary-foreground',
-      editor: 'bg-blue-500 text-white',
-      viewer: 'bg-muted text-muted-foreground',
-    };
-    return colors[role as keyof typeof colors] || colors.viewer;
   };
 
   return (
@@ -222,9 +213,7 @@ export default function AdminDashboard() {
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell className="text-muted-foreground">{user.email}</TableCell>
                         <TableCell>
-                          <Badge className={getRoleBadgeColor(user.role)}>
-                            {user.role}
-                          </Badge>
+                          <RoleChip role={user.role} />
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {user.createdAt.toLocaleDateString()}

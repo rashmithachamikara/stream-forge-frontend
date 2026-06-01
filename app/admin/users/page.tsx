@@ -21,8 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Edit2, Trash2, Shield, MoreHorizontal } from 'lucide-react';
+import { Plus, Edit2, Trash2, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { RoleChip } from '@/components/RoleChip';
 import { User } from '@/types';
 
 export default function UserManagement() {
@@ -120,15 +120,6 @@ export default function UserManagement() {
 
   const handleDeleteUser = (id: string) => {
     setUsers(users.filter((user) => user.id !== id));
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    const colors = {
-      admin: 'gradient-primary text-white border-0',
-      editor: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/30',
-      viewer: 'bg-muted text-muted-foreground border border-border/30',
-    };
-    return colors[role as keyof typeof colors] || colors.viewer;
   };
 
   const userStats = {
@@ -296,9 +287,7 @@ export default function UserManagement() {
                             <TableCell className="font-medium">{user.name}</TableCell>
                             <TableCell className="text-muted-foreground text-sm">{user.email}</TableCell>
                             <TableCell>
-                              <Badge className={getRoleBadgeColor(user.role)}>
-                                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                              </Badge>
+                              <RoleChip role={user.role} />
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {user.createdAt.toLocaleDateString()}
