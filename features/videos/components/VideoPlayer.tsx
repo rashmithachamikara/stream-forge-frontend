@@ -122,7 +122,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       return;
     }
 
-    hlsRef.current.currentLevel = value === 'auto' ? -1 : Number(value);
+    if (value === 'auto') {
+      hlsRef.current.currentLevel = -1;
+      return;
+    }
+
+    hlsRef.current.nextLevel = Number(value);
   };
 
   useEffect(() => {
@@ -240,14 +245,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative bg-black rounded-lg overflow-hidden"
+      className="relative flex items-center justify-center bg-black rounded-lg overflow-hidden fullscreen:rounded-none"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && !showSettings && setShowControls(false)}
     >
       {/* Video Element */}
       <video
         ref={videoRef}
-        className="w-full bg-black"
+        className="w-full max-h-full bg-black object-contain fullscreen:h-full"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={() => {
           if (videoRef.current && Number.isFinite(videoRef.current.duration)) {
