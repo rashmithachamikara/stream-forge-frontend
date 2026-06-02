@@ -2,6 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { useAuth } from '@/features/auth/AuthContext';
+import { createVideoUploadClient } from '@/features/videos/lib/uploadClient';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,12 +42,14 @@ interface QualityOption {
 }
 
 export default function UploadVideoPage() {
+  const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Video metadata
   const [title, setTitle] = useState('');
@@ -158,27 +163,36 @@ export default function UploadVideoPage() {
       return;
     }
 
+    if (!token) {
+      setUploadError('You must be signed in to upload videos.');
+      return;
+    }
+
     setIsUploading(true);
+    setUploadProgress(0);
+    setUploadError(null);
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-          setUploadComplete(true);
-          return 100;
-        }
-        return prev + 10;
+    try {
+      const client = createVideoUploadClient(token);
+
+      await client.uploadFile({
+        title,
+        description: description || undefined,
+        file: selectedFile,
+        fileName: selectedFile.name,
+        contentType: selectedFile.type || undefined,
+        onProgress: (progress) => {
+          setUploadProgress(progress.percent);
+        },
       });
-    }, 500);
 
-    // In a real app, you would upload to your backend here
-    // const formData = new FormData();
-    // formData.append('video', selectedFile);
-    // formData.append('title', title);
-    // formData.append('description', description);
-    // etc...
+      setUploadProgress(100);
+      setUploadComplete(true);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const resetForm = () => {
@@ -190,6 +204,7 @@ export default function UploadVideoPage() {
     setVisibility('public');
     setUploadProgress(0);
     setUploadComplete(false);
+    setUploadError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -231,6 +246,13 @@ export default function UploadVideoPage() {
           </Card>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
+            {uploadError && (
+              <Alert variant="destructive" className="bg-destructive/10 border-destructive/30">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{uploadError}</AlertDescription>
+              </Alert>
+            )}
+
             {/* File Upload Section */}
             <Card>
               <CardHeader>
