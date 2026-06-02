@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { Video } from '@/features/videos/types';
 import { formatDuration } from '@/features/videos/utils';
 
 export default function ViewerDashboard() {
+  const router = useRouter();
   const [videos] = useState<Video[]>(mockVideos);
 
   const recentVideos = [...videos].sort(
@@ -19,7 +21,10 @@ export default function ViewerDashboard() {
 
 
   const VideoCard = ({ video }: { video: Video }) => (
-    <Card className="overflow-hidden hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 cursor-pointer group border-border/50 hover:border-primary/30">
+    <Card
+      className="overflow-hidden hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 cursor-pointer group border-border/50 hover:border-primary/30"
+      onClick={() => router.push(`/videos/${video.id}`)}
+    >
       <div className="relative aspect-video bg-gradient-to-br from-secondary to-secondary/50 dark:from-primary/15 dark:to-accent/10 flex items-center justify-center overflow-hidden">
         <img 
           src={video.thumbnail} 
@@ -56,7 +61,14 @@ export default function ViewerDashboard() {
           </span>
         </div>
 
-        <Button className="w-full gap-2 h-9 gradient-primary font-medium text-white" variant="default">
+        <Button
+          className="w-full gap-2 h-9 gradient-primary font-medium text-white"
+          variant="default"
+          onClick={(event) => {
+            event.stopPropagation();
+            router.push(`/videos/${video.id}`);
+          }}
+        >
           <Play className="w-4 h-4" />
           Play
         </Button>
@@ -119,6 +131,7 @@ export default function ViewerDashboard() {
               <Card
                 key={video.id}
                 className="overflow-hidden hover:shadow-2xl dark:hover:shadow-2xl transition-all duration-300 cursor-pointer group flex flex-col border-border/50 hover:border-primary/30"
+                onClick={() => router.push(`/videos/${video.id}`)}
               >
                 <div className="relative aspect-video bg-gradient-to-br from-secondary to-secondary/50 dark:from-primary/15 dark:to-accent/10 flex items-center justify-center overflow-hidden">
                   <img 
@@ -156,7 +169,13 @@ export default function ViewerDashboard() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button className="flex-1 gap-2 h-10 gradient-primary font-medium text-white">
+                    <Button
+                      className="flex-1 gap-2 h-10 gradient-primary font-medium text-white"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        router.push(`/videos/${video.id}`);
+                      }}
+                    >
                       <Play className="w-4 h-4" />
                       Play Now
                     </Button>

@@ -1,11 +1,17 @@
 import { Video } from '@/features/videos/types';
+import { getVideoManifestUrl, getVideoThumbnailUrl } from '@/features/videos/lib/playbackUrls';
+
+export const MOCK_VIDEO_IDS = [
+  '89b4830e-55b3-4f50-b610-611514326e24',
+  'ad93452d-0370-4ebc-ba2d-0b00f862d9bc',
+] as const;
 
 export const mockVideos: Video[] = [
   {
-    id: '1',
-    title: 'Getting Started with Stream Forge',
-    description: 'Learn the basics of our platform in this comprehensive tutorial.',
-    thumbnail: '/thumbnail-onboarding.svg',
+    id: MOCK_VIDEO_IDS[0],
+    title: 'Tourists and bikes',
+    description: 'Tourists getting frustrated and lost',
+    thumbnail: getVideoThumbnailUrl(MOCK_VIDEO_IDS[0]),
     duration: 600,
     uploadedBy: 'Jane Editor',
     uploadedAt: new Date('2024-02-15'),
@@ -13,16 +19,16 @@ export const mockVideos: Video[] = [
     categories: ['Tutorial', 'Onboarding'],
     tags: ['intro', 'basics', 'getting-started'],
     visibility: 'public',
-    hlsUrl: 'https://example.com/hls/video1.m3u8',
+    hlsUrl: getVideoManifestUrl(MOCK_VIDEO_IDS[0]),
     transcodedVersions: [
       { resolution: '1080p', format: 'H.264', bitrate: '5000kbps', url: 'https://example.com/1080p' },
     ],
   },
   {
-    id: '2',
-    title: 'Advanced Features Tour',
-    description: 'Explore the advanced features and capabilities of Stream Forge.',
-    thumbnail: '/thumbnail-advanced.svg',
+    id: MOCK_VIDEO_IDS[1],
+    title: 'Attack on Titan',
+    description: 'Attack on Titan anime series',
+    thumbnail: getVideoThumbnailUrl(MOCK_VIDEO_IDS[1]),
     duration: 1200,
     uploadedBy: 'Jane Editor',
     uploadedAt: new Date('2024-02-10'),
@@ -30,40 +36,10 @@ export const mockVideos: Video[] = [
     categories: ['Tutorial'],
     tags: ['advanced', 'features'],
     visibility: 'public',
-    hlsUrl: 'https://example.com/hls/video2.m3u8',
+    hlsUrl: getVideoManifestUrl(MOCK_VIDEO_IDS[1]),
     transcodedVersions: [
       { resolution: '720p', format: 'H.264', bitrate: '2500kbps', url: 'https://example.com/720p' },
     ],
-  },
-  {
-    id: '3',
-    title: 'Company Training Session',
-    description: 'Q1 2024 company-wide training session.',
-    thumbnail: '/thumbnail-training.svg',
-    duration: 2400,
-    uploadedBy: 'Jane Editor',
-    uploadedAt: new Date('2024-02-05'),
-    views: 89,
-    categories: ['Training'],
-    tags: ['company', 'training', 'q1'],
-    visibility: 'public',
-    hlsUrl: 'https://example.com/hls/video3.m3u8',
-    transcodedVersions: [],
-  },
-  {
-    id: '4',
-    title: 'Product Demo',
-    description: 'See our new features in action.',
-    thumbnail: '/thumbnail-demo.svg',
-    duration: 900,
-    uploadedBy: 'Jane Editor',
-    uploadedAt: new Date('2024-01-28'),
-    views: 342,
-    categories: ['Demo'],
-    tags: ['product', 'demo', 'new-features'],
-    visibility: 'public',
-    hlsUrl: 'https://example.com/hls/video4.m3u8',
-    transcodedVersions: [],
   },
 ];
 

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Hls from 'hls.js';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Play,
   Pause,
@@ -14,7 +14,6 @@ import {
   Share2,
   Bookmark,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 interface VideoPlayerProps {
   hlsUrl: string;
@@ -22,6 +21,11 @@ interface VideoPlayerProps {
   duration: number;
   onBookmarkAdd?: (timestamp: number) => void;
 }
+
+type QualityOption = {
+  value: string;
+  label: string;
+};
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   hlsUrl,
@@ -31,6 +35,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -41,8 +46,96 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [quality, setQuality] = useState('auto');
   const [bookmarkTitle, setBookmarkTitle] = useState('');
   const [showBookmarkInput, setShowBookmarkInput] = useState(false);
+  const [mediaDuration, setMediaDuration] = useState(duration);
+  const [isLoading, setIsLoading] = useState(true);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const [qualityOptions, setQualityOptions] = useState<QualityOption[]>([]);
+  const [usesNativeHls, setUsesNativeHls] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    let hls: Hls | null = null;
+    hlsRef.current = null;
+    setIsLoading(true);
+    setPlaybackError(null);
+    setCurrentTime(0);
+    setIsPlaying(false);
+    setQuality('auto');
+    setQualityOptions([]);
+    setUsesNativeHls(false);
+    setShowSettings(false);
+
+    if (Hls.isSupported()) {
+      const hlsInstance = new Hls();
+      hls = hlsInstance;
+      hlsRef.current = hlsInstance;
+      hlsInstance.loadSource(hlsUrl);
+      hlsInstance.attachMedia(video);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+        setQualityOptions(
+          hlsInstance.levels.map((level, index) => {
+            const bitrateKbps = Math.round(level.bitrate / 1000);
+            const resolution = level.height ? `${level.height}p` : `${bitrateKbps} kbps`;
+
+            return {
+              value: String(index),
+              label: level.height ? `${resolution} (${bitrateKbps} kbps)` : resolution,
+            };
+          })
+        );
+      });
+      hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          setPlaybackError('Unable to load this video stream.');
+          setIsLoading(false);
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      setUsesNativeHls(true);
+      video.src = hlsUrl;
+    } else {
+      setPlaybackError('HLS playback is not supported in this browser.');
+      setIsLoading(false);
+    }
+
+    return () => {
+      hls?.destroy();
+      hlsRef.current = null;
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, [hlsUrl]);
+
+  const handleQualityChange = (value: string) => {
+    setQuality(value);
+    setShowSettings(false);
+
+    if (!hlsRef.current) {
+      return;
+    }
+
+    hlsRef.current.currentLevel = value === 'auto' ? -1 : Number(value);
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // Handle play/pause
   const togglePlay = () => {
@@ -50,9 +143,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (isPlaying) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play();
+        videoRef.current.play().catch(() => {
+          setPlaybackError('Unable to start video playback.');
+        });
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -140,26 +234,42 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const displayDuration = mediaDuration > 0 ? mediaDuration : duration;
+  const progressPercent = displayDuration > 0 ? (currentTime / displayDuration) * 100 : 0;
 
   return (
     <div
       ref={containerRef}
-      className="bg-black rounded-lg overflow-hidden"
+      className="relative bg-black rounded-lg overflow-hidden"
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => isPlaying && setShowControls(false)}
+      onMouseLeave={() => isPlaying && !showSettings && setShowControls(false)}
     >
       {/* Video Element */}
       <video
         ref={videoRef}
         className="w-full bg-black"
         onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={() => {
+          if (videoRef.current && Number.isFinite(videoRef.current.duration)) {
+            setMediaDuration(videoRef.current.duration);
+          }
+        }}
+        onCanPlay={() => setIsLoading(false)}
+        onWaiting={() => setIsLoading(true)}
+        onPlaying={() => setIsLoading(false)}
+        onError={() => {
+          setPlaybackError('Unable to load this video stream.');
+          setIsLoading(false);
+        }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-      >
-        <source src={hlsUrl} type="application/x-mpegURL" />
-        Your browser does not support the video tag.
-      </video>
+      />
+
+      {(isLoading || playbackError) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-white text-sm z-10">
+          {playbackError || 'Loading video...'}
+        </div>
+      )}
 
       {/* Controls Overlay */}
       <div
@@ -192,7 +302,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <input
               type="range"
               min="0"
-              max={duration}
+              max={displayDuration}
               value={currentTime}
               onChange={handleProgressChange}
               className="flex-1 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-red-500"
@@ -204,7 +314,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Controls Bar */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
+            <div className="relative flex items-center gap-2">
               {/* Play/Pause */}
               <Button
                 size="icon"
@@ -246,7 +356,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
               {/* Time Display */}
               <span className="text-sm text-white ml-2 font-mono">
-                {formatTime(currentTime)} / {formatTime(duration)}
+                {formatTime(currentTime)} / {formatTime(displayDuration)}
               </span>
             </div>
 
@@ -292,14 +402,84 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </Button>
 
               {/* Settings */}
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-white hover:bg-white/20"
-                title="Video settings"
-              >
-                <Settings className="h-5 w-5" />
-              </Button>
+              <div className="relative">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-white hover:bg-white/20"
+                  title="Video settings"
+                  aria-expanded={showSettings}
+                  aria-haspopup="menu"
+                  onClick={() => {
+                    setShowSettings((isOpen) => !isOpen);
+                    setShowControls(true);
+                  }}
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+
+                {showSettings && (
+                  <div
+                    role="menu"
+                    className="absolute bottom-11 right-0 z-30 w-52 overflow-hidden rounded-md border border-white/15 bg-zinc-950 text-white shadow-xl"
+                  >
+                    <div className="px-3 py-2 text-sm font-medium">Quality</div>
+                    <div className="h-px bg-white/15" />
+                    <div className="p-1">
+                      {usesNativeHls ? (
+                        <button
+                          type="button"
+                          disabled
+                          role="menuitemradio"
+                          aria-checked="true"
+                          className="flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-white/70"
+                        >
+                          <span className="size-2 rounded-full bg-white/70" />
+                          Native HLS
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={quality === 'auto'}
+                            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-white hover:bg-white/10 focus:bg-white/10 focus:outline-none"
+                            onClick={() => handleQualityChange('auto')}
+                          >
+                            <span className={`size-2 rounded-full ${quality === 'auto' ? 'bg-white' : 'bg-transparent'}`} />
+                            Auto
+                          </button>
+                          {qualityOptions.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              role="menuitemradio"
+                              aria-checked={quality === option.value}
+                              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-white hover:bg-white/10 focus:bg-white/10 focus:outline-none"
+                              onClick={() => handleQualityChange(option.value)}
+                            >
+                              <span className={`size-2 rounded-full ${quality === option.value ? 'bg-white' : 'bg-transparent'}`} />
+                              {option.label}
+                            </button>
+                          ))}
+                          {qualityOptions.length === 0 && (
+                            <button
+                              type="button"
+                              disabled
+                              role="menuitemradio"
+                              aria-checked="false"
+                              className="flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-white/70"
+                            >
+                              <span className="size-2 rounded-full bg-transparent" />
+                              Loading qualities...
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Fullscreen */}
               <Button

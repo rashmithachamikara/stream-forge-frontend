@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { Video } from '@/features/videos/types';
 import { formatDuration } from '@/features/videos/utils';
 
 export default function VideoLibrary() {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -50,9 +52,15 @@ export default function VideoLibrary() {
     currentPage * pageSize
   );
 
+  const goToVideo = (videoId: string) => {
+    router.push(`/videos/${videoId}`);
+  };
 
   const VideoCardGrid = ({ video }: { video: Video }) => (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full flex flex-col">
+    <Card
+      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full flex flex-col"
+      onClick={() => goToVideo(video.id)}
+    >
       <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
         <img 
           src={video.thumbnail} 
@@ -78,7 +86,14 @@ export default function VideoLibrary() {
           </span>
           <span>{video.uploadedAt.toLocaleDateString()}</span>
         </div>
-        <Button className="w-full mt-4 gap-2" variant="outline">
+        <Button
+          className="w-full mt-4 gap-2"
+          variant="outline"
+          onClick={(event) => {
+            event.stopPropagation();
+            goToVideo(video.id);
+          }}
+        >
           <Play className="w-4 h-4" />
           Watch
         </Button>
@@ -87,7 +102,7 @@ export default function VideoLibrary() {
   );
 
   const VideoCardList = ({ video }: { video: Video }) => (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => goToVideo(video.id)}>
       <CardContent className="p-6 flex items-start gap-6">
         <div className="relative w-40 h-24 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
           <img 
@@ -120,7 +135,14 @@ export default function VideoLibrary() {
               {video.views} views
             </span>
             <span>{video.uploadedAt.toLocaleDateString()}</span>
-            <Button size="sm" variant="outline">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(event) => {
+                event.stopPropagation();
+                goToVideo(video.id);
+              }}
+            >
               <Play className="w-3 h-3 mr-1" />
               Watch
             </Button>

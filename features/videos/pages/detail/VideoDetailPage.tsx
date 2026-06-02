@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
+import { mockVideos } from '@/features/videos/data/mockVideos';
+import { getVideoManifestUrl, getVideoThumbnailUrl } from '@/features/videos/lib/playbackUrls';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,28 +15,23 @@ import { Share2, Bookmark, ThumbsUp, MoreVertical, Eye, Calendar, Play } from 'l
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { Video } from '@/features/videos/types';
 
-export default function WatchVideoPage({ params }: { params: { id: string } }) {
-  // Mock video data - in real app, fetch by ID
-  const [video] = useState<Video>({
-    id: params.id,
-    title: 'Getting Started with Stream Forge',
-    description: 'Learn the basics of Stream Forge in this comprehensive tutorial. We cover user roles, video management, and core features.',
-    thumbnail: '/thumbnail-onboarding.svg',
-    duration: 600,
-    uploadedBy: 'Jane Editor',
-    uploadedAt: new Date('2024-02-15'),
-    views: 234,
-    categories: ['Tutorial', 'Onboarding'],
-    tags: ['intro', 'basics', 'getting-started'],
+export default function WatchVideoPage({ videoId }: { videoId: string }) {
+  const router = useRouter();
+  const video = mockVideos.find((mockVideo) => mockVideo.id === videoId) ?? {
+    id: videoId,
+    title: 'Stream Forge Video',
+    description: 'Video metadata is not available yet. Playback uses the requested video ID.',
+    thumbnail: getVideoThumbnailUrl(videoId),
+    duration: 0,
+    uploadedBy: 'Stream Forge',
+    uploadedAt: new Date(),
+    views: 0,
+    categories: [],
+    tags: [],
     visibility: 'public',
-    hlsUrl: 'https://example.com/hls/video1.m3u8',
-    transcriptUrl: 'https://example.com/transcripts/video1.vtt',
-    transcodedVersions: [
-      { resolution: '1080p', format: 'H.264', bitrate: '5000kbps', url: 'https://example.com/1080p' },
-      { resolution: '720p', format: 'H.264', bitrate: '2500kbps', url: 'https://example.com/720p' },
-      { resolution: '480p', format: 'H.264', bitrate: '1200kbps', url: 'https://example.com/480p' },
-    ],
-  });
+    hlsUrl: getVideoManifestUrl(videoId),
+    transcodedVersions: [],
+  } satisfies Video;
 
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([
     {
@@ -87,38 +85,7 @@ export default function WatchVideoPage({ params }: { params: { id: string } }) {
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
 
-  const relatedVideos: Video[] = [
-    {
-      id: '2',
-      title: 'Advanced Features Tour',
-      description: 'Deep dive into advanced features',
-      thumbnail: '/thumbnail-advanced.svg',
-      duration: 1200,
-      uploadedBy: 'Jane Editor',
-      uploadedAt: new Date('2024-02-10'),
-      views: 156,
-      categories: ['Tutorial'],
-      tags: ['advanced'],
-      visibility: 'public',
-      hlsUrl: 'https://example.com/hls/video2.m3u8',
-      transcodedVersions: [],
-    },
-    {
-      id: '3',
-      title: 'Video Upload Guide',
-      description: 'How to upload and manage videos',
-      thumbnail: '/thumbnail-tutorial.svg',
-      duration: 900,
-      uploadedBy: 'Jane Editor',
-      uploadedAt: new Date('2024-02-01'),
-      views: 89,
-      categories: ['Tutorial'],
-      tags: ['upload', 'guide'],
-      visibility: 'public',
-      hlsUrl: 'https://example.com/hls/video3.m3u8',
-      transcodedVersions: [],
-    },
-  ];
+  const relatedVideos: Video[] = mockVideos.filter((relatedVideo) => relatedVideo.id !== video.id);
 
   return (
     <DashboardLayout title="Watch Video">
@@ -293,7 +260,11 @@ export default function WatchVideoPage({ params }: { params: { id: string } }) {
             <h2 className="text-2xl font-bold text-foreground mb-4">Related Videos</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {relatedVideos.map((relatedVideo) => (
-                <Card key={relatedVideo.id} className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+                <Card
+                  key={relatedVideo.id}
+                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+                  onClick={() => router.push(`/videos/${relatedVideo.id}`)}
+                >
                   <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
                     <img 
                       src={relatedVideo.thumbnail} 
