@@ -32,7 +32,7 @@ export interface AuthUserDto {
   id?: string | null;
   name?: string | null;
   email?: string | null;
-  role?: number | null;
+  role?: number | string | null;
 }
 
 export interface AuthResponseDto {

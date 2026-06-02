@@ -8,16 +8,27 @@ import { ApiResponse, PaginatedResponse } from '@/shared/types/api';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.streamforge.local';
 const API_V1_PREFIX = '/api/v1';
 
-const roleMap: Record<number, UserRole> = {
+const numericRoleMap: Record<number, UserRole> = {
   1: 'admin',
   2: 'editor',
   3: 'viewer',
 };
 
+const stringRoleMap: Record<string, UserRole> = {
+  admin: 'admin',
+  editor: 'editor',
+  viewer: 'viewer',
+};
+
 const normalizeApiBaseUrl = (url: string) => url.replace(/\/+$/, '');
 
 const mapAuthUser = (user: AuthUserDto): User => {
-  const role = user.role ? roleMap[user.role] : undefined;
+  const role =
+    typeof user.role === 'number'
+      ? numericRoleMap[user.role]
+      : typeof user.role === 'string'
+        ? stringRoleMap[user.role.toLowerCase()]
+        : undefined;
 
   if (!user.id || !user.email || !user.name || !role) {
     throw new Error('Invalid auth user response');
