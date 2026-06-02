@@ -527,6 +527,78 @@
                 },
             },
         },
+      "/api/v1/videos/{videoId}/playback/manifest":
+        {
+          "get":
+            {
+              "tags": ["VideoPlayback"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/videos/{videoId}/playback/assets/{assetPath}":
+        {
+          "get":
+            {
+              "tags": ["VideoPlayback"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "assetPath",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/videos/{videoId}/thumbnail":
+        {
+          "get":
+            {
+              "tags": ["VideoPlayback"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
     },
   "components":
     {
@@ -592,6 +664,14 @@
                   "contentType": { "type": "string", "nullable": true },
                   "categoryId":
                     { "type": "string", "format": "uuid", "nullable": true },
+                  "visibility":
+                    { "$ref": "#/components/schemas/VideoVisibility" },
+                  "tagIds":
+                    {
+                      "type": "array",
+                      "items": { "type": "string", "format": "uuid" },
+                      "nullable": true,
+                    },
                 },
               "additionalProperties": false,
             },
@@ -601,6 +681,7 @@
               "properties":
                 {
                   "sessionId": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
                   "expiresAt": { "type": "string", "format": "date-time" },
                   "videoTitle": { "type": "string", "nullable": true },
                 },
@@ -663,7 +744,9 @@
               "additionalProperties": false,
             },
           "UserRole":
-            { "enum": [1, 2, 3], "type": "integer", "format": "int32" },
+            { "enum": ["Admin", "Editor", "Viewer"], "type": "string" },
+          "VideoVisibility":
+            { "enum": ["Public", "Private", "Internal"], "type": "string" },
           "WeatherForecast":
             {
               "type": "object",
