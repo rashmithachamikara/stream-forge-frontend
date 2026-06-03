@@ -224,6 +224,309 @@
                 },
             },
         },
+      "/api/v1/categories":
+        {
+          "get":
+            {
+              "tags": ["Categories"],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/categories/{categoryId}":
+        {
+          "get":
+            {
+              "tags": ["Categories"],
+              "parameters":
+                [
+                  {
+                    "name": "categoryId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/categories/{categoryId}/videos":
+        {
+          "get":
+            {
+              "tags": ["Categories"],
+              "parameters":
+                [
+                  {
+                    "name": "categoryId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "tagId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "uploaderId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "sort",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/videos":
+        {
+          "get":
+            {
+              "tags": ["Me"],
+              "parameters":
+                [
+                  {
+                    "name": "status",
+                    "in": "query",
+                    "schema": { "$ref": "#/components/schemas/VideoStatus" },
+                  },
+                  {
+                    "name": "visibility",
+                    "in": "query",
+                    "schema":
+                      { "$ref": "#/components/schemas/VideoVisibility" },
+                  },
+                  {
+                    "name": "search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "sort",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/upload-sessions":
+        {
+          "get":
+            {
+              "tags": ["Me"],
+              "parameters":
+                [
+                  {
+                    "name": "status",
+                    "in": "query",
+                    "schema":
+                      { "$ref": "#/components/schemas/UploadSessionStatus" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadSessionSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadSessionSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UploadSessionSummaryDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
       "/api/v1/weatherforecast":
         {
           "get":
@@ -246,6 +549,190 @@
                                     {
                                       "$ref": "#/components/schemas/WeatherForecast",
                                     },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/tags":
+        {
+          "get":
+            {
+              "tags": ["Tags"],
+              "parameters":
+                [
+                  {
+                    "name": "search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/tags/{tagId}":
+        {
+          "get":
+            {
+              "tags": ["Tags"],
+              "parameters":
+                [
+                  {
+                    "name": "tagId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/tags/{tagId}/videos":
+        {
+          "get":
+            {
+              "tags": ["Tags"],
+              "parameters":
+                [
+                  {
+                    "name": "tagId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "categoryId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "uploaderId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "sort",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
                                 },
                             },
                         },
@@ -527,6 +1014,200 @@
                 },
             },
         },
+      "/api/v1/users":
+        {
+          "get":
+            {
+              "tags": ["Users"],
+              "parameters":
+                [
+                  {
+                    "name": "search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "role",
+                    "in": "query",
+                    "schema": { "$ref": "#/components/schemas/UserRole" },
+                  },
+                  {
+                    "name": "isActive",
+                    "in": "query",
+                    "schema": { "type": "boolean" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UserProfileDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UserProfileDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UserProfileDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/users/{userId}":
+        {
+          "get":
+            {
+              "tags": ["Users"],
+              "parameters":
+                [
+                  {
+                    "name": "userId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UserProfileDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UserProfileDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UserProfileDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/users/{userId}/videos":
+        {
+          "get":
+            {
+              "tags": ["Users"],
+              "parameters":
+                [
+                  {
+                    "name": "userId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "categoryId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "tagId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "sort",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
       "/api/v1/videos/{videoId}/playback/manifest":
         {
           "get":
@@ -599,11 +1280,499 @@
               "responses": { "200": { "description": "OK" } },
             },
         },
+      "/api/v1/videos":
+        {
+          "get":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "categoryId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "tagId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "uploaderId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "status",
+                    "in": "query",
+                    "schema": { "$ref": "#/components/schemas/VideoStatus" },
+                  },
+                  {
+                    "name": "visibility",
+                    "in": "query",
+                    "schema":
+                      { "$ref": "#/components/schemas/VideoVisibility" },
+                  },
+                  {
+                    "name": "sort",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}":
+        {
+          "get":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoDetailDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoDetailDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoDetailDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "patch":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateVideoRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateVideoRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateVideoRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoDetailDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoDetailDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoDetailDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "delete":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/videos/{videoId}/processing-status":
+        {
+          "get":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoProcessingStatusDetailsDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoProcessingStatusDetailsDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoProcessingStatusDetailsDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/archive":
+        {
+          "post":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/videos/{videoId}/access":
+        {
+          "get":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AccessGrantDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AccessGrantDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AccessGrantDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "post":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateAccessGrantRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateAccessGrantRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateAccessGrantRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AccessGrantDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AccessGrantDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AccessGrantDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/access/{accessControlId}":
+        {
+          "delete":
+            {
+              "tags": ["Videos"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "accessControlId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
     },
   "components":
     {
       "schemas":
         {
+          "AccessGrantDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "userId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "userName": { "type": "string", "nullable": true },
+                  "shareToken": { "type": "string", "nullable": true },
+                  "permissionType":
+                    { "$ref": "#/components/schemas/PermissionType" },
+                  "expiresAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "isActive": { "type": "boolean" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
+          "AccessGrantDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        { "$ref": "#/components/schemas/AccessGrantDto" },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "AuthResponseDto":
             {
               "type": "object",
@@ -631,6 +1800,21 @@
                 },
               "additionalProperties": false,
             },
+          "CategoryDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "parentCategoryId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "displayOrder": { "type": "integer", "format": "int32" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
           "CompleteUploadSessionRequestDto":
             {
               "type": "object",
@@ -650,6 +1834,25 @@
                   "videoId":
                     { "type": "string", "format": "uuid", "nullable": true },
                   "status": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "CreateAccessGrantRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "userId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "shareToken": { "type": "string", "nullable": true },
+                  "permissionType":
+                    { "$ref": "#/components/schemas/PermissionType" },
+                  "expiresAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
                 },
               "additionalProperties": false,
             },
@@ -697,6 +1900,8 @@
                 },
               "additionalProperties": false,
             },
+          "PermissionType":
+            { "enum": ["View", "Embed", "Download"], "type": "string" },
           "RefreshTokenRequestDto":
             {
               "type": "object",
@@ -715,6 +1920,66 @@
                 },
               "additionalProperties": false,
             },
+          "TagSummaryDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "nullable": true },
+                  "usageCount": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
+          "TagSummaryDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/TagSummaryDto" },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "UpdateVideoRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "title": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "categoryId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "visibility":
+                    { "$ref": "#/components/schemas/VideoVisibility" },
+                  "tagIds":
+                    {
+                      "type": "array",
+                      "items": { "type": "string", "format": "uuid" },
+                      "nullable": true,
+                    },
+                  "allowComments": { "type": "boolean", "nullable": true },
+                  "allowLikes": { "type": "boolean", "nullable": true },
+                  "allowBookmarks": { "type": "boolean", "nullable": true },
+                  "autoplay": { "type": "boolean", "nullable": true },
+                  "loop": { "type": "boolean", "nullable": true },
+                  "defaultVolume":
+                    { "type": "integer", "format": "int32", "nullable": true },
+                  "captionsEnabled": { "type": "boolean", "nullable": true },
+                  "playerTheme": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
           "UploadPartResponseDto":
             {
               "type": "object",
@@ -723,6 +1988,62 @@
                   "sessionId": { "type": "string", "format": "uuid" },
                   "partNumber": { "type": "integer", "format": "int32" },
                   "isComplete": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "UploadSessionStatus":
+            {
+              "enum":
+                [
+                  "Created",
+                  "Active",
+                  "Completing",
+                  "Completed",
+                  "Failed",
+                  "Expired",
+                ],
+              "type": "string",
+            },
+          "UploadSessionSummaryDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "videoTitle": { "type": "string", "nullable": true },
+                  "status": { "type": "string", "nullable": true },
+                  "totalSize": { "type": "integer", "format": "int64" },
+                  "uploadedSize": { "type": "integer", "format": "int64" },
+                  "progress": { "type": "number", "format": "double" },
+                  "storageProviderType": { "type": "string", "nullable": true },
+                  "contentType": { "type": "string", "nullable": true },
+                  "expiresAt": { "type": "string", "format": "date-time" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt": { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
+          "UploadSessionSummaryDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/UploadSessionSummaryDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
                 },
               "additionalProperties": false,
             },
@@ -743,8 +2064,166 @@
                 },
               "additionalProperties": false,
             },
+          "UserProfileDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "nullable": true },
+                  "email": { "type": "string", "nullable": true },
+                  "role": { "$ref": "#/components/schemas/UserRole" },
+                  "isActive": { "type": "boolean", "nullable": true },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
+          "UserProfileDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        { "$ref": "#/components/schemas/UserProfileDto" },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "UserRole":
             { "enum": ["Admin", "Editor", "Viewer"], "type": "string" },
+          "VideoDetailDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "title": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "uploaderId": { "type": "string", "format": "uuid" },
+                  "uploaderName": { "type": "string", "nullable": true },
+                  "categoryId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "categoryName": { "type": "string", "nullable": true },
+                  "visibility":
+                    { "$ref": "#/components/schemas/VideoVisibility" },
+                  "status": { "$ref": "#/components/schemas/VideoStatus" },
+                  "allowComments": { "type": "boolean" },
+                  "allowLikes": { "type": "boolean" },
+                  "allowBookmarks": { "type": "boolean" },
+                  "autoplay": { "type": "boolean" },
+                  "loop": { "type": "boolean" },
+                  "defaultVolume": { "type": "integer", "format": "int32" },
+                  "captionsEnabled": { "type": "boolean" },
+                  "playerTheme": { "type": "string", "nullable": true },
+                  "viewCount": { "type": "integer", "format": "int64" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt": { "type": "string", "format": "date-time" },
+                  "thumbnailUrl": { "type": "string", "nullable": true },
+                  "playbackManifestUrl": { "type": "string", "nullable": true },
+                  "tags":
+                    {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/TagSummaryDto" },
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "VideoProcessingStatusDetailsDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "videoStatus": { "$ref": "#/components/schemas/VideoStatus" },
+                  "processingJobId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "jobType": { "type": "string", "nullable": true },
+                  "jobStatus": { "type": "string", "nullable": true },
+                  "progress":
+                    { "type": "integer", "format": "int32", "nullable": true },
+                  "errorMessage": { "type": "string", "nullable": true },
+                  "startedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "completedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "VideoStatus":
+            {
+              "enum": ["Uploading", "Processing", "Ready", "Failed", "Deleted"],
+              "type": "string",
+            },
+          "VideoSummaryDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "title": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "uploaderId": { "type": "string", "format": "uuid" },
+                  "uploaderName": { "type": "string", "nullable": true },
+                  "categoryId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "categoryName": { "type": "string", "nullable": true },
+                  "visibility":
+                    { "$ref": "#/components/schemas/VideoVisibility" },
+                  "status": { "$ref": "#/components/schemas/VideoStatus" },
+                  "viewCount": { "type": "integer", "format": "int64" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt": { "type": "string", "format": "date-time" },
+                  "thumbnailUrl": { "type": "string", "nullable": true },
+                  "playbackManifestUrl": { "type": "string", "nullable": true },
+                  "tags":
+                    {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/TagSummaryDto" },
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "VideoSummaryDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        { "$ref": "#/components/schemas/VideoSummaryDto" },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "VideoVisibility":
             { "enum": ["Public", "Private", "Internal"], "type": "string" },
           "WeatherForecast":
