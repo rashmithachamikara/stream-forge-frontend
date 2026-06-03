@@ -1,9 +1,18 @@
 import { AuthResponseDto, AuthSession, AuthUserDto, User, UserRole } from '@/features/auth/types';
-import { Video } from '@/features/videos/types';
+import {
+  Category,
+  CategoryDto,
+  TagSummary,
+  TagSummaryDto,
+  Video,
+  VideoListFilters,
+  VideoSummaryDto,
+} from '@/features/videos/types';
 import { Playlist } from '@/features/playlists/types';
 import { Notification } from '@/features/notifications/types';
 import { VideoAnalytics } from '@/features/admin/types';
 import { ApiResponse, PaginatedResponse } from '@/shared/types/api';
+import { getVideoManifestUrl, getVideoThumbnailUrl } from '@/features/videos/lib/playbackUrls';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.streamforge.local';
 const API_V1_PREFIX = '/api/v1';
@@ -21,6 +30,33 @@ const stringRoleMap: Record<string, UserRole> = {
 };
 
 const normalizeApiBaseUrl = (url: string) => url.replace(/\/+$/, '');
+const resolveApiUrl = (url: string | null | undefined) => {
+  if (!url) {
+    return undefined;
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+  return `${normalizeApiBaseUrl(API_BASE_URL)}${normalizedPath}`;
+};
+const emptyPagedResponse = <T>(page = 1, pageSize = 24): PaginatedResponse<T> => ({
+  items: [],
+  page,
+  pageSize,
+  totalCount: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPreviousPage: false,
+});
+
+const appendQueryParam = (params: URLSearchParams, key: string, value: string | number | undefined) => {
+  if (value !== undefined && value !== '') {
+    params.set(key, String(value));
+  }
+};
 
 const mapAuthUser = (user: AuthUserDto): User => {
   const role =
@@ -62,6 +98,70 @@ const mapAuthResponse = (response: AuthResponseDto): AuthSession => {
     refreshTokenExpiresAt: response.refreshTokenExpiresAt,
   };
 };
+
+const normalizeVideoVisibility = (visibility?: string): Video['visibility'] => {
+  switch (visibility) {
+    case 'Private':
+      return 'private';
+    case 'Internal':
+      return 'internal';
+    case 'Public':
+    default:
+      return 'public';
+  }
+};
+
+const mapTagSummary = (tag: TagSummaryDto): TagSummary => ({
+  id: tag.id ?? '',
+  name: tag.name ?? 'Untitled tag',
+  usageCount: tag.usageCount ?? 0,
+});
+
+const mapCategory = (category: CategoryDto): Category => ({
+  id: category.id ?? '',
+  name: category.name ?? 'Uncategorized',
+  description: category.description ?? '',
+  parentCategoryId: category.parentCategoryId ?? null,
+  displayOrder: category.displayOrder ?? 0,
+  createdAt: category.createdAt ? new Date(category.createdAt) : new Date(),
+});
+
+const mapVideoSummary = (video: VideoSummaryDto): Video => {
+  const videoId = video.id ?? '';
+  const tags = (video.tags ?? []).map(mapTagSummary);
+  const categoryNames = video.categoryName ? [video.categoryName] : [];
+
+  return {
+    id: videoId,
+    title: video.title ?? 'Untitled video',
+    description: video.description ?? '',
+    thumbnail: resolveApiUrl(video.thumbnailUrl) || getVideoThumbnailUrl(videoId),
+    duration: 0,
+    uploadedBy: video.uploaderName ?? 'Unknown uploader',
+    uploadedAt: video.createdAt ? new Date(video.createdAt) : new Date(),
+    views: video.viewCount ?? 0,
+    categories: categoryNames,
+    tags: tags.map((tag) => tag.name),
+    visibility: normalizeVideoVisibility(video.visibility),
+    hlsUrl: resolveApiUrl(video.playbackManifestUrl) || getVideoManifestUrl(videoId),
+    transcodedVersions: [],
+    categoryId: video.categoryId ?? null,
+    status: video.status,
+  };
+};
+
+const mapPagedResponse = <TDto, TDomain>(
+  response: PaginatedResponse<TDto>,
+  mapper: (item: TDto) => TDomain
+): PaginatedResponse<TDomain> => ({
+  items: (response.items ?? []).map(mapper),
+  page: response.page ?? 1,
+  pageSize: response.pageSize ?? 24,
+  totalCount: response.totalCount ?? 0,
+  totalPages: response.totalPages ?? 0,
+  hasNextPage: response.hasNextPage ?? false,
+  hasPreviousPage: response.hasPreviousPage ?? false,
+});
 
 class ApiClient {
   private token: string | null = null;
@@ -193,9 +293,27 @@ class ApiClient {
   }
 
   // Video Endpoints
-  async getVideos(page: number = 1, pageSize: number = 20): Promise<ApiResponse<PaginatedResponse<Video>>> {
+  async getVideos(filters: VideoListFilters = {}): Promise<ApiResponse<PaginatedResponse<Video>>> {
     try {
-      return await this.request<PaginatedResponse<Video>>(`/videos?page=${page}&pageSize=${pageSize}`);
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'search', filters.search);
+      appendQueryParam(params, 'categoryId', filters.categoryId);
+      appendQueryParam(params, 'tagId', filters.tagId);
+      appendQueryParam(params, 'uploaderId', filters.uploaderId);
+      appendQueryParam(params, 'status', filters.status);
+      appendQueryParam(params, 'visibility', filters.visibility);
+      appendQueryParam(params, 'sort', filters.sort);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<VideoSummaryDto>>(
+        `${API_V1_PREFIX}/videos?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapVideoSummary),
+      };
     } catch (error) {
       return {
         success: false,
@@ -206,8 +324,18 @@ class ApiClient {
 
   async searchVideos(query: string, filters?: Record<string, string>): Promise<ApiResponse<Video[]>> {
     try {
-      const params = new URLSearchParams({ q: query, ...filters });
-      return await this.request<Video[]>(`/videos/search?${params.toString()}`);
+      const response = await this.getVideos({
+        search: query,
+        ...filters,
+        status: 'Ready',
+        visibility: 'Public',
+      });
+
+      return {
+        success: response.success,
+        data: response.data?.items ?? [],
+        error: response.error,
+      };
     } catch (error) {
       return {
         success: false,
@@ -218,7 +346,7 @@ class ApiClient {
 
   async getVideoById(id: string): Promise<ApiResponse<Video>> {
     try {
-      return await this.request<Video>(`/videos/${id}`);
+      return await this.request<Video>(`${API_V1_PREFIX}/videos/${id}`);
     } catch (error) {
       return {
         success: false,
@@ -257,13 +385,52 @@ class ApiClient {
 
   async deleteVideo(id: string): Promise<ApiResponse<void>> {
     try {
-      return await this.request<void>(`/videos/${id}`, {
+      return await this.request<void>(`${API_V1_PREFIX}/videos/${id}`, {
         method: 'DELETE',
       });
     } catch (error) {
       return {
         success: false,
         error: 'Delete failed',
+      };
+    }
+  }
+
+  async getCategories(): Promise<ApiResponse<Category[]>> {
+    try {
+      const categories = await this.requestRaw<CategoryDto[]>(`${API_V1_PREFIX}/categories`);
+
+      return {
+        success: true,
+        data: categories.map(mapCategory),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch categories',
+      };
+    }
+  }
+
+  async getTags(search?: string, page = 1, pageSize = 24): Promise<ApiResponse<PaginatedResponse<TagSummary>>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'search', search);
+      appendQueryParam(params, 'page', page);
+      appendQueryParam(params, 'pageSize', pageSize);
+
+      const response = await this.requestRaw<PaginatedResponse<TagSummaryDto>>(
+        `${API_V1_PREFIX}/tags?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapTagSummary),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch tags',
       };
     }
   }

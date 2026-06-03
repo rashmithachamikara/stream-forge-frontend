@@ -6,9 +6,11 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
+  items: T[];
   page: number;
   pageSize: number;
+  totalCount: number;
   totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }

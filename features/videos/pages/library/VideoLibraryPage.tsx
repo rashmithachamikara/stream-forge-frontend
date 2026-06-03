@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,52 +8,127 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Play, Eye, Filter, Grid, List, Plus } from 'lucide-react';
-import { mockVideos } from '@/features/videos/data/mockVideos';
-import { Video } from '@/features/videos/types';
+import { apiClient } from '@/shared/lib/api';
+import { Category, TagSummary, Video } from '@/features/videos/types';
 import { formatDuration } from '@/features/videos/utils';
 
 export default function VideoLibrary() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<TagSummary[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFilterLoading, setIsFilterLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const pageSize = viewMode === 'grid' ? 12 : 10;
 
-  const [videos] = useState<Video[]>(mockVideos);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+      setCurrentPage(1);
+    }, 350);
 
-  // Get all unique categories and tags
-  const allCategories = Array.from(
-    new Set(videos.flatMap((v) => v.categories))
-  );
-  const allTags = Array.from(new Set(videos.flatMap((v) => v.tags)));
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
 
-  // Filter videos
-  const filteredVideos = useMemo(() => {
-    return videos.filter((video) => {
-      const matchesSearch =
-        video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        video.description.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    let isMounted = true;
 
-      const matchesCategory =
-        !selectedCategory || video.categories.includes(selectedCategory);
+    const loadFilters = async () => {
+      setIsFilterLoading(true);
+      const [categoryResponse, tagResponse] = await Promise.all([
+        apiClient.getCategories(),
+        apiClient.getTags(undefined, 1, 50),
+      ]);
 
-      const matchesTag = !selectedTag || video.tags.includes(selectedTag);
+      if (!isMounted) {
+        return;
+      }
 
-      return matchesSearch && matchesCategory && matchesTag;
-    });
-  }, [searchTerm, selectedCategory, selectedTag, videos]);
+      if (categoryResponse.success && categoryResponse.data) {
+        setCategories(categoryResponse.data);
+      }
 
-  // Paginate
-  const totalPages = Math.ceil(filteredVideos.length / pageSize);
-  const paginatedVideos = filteredVideos.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+      if (tagResponse.success && tagResponse.data) {
+        setTags(tagResponse.data.items);
+      }
+
+      setIsFilterLoading(false);
+    };
+
+    loadFilters();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadVideos = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await apiClient.getVideos({
+        search: debouncedSearchTerm || undefined,
+        categoryId: selectedCategoryId ?? undefined,
+        tagId: selectedTagId ?? undefined,
+        status: 'Ready',
+        visibility: 'Public',
+        page: currentPage,
+        pageSize,
+      });
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (response.success && response.data) {
+        setVideos(response.data.items);
+        setTotalCount(response.data.totalCount);
+        setTotalPages(response.data.totalPages);
+        setHasNextPage(response.data.hasNextPage);
+        setHasPreviousPage(response.data.hasPreviousPage);
+      } else {
+        setVideos([]);
+        setTotalCount(0);
+        setTotalPages(0);
+        setHasNextPage(false);
+        setHasPreviousPage(false);
+        setError(response.error ?? 'Failed to load videos');
+      }
+
+      setIsLoading(false);
+    };
+
+    loadVideos();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [debouncedSearchTerm, selectedCategoryId, selectedTagId, currentPage, pageSize]);
 
   const goToVideo = (videoId: string) => {
     router.push(`/videos/${videoId}`);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDebouncedSearchTerm('');
+    setSelectedCategoryId(null);
+    setSelectedTagId(null);
+    setCurrentPage(1);
   };
 
   const VideoCardGrid = ({ video }: { video: Video }) => (
@@ -195,23 +270,24 @@ export default function VideoLibrary() {
                 </label>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant={selectedCategory === null ? 'default' : 'outline'}
+                    variant={selectedCategoryId === null ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setSelectedCategory(null)}
+                    disabled={isFilterLoading}
+                    onClick={() => setSelectedCategoryId(null)}
                   >
                     All
                   </Button>
-                  {allCategories.map((cat) => (
+                  {categories.map((category) => (
                     <Button
-                      key={cat}
-                      variant={selectedCategory === cat ? 'default' : 'outline'}
+                      key={category.id}
+                      variant={selectedCategoryId === category.id ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => {
-                        setSelectedCategory(cat);
+                        setSelectedCategoryId(category.id);
                         setCurrentPage(1);
                       }}
                     >
-                      {cat}
+                      {category.name}
                     </Button>
                   ))}
                 </div>
@@ -223,23 +299,24 @@ export default function VideoLibrary() {
                 </label>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant={selectedTag === null ? 'default' : 'outline'}
+                    variant={selectedTagId === null ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setSelectedTag(null)}
+                    disabled={isFilterLoading}
+                    onClick={() => setSelectedTagId(null)}
                   >
                     All
                   </Button>
-                  {allTags.map((tag) => (
+                  {tags.map((tag) => (
                     <Button
-                      key={tag}
-                      variant={selectedTag === tag ? 'default' : 'outline'}
+                      key={tag.id}
+                      variant={selectedTagId === tag.id ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => {
-                        setSelectedTag(tag);
+                        setSelectedTagId(tag.id);
                         setCurrentPage(1);
                       }}
                     >
-                      {tag}
+                      {tag.name}
                     </Button>
                   ))}
                 </div>
@@ -251,7 +328,7 @@ export default function VideoLibrary() {
         {/* View Mode Toggle */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {paginatedVideos.length} of {filteredVideos.length} videos
+            Showing {videos.length} of {totalCount} videos
           </p>
           <div className="flex gap-2">
             <Button
@@ -278,7 +355,19 @@ export default function VideoLibrary() {
         </div>
 
         {/* Videos */}
-        {paginatedVideos.length > 0 ? (
+        {error && (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
+          </Card>
+        )}
+
+        {isLoading ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <p className="text-muted-foreground">Loading videos...</p>
+            </CardContent>
+          </Card>
+        ) : videos.length > 0 ? (
           <>
             <div
               className={
@@ -287,7 +376,7 @@ export default function VideoLibrary() {
                   : 'space-y-4'
               }
             >
-              {paginatedVideos.map((video) =>
+              {videos.map((video) =>
                 viewMode === 'grid' ? (
                   <VideoCardGrid key={video.id} video={video} />
                 ) : (
@@ -302,7 +391,7 @@ export default function VideoLibrary() {
                 <Button
                   variant="outline"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
+                  disabled={!hasPreviousPage}
                 >
                   Previous
                 </Button>
@@ -321,7 +410,7 @@ export default function VideoLibrary() {
                 <Button
                   variant="outline"
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
+                  disabled={!hasNextPage}
                 >
                   Next
                 </Button>
@@ -332,7 +421,7 @@ export default function VideoLibrary() {
           <Card className="text-center py-12">
             <CardContent>
               <p className="text-muted-foreground mb-4">No videos found matching your criteria</p>
-              <Button variant="outline">Clear Filters</Button>
+              <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
             </CardContent>
           </Card>
         )}
