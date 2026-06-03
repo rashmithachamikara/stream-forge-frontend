@@ -93,6 +93,30 @@ export interface VideoDetailDto extends VideoSummaryDto {
   playerTheme?: string | null;
 }
 
+export interface VideoProcessingStatus {
+  videoId: string;
+  videoStatus: VideoStatus;
+  processingJobId: string | null;
+  jobType: string;
+  jobStatus: string;
+  progress: number | null;
+  errorMessage: string | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
+}
+
+export interface VideoProcessingStatusDto {
+  videoId?: string;
+  videoStatus?: VideoStatus;
+  processingJobId?: string | null;
+  jobType?: string | null;
+  jobStatus?: string | null;
+  progress?: number | null;
+  errorMessage?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
 export interface CategoryDto {
   id?: string;
   name?: string | null;

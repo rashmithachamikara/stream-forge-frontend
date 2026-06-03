@@ -1,25 +1,30 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
 import { apiClient } from '@/shared/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Share2, Bookmark, ThumbsUp, Eye, Calendar, Play, Shield, Clock } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
-import { Video } from '@/features/videos/types';
+import { Video, VideoProcessingStatus } from '@/features/videos/types';
 import { useAuth } from '@/features/auth/AuthContext';
+
+const ACTIVE_PROCESSING_STATUSES = new Set(['Uploading', 'Processing']);
+const PROCESSING_POLL_INTERVAL_MS = 4000;
 
 export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const router = useRouter();
   const { user } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
+  const [processingStatus, setProcessingStatus] = useState<VideoProcessingStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,45 +57,105 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 00:15:00 - Viewers can browse and watch videos from the library.`
   );
 
+  const loadVideo = useCallback(async ({ showLoading = false }: { showLoading?: boolean } = {}) => {
+    if (showLoading) {
+      setIsLoading(true);
+    }
+
+    setError(null);
+
+    const [videoResponse, relatedResponse] = await Promise.all([
+      apiClient.getVideoById(videoId),
+      apiClient.getVideos({
+        status: 'Ready',
+        visibility: 'Public',
+        page: 1,
+        pageSize: 4,
+      }),
+    ]);
+
+    if (videoResponse.success && videoResponse.data) {
+      setVideo(videoResponse.data);
+      setRelatedVideos((relatedResponse.data?.items ?? []).filter((relatedVideo) => relatedVideo.id !== videoId));
+
+      if (!videoResponse.data.status || videoResponse.data.status === 'Ready') {
+        setProcessingStatus(null);
+      }
+    } else {
+      setVideo(null);
+      setRelatedVideos([]);
+      setProcessingStatus(null);
+      setError(videoResponse.error ?? 'Failed to load video');
+    }
+
+    if (showLoading) {
+      setIsLoading(false);
+    }
+
+    return videoResponse.data ?? null;
+  }, [videoId]);
+
   useEffect(() => {
     let isMounted = true;
 
-    const loadVideo = async () => {
-      setIsLoading(true);
-      setError(null);
+    const loadInitialVideo = async () => {
+      const loadedVideo = await loadVideo({ showLoading: true });
 
-      const [videoResponse, relatedResponse] = await Promise.all([
-        apiClient.getVideoById(videoId),
-        apiClient.getVideos({
-          status: 'Ready',
-          visibility: 'Public',
-          page: 1,
-          pageSize: 4,
-        }),
-      ]);
+      if (!isMounted || !loadedVideo?.status || !ACTIVE_PROCESSING_STATUSES.has(loadedVideo.status)) {
+        return;
+      }
+
+      const processingResponse = await apiClient.getVideoProcessingStatus(videoId);
+
+      if (isMounted && processingResponse.success && processingResponse.data) {
+        setProcessingStatus(processingResponse.data);
+      }
+    };
+
+    loadInitialVideo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loadVideo, videoId]);
+
+  useEffect(() => {
+    if (!video?.status || !ACTIVE_PROCESSING_STATUSES.has(video.status)) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const pollProcessingStatus = async () => {
+      const processingResponse = await apiClient.getVideoProcessingStatus(videoId);
 
       if (!isMounted) {
         return;
       }
 
-      if (videoResponse.success && videoResponse.data) {
-        setVideo(videoResponse.data);
-        setRelatedVideos((relatedResponse.data?.items ?? []).filter((relatedVideo) => relatedVideo.id !== videoId));
-      } else {
-        setVideo(null);
-        setRelatedVideos([]);
-        setError(videoResponse.error ?? 'Failed to load video');
-      }
+      if (processingResponse.success && processingResponse.data) {
+        setProcessingStatus(processingResponse.data);
 
-      setIsLoading(false);
+        if (processingResponse.data.videoStatus === 'Ready') {
+          await loadVideo();
+          return;
+        }
+
+        if (!ACTIVE_PROCESSING_STATUSES.has(processingResponse.data.videoStatus)) {
+          setVideo((currentVideo) =>
+            currentVideo ? { ...currentVideo, status: processingResponse.data?.videoStatus } : currentVideo
+          );
+        }
+      }
     };
 
-    loadVideo();
+    const intervalId = window.setInterval(pollProcessingStatus, PROCESSING_POLL_INTERVAL_MS);
 
     return () => {
       isMounted = false;
+      window.clearInterval(intervalId);
     };
-  }, [videoId]);
+  }, [loadVideo, video?.status, videoId]);
 
   const handleBookmarkAdd = (timestamp: number) => {
     if (!video) {
@@ -152,16 +217,51 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     );
   }
 
+  const isVideoReady = video.status === 'Ready' || !video.status;
+  const isVideoFailed = video.status === 'Failed';
+  const processingProgress = processingStatus?.progress ?? 0;
+
   return (
     <DashboardLayout title="Watch Video">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Video Player */}
-        <VideoPlayer
-          hlsUrl={video.hlsUrl}
-          title={video.title}
-          duration={video.duration}
-          onBookmarkAdd={handleBookmarkAdd}
-        />
+        {isVideoReady ? (
+          <VideoPlayer
+            hlsUrl={video.hlsUrl}
+            title={video.title}
+            duration={video.duration}
+            onBookmarkAdd={handleBookmarkAdd}
+          />
+        ) : (
+          <Card className={isVideoFailed ? 'border-destructive/30 bg-destructive/5' : 'border-primary/30 bg-primary/5'}>
+            <CardContent className="flex aspect-video flex-col items-center justify-center gap-3 text-center">
+              <Clock className={isVideoFailed ? 'h-10 w-10 text-destructive' : 'h-10 w-10 text-primary'} />
+              <div>
+                <h2 className="text-xl font-semibold text-foreground">
+                  {isVideoFailed ? 'Video processing failed' : 'Video is still being processed'}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {isVideoFailed
+                    ? 'Playback is unavailable because this video could not be processed.'
+                    : 'Playback will be available once processing finishes.'}
+                </p>
+              </div>
+              {isVideoFailed ? (
+                <p className="max-w-md text-sm text-destructive">
+                  {processingStatus?.errorMessage || 'No processing error details are available.'}
+                </p>
+              ) : (
+                <div className="w-full max-w-md space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>{processingStatus?.jobType || 'Video processing'}</span>
+                    <span>{processingStatus?.progress !== null && processingStatus?.progress !== undefined ? `${processingStatus.progress}%` : 'Pending'}</span>
+                  </div>
+                  <Progress value={processingProgress} className="h-3 border border-border bg-muted" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Video Info */}
         <div className="space-y-6">
@@ -251,6 +351,31 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               </div>
             </div>
           </div>
+
+          {processingStatus && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="text-lg">Processing Status</CardTitle>
+                <CardDescription>
+                  {processingStatus.jobStatus || processingStatus.videoStatus}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {processingStatus.progress !== null && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>{processingStatus.jobType || 'Video processing'}</span>
+                      <span>{processingStatus.progress}%</span>
+                    </div>
+                    <Progress value={processingStatus.progress} className="h-3 border border-border bg-muted" />
+                  </div>
+                )}
+                {processingStatus.errorMessage && (
+                  <p className="text-sm text-destructive">{processingStatus.errorMessage}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Tabs: Description, Transcript, Bookmarks */}
           <Tabs defaultValue="transcript" className="space-y-4">

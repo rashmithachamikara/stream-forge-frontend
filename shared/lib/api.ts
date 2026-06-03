@@ -7,6 +7,8 @@ import {
   Video,
   VideoDetailDto,
   VideoListFilters,
+  VideoProcessingStatus,
+  VideoProcessingStatusDto,
   VideoSummaryDto,
 } from '@/features/videos/types';
 import { Playlist } from '@/features/playlists/types';
@@ -162,6 +164,18 @@ const mapVideoDetail = (video: VideoDetailDto): Video => ({
   defaultVolume: video.defaultVolume ?? 100,
   captionsEnabled: video.captionsEnabled ?? false,
   playerTheme: video.playerTheme ?? null,
+});
+
+const mapVideoProcessingStatus = (status: VideoProcessingStatusDto): VideoProcessingStatus => ({
+  videoId: status.videoId ?? '',
+  videoStatus: status.videoStatus ?? 'Processing',
+  processingJobId: status.processingJobId ?? null,
+  jobType: status.jobType ?? '',
+  jobStatus: status.jobStatus ?? '',
+  progress: status.progress ?? null,
+  errorMessage: status.errorMessage ?? null,
+  startedAt: status.startedAt ? new Date(status.startedAt) : null,
+  completedAt: status.completedAt ? new Date(status.completedAt) : null,
 });
 
 const mapPagedResponse = <TDto, TDomain>(
@@ -411,6 +425,24 @@ class ApiClient {
       return {
         success: false,
         error: 'Delete failed',
+      };
+    }
+  }
+
+  async getVideoProcessingStatus(id: string): Promise<ApiResponse<VideoProcessingStatus>> {
+    try {
+      const status = await this.requestRaw<VideoProcessingStatusDto>(
+        `${API_V1_PREFIX}/videos/${id}/processing-status`
+      );
+
+      return {
+        success: true,
+        data: mapVideoProcessingStatus(status),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch video processing status',
       };
     }
   }

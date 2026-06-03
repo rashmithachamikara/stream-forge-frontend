@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { useAuth } from '@/features/auth/AuthContext';
 import { createVideoUploadClient } from '@/features/videos/lib/uploadClient';
+import { apiClient } from '@/shared/lib/api';
+import { Category, TagSummary } from '@/features/videos/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +45,7 @@ interface QualityOption {
 }
 
 export default function UploadVideoPage() {
+  const router = useRouter();
   const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -50,15 +54,17 @@ export default function UploadVideoPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadedVideoId, setUploadedVideoId] = useState<string | null>(null);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagSummary[]>([]);
+  const [isMetadataLoading, setIsMetadataLoading] = useState(true);
 
   // Video metadata
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
-  const [categoryInput, setCategoryInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [visibility, setVisibility] = useState<'public' | 'private' | 'restricted'>('public');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState<'Public' | 'Private' | 'Internal'>('Public');
 
   // Transcoding options
   const [qualityOptions, setQualityOptions] = useState<QualityOption[]>([
@@ -70,6 +76,38 @@ export default function UploadVideoPage() {
 
   const [enableTranscript, setEnableTranscript] = useState(false);
   const [enableThumbnailGeneration, setEnableThumbnailGeneration] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadMetadata = async () => {
+      setIsMetadataLoading(true);
+      const [categoryResponse, tagResponse] = await Promise.all([
+        apiClient.getCategories(),
+        apiClient.getTags(undefined, 1, 50),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (categoryResponse.success && categoryResponse.data) {
+        setAvailableCategories(categoryResponse.data);
+      }
+
+      if (tagResponse.success && tagResponse.data) {
+        setAvailableTags(tagResponse.data.items);
+      }
+
+      setIsMetadataLoading(false);
+    };
+
+    loadMetadata();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -126,26 +164,12 @@ export default function UploadVideoPage() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const addCategory = () => {
-    if (categoryInput.trim() && !categories.includes(categoryInput.trim())) {
-      setCategories([...categories, categoryInput.trim()]);
-      setCategoryInput('');
-    }
-  };
-
-  const removeCategory = (category: string) => {
-    setCategories(categories.filter((c) => c !== category));
-  };
-
-  const addTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((currentTagIds) =>
+      currentTagIds.includes(tagId)
+        ? currentTagIds.filter((currentTagId) => currentTagId !== tagId)
+        : [...currentTagIds, tagId]
+    );
   };
 
   const toggleQuality = (qualityId: string) => {
@@ -175,18 +199,22 @@ export default function UploadVideoPage() {
     try {
       const client = createVideoUploadClient(token);
 
-      await client.uploadFile({
+      const uploadResponse = await client.uploadFile({
         title,
         description: description || undefined,
         file: selectedFile,
         fileName: selectedFile.name,
         contentType: selectedFile.type || undefined,
+        categoryId: selectedCategoryId ?? undefined,
+        visibility,
+        tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
         onProgress: (progress) => {
           setUploadProgress(progress.percent);
         },
       });
 
       setUploadProgress(100);
+      setUploadedVideoId(uploadResponse.videoId);
       setUploadComplete(true);
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : 'Upload failed');
@@ -199,12 +227,13 @@ export default function UploadVideoPage() {
     setSelectedFile(null);
     setTitle('');
     setDescription('');
-    setCategories([]);
-    setTags([]);
-    setVisibility('public');
+    setSelectedCategoryId(null);
+    setSelectedTagIds([]);
+    setVisibility('Public');
     setUploadProgress(0);
     setUploadComplete(false);
     setUploadError(null);
+    setUploadedVideoId(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -237,8 +266,8 @@ export default function UploadVideoPage() {
                   <Button onClick={resetForm} variant="outline">
                     Upload Another Video
                   </Button>
-                  <Button onClick={() => window.location.href = '/videos'}>
-                    View All Videos
+                  <Button onClick={() => router.push(uploadedVideoId ? `/videos/${uploadedVideoId}` : '/videos')}>
+                    View Video
                   </Button>
                 </div>
               </div>
@@ -314,7 +343,7 @@ export default function UploadVideoPage() {
                                 {uploadProgress}%
                               </span>
                             </div>
-                            <Progress value={uploadProgress} className="h-2" />
+                            <Progress value={uploadProgress} className="h-3 border border-border bg-muted" />
                           </div>
                         )}
                       </div>
@@ -371,62 +400,63 @@ export default function UploadVideoPage() {
                       />
                     </div>
 
-                    {/* Categories */}
+                    {/* Category */}
                     <div className="space-y-2">
-                      <Label htmlFor="category">Categories</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="category"
-                          value={categoryInput}
-                          onChange={(e) => setCategoryInput(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
-                          placeholder="Add category (e.g., Tutorial, Training)"
-                        />
-                        <Button type="button" onClick={addCategory} variant="outline">
-                          Add
-                        </Button>
-                      </div>
-                      {categories.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {categories.map((category) => (
-                            <Badge key={category} variant="secondary" className="gap-1">
-                              {category}
-                              <X
-                                className="w-3 h-3 cursor-pointer"
-                                onClick={() => removeCategory(category)}
-                              />
-                            </Badge>
+                      <Label htmlFor="category">Category</Label>
+                      <Select
+                        value={selectedCategoryId ?? 'none'}
+                        onValueChange={(value) => setSelectedCategoryId(value === 'none' ? null : value)}
+                        disabled={isMetadataLoading}
+                      >
+                        <SelectTrigger id="category">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No category</SelectItem>
+                          {availableCategories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
                           ))}
-                        </div>
-                      )}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Tags */}
                     <div className="space-y-2">
-                      <Label htmlFor="tag">Tags</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="tag"
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                          placeholder="Add tags (e.g., intro, basics)"
-                        />
-                        <Button type="button" onClick={addTag} variant="outline">
-                          Add
-                        </Button>
+                      <Label>Tags</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {availableTags.length > 0 ? (
+                          availableTags.map((tag) => (
+                            <Button
+                              key={tag.id}
+                              type="button"
+                              variant={selectedTagIds.includes(tag.id) ? 'default' : 'outline'}
+                              size="sm"
+                              disabled={isMetadataLoading}
+                              onClick={() => toggleTag(tag.id)}
+                            >
+                              {tag.name}
+                            </Button>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            {isMetadataLoading ? 'Loading tags...' : 'No tags available'}
+                          </p>
+                        )}
                       </div>
-                      {tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="gap-1">
-                              {tag}
-                              <X
-                                className="w-3 h-3 cursor-pointer"
-                                onClick={() => removeTag(tag)}
-                              />
-                            </Badge>
-                          ))}
+                      {selectedTagIds.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedTagIds.map((tagId) => {
+                            const tag = availableTags.find((availableTag) => availableTag.id === tagId);
+
+                            return (
+                              <Badge key={tagId} variant="outline" className="gap-1">
+                                {tag?.name ?? tagId}
+                                <X className="w-3 h-3 cursor-pointer" onClick={() => toggleTag(tagId)} />
+                              </Badge>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -434,12 +464,15 @@ export default function UploadVideoPage() {
                     {/* Visibility */}
                     <div className="space-y-2">
                       <Label htmlFor="visibility">Visibility</Label>
-                      <Select value={visibility} onValueChange={(value: any) => setVisibility(value)}>
+                      <Select
+                        value={visibility}
+                        onValueChange={(value) => setVisibility(value as 'Public' | 'Private' | 'Internal')}
+                      >
                         <SelectTrigger id="visibility">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="public">
+                          <SelectItem value="Public">
                             <div className="flex items-center gap-2">
                               <Globe className="w-4 h-4" />
                               <div>
@@ -450,18 +483,18 @@ export default function UploadVideoPage() {
                               </div>
                             </div>
                           </SelectItem>
-                          <SelectItem value="restricted">
+                          <SelectItem value="Internal">
                             <div className="flex items-center gap-2">
                               <Eye className="w-4 h-4" />
                               <div>
-                                <div className="font-medium">Restricted</div>
+                                <div className="font-medium">Internal</div>
                                 <div className="text-xs text-muted-foreground">
                                   Only specific users can view
                                 </div>
                               </div>
                             </div>
                           </SelectItem>
-                          <SelectItem value="private">
+                          <SelectItem value="Private">
                             <div className="flex items-center gap-2">
                               <Lock className="w-4 h-4" />
                               <div>
