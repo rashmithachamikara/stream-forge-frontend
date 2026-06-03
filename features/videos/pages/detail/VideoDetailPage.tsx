@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
 import { apiClient } from '@/shared/lib/api';
+import { capitalize } from '@/shared/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Share2, Bookmark, ThumbsUp, Eye, Calendar, Play, Shield, Clock } from 'lucide-react';
+import { Share2, Bookmark, ThumbsUp, Eye, Calendar, Play, Shield, Clock, Globe, Lock, Users, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { Video, VideoProcessingStatus } from '@/features/videos/types';
 import { useAuth } from '@/features/auth/AuthContext';
@@ -332,18 +333,50 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               <h2 className="font-semibold text-foreground mb-2">About this video</h2>
               <p className="text-muted-foreground">{video.description}</p>
               <div className="flex flex-wrap gap-2 mt-4">
-                <Badge variant="secondary">{video.visibility}</Badge>
-                {video.status && <Badge variant="outline">{video.status}</Badge>}
+                {/* Visibility Badge with Icon */}
+                <Badge variant="outline" className="flex items-center gap-1.5">
+                  {video.visibility === 'public' ? (
+                    <Globe className="w-3 h-3" />
+                  ) : video.visibility === 'private' ? (
+                    <Lock className="w-3 h-3" />
+                  ) : (
+                    <Users className="w-3 h-3" />
+                  )}
+                  {capitalize(video.visibility)}
+                </Badge>
+                
+                {/* Status Badge with Icon*/}
+                {video.status && (
+                  <Badge
+                    className={`flex items-center gap-1.5 ${
+                      video.status === 'Ready'
+                        ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                        : video.status === 'Processing' || video.status === 'Uploading'
+                        ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+                        : 'bg-red-100 text-red-800 hover:bg-red-100'
+                    }`}
+                  >
+                    {video.status === 'Ready' ? (
+                      <CheckCircle className="w-3 h-3" />
+                    ) : video.status === 'Failed' ? (
+                      <AlertCircle className="w-3 h-3" />
+                    ) : (
+                      <Loader className="w-3 h-3 animate-spin" />
+                    )}
+                    {capitalize(video.status)}
+                  </Badge>
+                )}
+                
                 {video.categories.map((cat) => (
                   <Badge key={cat} variant="secondary">
-                    {cat}
+                    {capitalize(cat)}
                   </Badge>
                 ))}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {video.tags.map((tag) => (
                   <Badge key={tag} variant="outline">
-                    #{tag}
+                    #{capitalize(tag)}
                   </Badge>
                 ))}
               </div>
@@ -376,7 +409,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
           )}
 
           {/* Tabs: Description, Transcript, Bookmarks */}
-          <Tabs defaultValue="transcript" className="space-y-4">
+          <Tabs defaultValue="transcript" className="space-y-4 hidden">
             <TabsList>
               <TabsTrigger value="transcript">Transcript</TabsTrigger>
               <TabsTrigger value="bookmarks">Bookmarks ({bookmarks.length})</TabsTrigger>
