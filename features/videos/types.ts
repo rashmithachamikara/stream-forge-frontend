@@ -15,6 +15,15 @@ export interface Video {
   transcodedVersions: TranscodedVersion[];
   categoryId?: string | null;
   status?: VideoStatus;
+  updatedAt?: Date;
+  allowComments?: boolean;
+  allowLikes?: boolean;
+  allowBookmarks?: boolean;
+  autoplay?: boolean;
+  loop?: boolean;
+  defaultVolume?: number;
+  captionsEnabled?: boolean;
+  playerTheme?: string | null;
 }
 
 export interface TranscodedVersion {
@@ -71,6 +80,17 @@ export interface VideoSummaryDto {
   thumbnailUrl?: string | null;
   playbackManifestUrl?: string | null;
   tags?: TagSummaryDto[] | null;
+}
+
+export interface VideoDetailDto extends VideoSummaryDto {
+  allowComments?: boolean;
+  allowLikes?: boolean;
+  allowBookmarks?: boolean;
+  autoplay?: boolean;
+  loop?: boolean;
+  defaultVolume?: number;
+  captionsEnabled?: boolean;
+  playerTheme?: string | null;
 }
 
 export interface CategoryDto {

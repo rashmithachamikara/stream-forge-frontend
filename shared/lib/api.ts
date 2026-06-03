@@ -5,6 +5,7 @@ import {
   TagSummary,
   TagSummaryDto,
   Video,
+  VideoDetailDto,
   VideoListFilters,
   VideoSummaryDto,
 } from '@/features/videos/types';
@@ -147,8 +148,21 @@ const mapVideoSummary = (video: VideoSummaryDto): Video => {
     transcodedVersions: [],
     categoryId: video.categoryId ?? null,
     status: video.status,
+    updatedAt: video.updatedAt ? new Date(video.updatedAt) : undefined,
   };
 };
+
+const mapVideoDetail = (video: VideoDetailDto): Video => ({
+  ...mapVideoSummary(video),
+  allowComments: video.allowComments ?? true,
+  allowLikes: video.allowLikes ?? true,
+  allowBookmarks: video.allowBookmarks ?? true,
+  autoplay: video.autoplay ?? false,
+  loop: video.loop ?? false,
+  defaultVolume: video.defaultVolume ?? 100,
+  captionsEnabled: video.captionsEnabled ?? false,
+  playerTheme: video.playerTheme ?? null,
+});
 
 const mapPagedResponse = <TDto, TDomain>(
   response: PaginatedResponse<TDto>,
@@ -346,7 +360,12 @@ class ApiClient {
 
   async getVideoById(id: string): Promise<ApiResponse<Video>> {
     try {
-      return await this.request<Video>(`${API_V1_PREFIX}/videos/${id}`);
+      const video = await this.requestRaw<VideoDetailDto>(`${API_V1_PREFIX}/videos/${id}`);
+
+      return {
+        success: true,
+        data: mapVideoDetail(video),
+      };
     } catch (error) {
       return {
         success: false,

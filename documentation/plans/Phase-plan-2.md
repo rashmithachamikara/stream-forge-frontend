@@ -6,33 +6,33 @@ Replace mock video detail metadata with backend video detail data while keeping 
 
 ## Checklist
 
-- [ ] Add typed DTOs and mappers for `VideoDetailDto`.
-- [ ] Add API method for `GET /api/v1/videos/{videoId}`.
-- [ ] Update `/videos/[id]` to load real detail data.
-- [ ] Use backend `thumbnailUrl` and `playbackManifestUrl` when present.
-- [ ] Keep fallback URL helpers for manifest/thumbnail only when backend fields are missing.
-- [ ] Render backend metadata:
-  - [ ] title
-  - [ ] description
-  - [ ] uploader
-  - [ ] category
-  - [ ] tags
-  - [ ] visibility
-  - [ ] status
-  - [ ] view count
-  - [ ] created/updated dates
-- [ ] Add role-aware visibility for management actions.
-- [ ] Keep unsupported actions disabled or hidden.
+- [X] Add typed DTOs and mappers for `VideoDetailDto`.
+- [X] Add API method for `GET /api/v1/videos/{videoId}`.
+- [X] Update `/videos/[id]` to load real detail data.
+- [X] Use backend `thumbnailUrl` and `playbackManifestUrl` when present.
+- [X] Keep fallback URL helpers for manifest/thumbnail only when backend fields are missing.
+- [X] Render backend metadata:
+  - [X] title
+  - [X] description
+  - [X] uploader
+  - [X] category
+  - [X] tags
+  - [X] visibility
+  - [X] status
+  - [X] view count
+  - [X] created/updated dates
+- [X] Add role-aware visibility for management actions.
+- [X] Keep unsupported actions disabled or hidden.
 
 ## Acceptance Criteria
 
-- [ ] `/videos/{videoId}` renders backend metadata.
-- [ ] HLS playback still works.
-- [ ] Invalid or missing IDs show a useful error state instead of crashing.
-- [ ] Viewer users do not see edit/delete/archive/access management actions.
+- [X] `/videos/{videoId}` renders backend metadata.
+- [X] HLS playback still works.
+- [X] Invalid or missing IDs show a useful error state instead of crashing.
+- [X] Viewer users do not see edit/delete/archive/access management actions.
 
 ## Tests
 
-- [ ] Run `npx tsc --noEmit`.
-- [ ] Run `npm run build`.
+- [X] Run `npx tsc --noEmit`.
+- [X] Run `npm run build`.
 - [ ] Manually verify detail pages for Ready, Processing, and invalid videos.

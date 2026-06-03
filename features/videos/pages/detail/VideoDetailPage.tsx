@@ -1,42 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
-import { mockVideos } from '@/features/videos/data/mockVideos';
-import { getVideoManifestUrl, getVideoThumbnailUrl } from '@/features/videos/lib/playbackUrls';
+import { apiClient } from '@/shared/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Share2, Bookmark, ThumbsUp, MoreVertical, Eye, Calendar, Play } from 'lucide-react';
+import { Share2, Bookmark, ThumbsUp, Eye, Calendar, Play, Shield, Clock } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { Video } from '@/features/videos/types';
+import { useAuth } from '@/features/auth/AuthContext';
 
 export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const router = useRouter();
-  const video = mockVideos.find((mockVideo) => mockVideo.id === videoId) ?? {
-    id: videoId,
-    title: 'Stream Forge Video',
-    description: 'Video metadata is not available yet. Playback uses the requested video ID.',
-    thumbnail: getVideoThumbnailUrl(videoId),
-    duration: 0,
-    uploadedBy: 'Stream Forge',
-    uploadedAt: new Date(),
-    views: 0,
-    categories: [],
-    tags: [],
-    visibility: 'public',
-    hlsUrl: getVideoManifestUrl(videoId),
-    transcodedVersions: [],
-  } satisfies Video;
+  const { user } = useAuth();
+  const [video, setVideo] = useState<Video | null>(null);
+  const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([
     {
       id: '1',
-      videoId: video.id,
+      videoId,
       userId: 'user1',
       timestamp: 120,
       title: 'Key concept introduction',
@@ -44,7 +34,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     },
     {
       id: '2',
-      videoId: video.id,
+      videoId,
       userId: 'user1',
       timestamp: 300,
       title: 'Important feature demo',
@@ -53,7 +43,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   ]);
 
   const [isLiked, setIsLiked] = useState(false);
-  const [transcript, setTranscript] = useState<string>(
+  const [transcript] = useState<string>(
     `00:00:00 - Welcome to Stream Forge, a self-hosted video streaming platform.
 00:00:10 - In this tutorial, we'll cover the basics of the platform.
 00:02:00 - First, let's understand the different user roles: Admin, Editor, and Viewer.
@@ -62,7 +52,51 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 00:15:00 - Viewers can browse and watch videos from the library.`
   );
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadVideo = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      const [videoResponse, relatedResponse] = await Promise.all([
+        apiClient.getVideoById(videoId),
+        apiClient.getVideos({
+          status: 'Ready',
+          visibility: 'Public',
+          page: 1,
+          pageSize: 4,
+        }),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (videoResponse.success && videoResponse.data) {
+        setVideo(videoResponse.data);
+        setRelatedVideos((relatedResponse.data?.items ?? []).filter((relatedVideo) => relatedVideo.id !== videoId));
+      } else {
+        setVideo(null);
+        setRelatedVideos([]);
+        setError(videoResponse.error ?? 'Failed to load video');
+      }
+
+      setIsLoading(false);
+    };
+
+    loadVideo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [videoId]);
+
   const handleBookmarkAdd = (timestamp: number) => {
+    if (!video) {
+      return;
+    }
+
     const newBookmark: BookmarkType = {
       id: String(bookmarks.length + 1),
       videoId: video.id,
@@ -85,7 +119,38 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
 
-  const relatedVideos: Video[] = mockVideos.filter((relatedVideo) => relatedVideo.id !== video.id);
+  const canManageVideo = user?.role === 'admin' || user?.role === 'editor';
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Watch Video">
+        <div className="max-w-6xl mx-auto">
+          <Card className="text-center py-16">
+            <CardContent>
+              <p className="text-muted-foreground">Loading video...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error || !video) {
+    return (
+      <DashboardLayout title="Watch Video">
+        <div className="max-w-6xl mx-auto">
+          <Card className="text-center py-16 border-destructive/40 bg-destructive/5">
+            <CardContent className="space-y-4">
+              <p className="font-medium text-destructive">{error ?? 'Video not found'}</p>
+              <Button variant="outline" onClick={() => router.push('/videos')}>
+                Back to Library
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Watch Video">
@@ -114,28 +179,41 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   <Calendar className="w-4 h-4" />
                   {video.uploadedAt.toLocaleDateString()}
                 </span>
+                {video.updatedAt && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    Updated {video.updatedAt.toLocaleDateString()}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
-                <Button
-                  variant={isLiked ? 'default' : 'outline'}
-                  className="gap-2"
-                  onClick={() => setIsLiked(!isLiked)}
-                >
-                  <ThumbsUp className="w-4 h-4" />
-                  {isLiked ? 'Liked' : 'Like'}
-                </Button>
-                <Button variant="outline" className="gap-2 bg-transparent">
-                  <Bookmark className="w-4 h-4" />
-                  Save
-                </Button>
+                {video.allowLikes !== false && (
+                  <Button
+                    variant={isLiked ? 'default' : 'outline'}
+                    className="gap-2"
+                    onClick={() => setIsLiked(!isLiked)}
+                  >
+                    <ThumbsUp className="w-4 h-4" />
+                    {isLiked ? 'Liked' : 'Like'}
+                  </Button>
+                )}
+                {video.allowBookmarks !== false && (
+                  <Button variant="outline" className="gap-2 bg-transparent">
+                    <Bookmark className="w-4 h-4" />
+                    Save
+                  </Button>
+                )}
                 <Button variant="outline" className="gap-2 bg-transparent">
                   <Share2 className="w-4 h-4" />
                   Share
                 </Button>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
+                {canManageVideo && (
+                  <Button variant="outline" className="gap-2 bg-transparent" disabled>
+                    <Shield className="w-4 h-4" />
+                    Manage
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -156,6 +234,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               <h2 className="font-semibold text-foreground mb-2">About this video</h2>
               <p className="text-muted-foreground">{video.description}</p>
               <div className="flex flex-wrap gap-2 mt-4">
+                <Badge variant="secondary">{video.visibility}</Badge>
+                {video.status && <Badge variant="outline">{video.status}</Badge>}
                 {video.categories.map((cat) => (
                   <Badge key={cat} variant="secondary">
                     {cat}
