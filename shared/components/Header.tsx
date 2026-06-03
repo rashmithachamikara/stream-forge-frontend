@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 import { LogOut, Settings, Bell } from 'lucide-react';
 
 interface HeaderProps {
@@ -26,15 +26,6 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
   const handleLogout = async () => {
     await logout();
     router.push('/login');
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   return (
@@ -68,11 +59,7 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 hover:bg-secondary">
-                <Avatar className="h-9 w-9 border border-border/50">
-                  <AvatarFallback className="gradient-primary text-white font-bold text-xs">
-                    {getInitials(user?.name || 'User')}
-                  </AvatarFallback>
-                </Avatar>
+                <InitialsAvatar name={user?.name} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-card dark:bg-card/95 border-border/50 shadow-xl dark:shadow-2xl backdrop-blur-sm">

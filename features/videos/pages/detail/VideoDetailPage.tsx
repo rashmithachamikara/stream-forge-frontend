@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Share2, Bookmark, ThumbsUp, Eye, Calendar, Play, Shield, Clock } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { Video, VideoProcessingStatus } from '@/features/videos/types';
 import { useAuth } from '@/features/auth/AuthContext';
+import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 
 const ACTIVE_PROCESSING_STATUSES = new Set(['Uploading', 'Processing']);
 const PROCESSING_POLL_INTERVAL_MS = 4000;
@@ -319,9 +319,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
             {/* Uploader Info */}
             <div className="flex items-center gap-3 mt-6 p-4 bg-muted rounded-lg">
-              <Avatar>
-                <AvatarFallback>{video.uploadedBy.charAt(0)}</AvatarFallback>
-              </Avatar>
+              <InitialsAvatar name={video.uploadedBy} />
               <div className="flex-1">
                 <p className="font-medium text-foreground">{video.uploadedBy}</p>
                 <p className="text-xs text-muted-foreground">Video uploaded on {video.uploadedAt.toLocaleDateString()}</p>
