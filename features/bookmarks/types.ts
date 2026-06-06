@@ -1,8 +1,1 @@
-export interface Bookmark {
-  id: string;
-  videoId: string;
-  userId: string;
-  timestamp: number;
-  title: string;
-  createdAt: Date;
-}
+export type { VideoBookmark as Bookmark } from '@/features/videos/types';

@@ -4,12 +4,26 @@ import {
   AccessGrantDto,
   AccessGrantListFilters,
   AccessGrantPermission,
+  BookmarkDto,
+  BookmarkListFilters,
   Category,
   CategoryDto,
+  Comment,
+  CommentDto,
+  CommentListFilters,
+  CreateBookmarkRequest,
+  CreateCommentRequest,
+  ReactionSummary,
+  ReactionSummaryDto,
+  ReactionType,
+  SetReactionRequest,
   TagSummaryDto,
   TagSummary,
+  UpdateBookmarkRequest,
+  UpdateCommentRequest,
   Video,
   VideoDetailDto,
+  VideoBookmark,
   VideoListFilters,
   VideoProcessingStatus,
   VideoProcessingStatusDto,
@@ -17,7 +31,13 @@ import {
 } from '@/features/videos/types';
 import { UserListFilters, UserProfile, UserProfileDto } from '@/features/admin/types';
 import { Playlist } from '@/features/playlists/types';
-import { Notification } from '@/features/notifications/types';
+import {
+  Notification,
+  NotificationDto,
+  NotificationListFilters,
+  UnreadNotificationCount,
+  UnreadNotificationCountDto,
+} from '@/features/notifications/types';
 import { VideoAnalytics } from '@/features/admin/types';
 import { ApiResponse, PaginatedResponse } from '@/shared/types/api';
 import { capitalize } from '@/shared/lib/utils';
@@ -188,6 +208,49 @@ const mapVideoProcessingStatus = (status: VideoProcessingStatusDto): VideoProces
   errorMessage: status.errorMessage ?? null,
   startedAt: status.startedAt ? new Date(status.startedAt) : null,
   completedAt: status.completedAt ? new Date(status.completedAt) : null,
+});
+
+const mapReactionSummary = (summary: ReactionSummaryDto): ReactionSummary => ({
+  videoId: summary.videoId ?? '',
+  likeCount: summary.likeCount ?? 0,
+  dislikeCount: summary.dislikeCount ?? 0,
+  currentUserReaction: summary.currentUserReaction ?? null,
+});
+
+const mapComment = (comment: CommentDto): Comment => ({
+  id: comment.id ?? '',
+  videoId: comment.videoId ?? '',
+  userId: comment.userId ?? '',
+  userName: comment.userName ?? 'Unknown user',
+  parentCommentId: comment.parentCommentId ?? null,
+  comment: comment.comment ?? '',
+  replyCount: comment.replyCount ?? 0,
+  isEdited: comment.isEdited ?? false,
+  createdAt: comment.createdAt ? new Date(comment.createdAt) : new Date(),
+  updatedAt: comment.updatedAt ? new Date(comment.updatedAt) : new Date(),
+});
+
+const mapBookmark = (bookmark: BookmarkDto): VideoBookmark => ({
+  id: bookmark.id ?? '',
+  videoId: bookmark.videoId ?? '',
+  timestampSeconds: bookmark.timestampSeconds ?? 0,
+  note: bookmark.note ?? null,
+  createdAt: bookmark.createdAt ? new Date(bookmark.createdAt) : new Date(),
+  updatedAt: bookmark.updatedAt ? new Date(bookmark.updatedAt) : new Date(),
+  video: bookmark.video ? mapVideoSummary(bookmark.video) : null,
+});
+
+const mapNotification = (notification: NotificationDto): Notification => ({
+  id: notification.id ?? '',
+  videoId: notification.videoId ?? null,
+  notificationType: notification.notificationType ?? 'Upload',
+  message: notification.message ?? '',
+  isRead: notification.isRead ?? false,
+  createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date(),
+});
+
+const mapUnreadNotificationCount = (count: UnreadNotificationCountDto): UnreadNotificationCount => ({
+  unreadCount: count.unreadCount ?? 0,
 });
 
 const mapAccessGrant = (grant: AccessGrantDto): AccessGrant => ({
@@ -657,6 +720,246 @@ class ApiClient {
     }
   }
 
+  async getReactionSummary(videoId: string): Promise<ApiResponse<ReactionSummary>> {
+    try {
+      const summary = await this.requestRaw<ReactionSummaryDto>(`${API_V1_PREFIX}/videos/${videoId}/reactions/summary`);
+
+      return {
+        success: true,
+        data: mapReactionSummary(summary),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch reaction summary',
+      };
+    }
+  }
+
+  async setReaction(videoId: string, data: SetReactionRequest): Promise<ApiResponse<ReactionSummary>> {
+    try {
+      const summary = await this.requestRaw<ReactionSummaryDto>(`${API_V1_PREFIX}/videos/${videoId}/reaction`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapReactionSummary(summary),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to update reaction',
+      };
+    }
+  }
+
+  async clearReaction(videoId: string): Promise<ApiResponse<ReactionSummary>> {
+    try {
+      const summary = await this.requestRaw<ReactionSummaryDto>(`${API_V1_PREFIX}/videos/${videoId}/reaction`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: mapReactionSummary(summary),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to clear reaction',
+      };
+    }
+  }
+
+  async getComments(videoId: string, filters: CommentListFilters = {}): Promise<ApiResponse<PaginatedResponse<Comment>>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'parentCommentId', filters.parentCommentId);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<CommentDto>>(
+        `${API_V1_PREFIX}/videos/${videoId}/comments?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapComment),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch comments',
+      };
+    }
+  }
+
+  async createComment(videoId: string, data: CreateCommentRequest): Promise<ApiResponse<Comment>> {
+    try {
+      const comment = await this.requestRaw<CommentDto>(`${API_V1_PREFIX}/videos/${videoId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapComment(comment),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to create comment',
+      };
+    }
+  }
+
+  async updateComment(videoId: string, commentId: string, data: UpdateCommentRequest): Promise<ApiResponse<Comment>> {
+    try {
+      const comment = await this.requestRaw<CommentDto>(`${API_V1_PREFIX}/videos/${videoId}/comments/${commentId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapComment(comment),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to update comment',
+      };
+    }
+  }
+
+  async deleteComment(videoId: string, commentId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/videos/${videoId}/comments/${commentId}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to delete comment',
+      };
+    }
+  }
+
+  async getVideoBookmarks(
+    videoId: string,
+    filters: Omit<BookmarkListFilters, 'videoId'> = {}
+  ): Promise<ApiResponse<PaginatedResponse<VideoBookmark>>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<BookmarkDto>>(
+        `${API_V1_PREFIX}/videos/${videoId}/bookmarks?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapBookmark),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch video bookmarks',
+      };
+    }
+  }
+
+  async createBookmark(videoId: string, data: CreateBookmarkRequest): Promise<ApiResponse<VideoBookmark>> {
+    try {
+      const bookmark = await this.requestRaw<BookmarkDto>(`${API_V1_PREFIX}/videos/${videoId}/bookmarks`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapBookmark(bookmark),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to create bookmark',
+      };
+    }
+  }
+
+  async updateBookmark(
+    videoId: string,
+    bookmarkId: string,
+    data: UpdateBookmarkRequest
+  ): Promise<ApiResponse<VideoBookmark>> {
+    try {
+      const bookmark = await this.requestRaw<BookmarkDto>(`${API_V1_PREFIX}/videos/${videoId}/bookmarks/${bookmarkId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapBookmark(bookmark),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to update bookmark',
+      };
+    }
+  }
+
+  async deleteBookmark(videoId: string, bookmarkId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/videos/${videoId}/bookmarks/${bookmarkId}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to delete bookmark',
+      };
+    }
+  }
+
+  async getMyBookmarks(filters: BookmarkListFilters = {}): Promise<ApiResponse<PaginatedResponse<VideoBookmark>>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'videoId', filters.videoId);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<BookmarkDto>>(
+        `${API_V1_PREFIX}/me/bookmarks?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapBookmark),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch bookmarks',
+      };
+    }
+  }
+
   // Analytics Endpoints
   async getAnalytics(startDate: Date, endDate: Date): Promise<ApiResponse<VideoAnalytics[]>> {
     try {
@@ -715,9 +1018,21 @@ class ApiClient {
   }
 
   // Notification Endpoints
-  async getNotifications(): Promise<ApiResponse<Notification[]>> {
+  async getNotifications(filters: NotificationListFilters = {}): Promise<ApiResponse<PaginatedResponse<Notification>>> {
     try {
-      return await this.request<Notification[]>('/notifications');
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'isRead', filters.isRead);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<NotificationDto>>(
+        `${API_V1_PREFIX}/me/notifications?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapNotification),
+      };
     } catch (error) {
       return {
         success: false,
@@ -726,15 +1041,108 @@ class ApiClient {
     }
   }
 
+  async getUnreadNotificationCount(): Promise<ApiResponse<UnreadNotificationCount>> {
+    try {
+      const response = await this.requestRaw<UnreadNotificationCountDto>(`${API_V1_PREFIX}/me/notifications/unread-count`);
+
+      return {
+        success: true,
+        data: mapUnreadNotificationCount(response),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch unread notification count',
+      };
+    }
+  }
+
   async markNotificationAsRead(id: string): Promise<ApiResponse<void>> {
     try {
-      return await this.request<void>(`/notifications/${id}/read`, {
-        method: 'PUT',
+      await this.requestRaw<void>(`${API_V1_PREFIX}/me/notifications/${id}/read`, {
+        method: 'POST',
       });
+
+      return {
+        success: true,
+        data: undefined,
+      };
     } catch (error) {
       return {
         success: false,
         error: 'Failed to mark notification as read',
+      };
+    }
+  }
+
+  async markNotificationAsUnread(id: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/me/notifications/${id}/unread`, {
+        method: 'POST',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to mark notification as unread',
+      };
+    }
+  }
+
+  async markAllNotificationsAsRead(): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/me/notifications/mark-all-read`, {
+        method: 'POST',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to mark all notifications as read',
+      };
+    }
+  }
+
+  async deleteNotification(id: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/me/notifications/${id}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to delete notification',
+      };
+    }
+  }
+
+  async clearReadNotifications(): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/me/notifications/read`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to clear read notifications',
       };
     }
   }

@@ -26,6 +26,26 @@ export interface Video {
   playerTheme?: string | null;
 }
 
+export type ReactionType = 'Like' | 'Dislike';
+
+export interface ReactionSummary {
+  videoId: string;
+  likeCount: number;
+  dislikeCount: number;
+  currentUserReaction: ReactionType | null;
+}
+
+export interface ReactionSummaryDto {
+  videoId?: string;
+  likeCount?: number;
+  dislikeCount?: number;
+  currentUserReaction?: ReactionType | null;
+}
+
+export interface SetReactionRequest {
+  reactionType: ReactionType;
+}
+
 export interface TranscodedVersion {
   resolution: string;
   format: string;
@@ -123,6 +143,47 @@ export interface VideoProcessingStatusDto {
   completedAt?: string | null;
 }
 
+export interface Comment {
+  id: string;
+  videoId: string;
+  userId: string;
+  userName: string;
+  parentCommentId: string | null;
+  comment: string;
+  replyCount: number;
+  isEdited: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CommentDto {
+  id?: string;
+  videoId?: string;
+  userId?: string;
+  userName?: string | null;
+  parentCommentId?: string | null;
+  comment?: string | null;
+  replyCount?: number;
+  isEdited?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CommentListFilters {
+  parentCommentId?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateCommentRequest {
+  comment: string;
+  parentCommentId?: string | null;
+}
+
+export interface UpdateCommentRequest {
+  comment: string;
+}
+
 export interface CategoryDto {
   id?: string;
   name?: string | null;
@@ -162,4 +223,40 @@ export interface AccessGrantListFilters {
   page?: number;
   pageSize?: number;
   isActive?: boolean;
+}
+
+export interface VideoBookmark {
+  id: string;
+  videoId: string;
+  timestampSeconds: number;
+  note: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  video: Video | null;
+}
+
+export interface BookmarkDto {
+  id?: string;
+  videoId?: string;
+  timestampSeconds?: number;
+  note?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  video?: VideoSummaryDto | null;
+}
+
+export interface BookmarkListFilters {
+  videoId?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateBookmarkRequest {
+  timestampSeconds: number;
+  note?: string | null;
+}
+
+export interface UpdateBookmarkRequest {
+  timestampSeconds: number;
+  note?: string | null;
 }

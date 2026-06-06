@@ -1,10 +1,31 @@
 export interface Notification {
   id: string;
-  userId: string;
-  title: string;
+  videoId: string | null;
+  notificationType: 'Comment' | 'Like' | 'Upload' | 'ProcessingComplete' | 'Reply';
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  read: boolean;
+  isRead: boolean;
   createdAt: Date;
-  actionUrl?: string;
+}
+
+export interface NotificationDto {
+  id?: string;
+  videoId?: string | null;
+  notificationType?: Notification['notificationType'];
+  message?: string | null;
+  isRead?: boolean;
+  createdAt?: string;
+}
+
+export interface NotificationListFilters {
+  isRead?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface UnreadNotificationCount {
+  unreadCount: number;
+}
+
+export interface UnreadNotificationCountDto {
+  unreadCount?: number;
 }

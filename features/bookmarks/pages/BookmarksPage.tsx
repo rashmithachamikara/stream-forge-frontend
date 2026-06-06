@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { apiClient } from '@/shared/lib/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -14,135 +16,147 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Trash2, Play, Clock } from 'lucide-react';
+import { Trash2, Play, Loader2 } from 'lucide-react';
 import { Bookmark } from '@/features/bookmarks/types';
 
+const formatTime = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
+};
+
+const getBookmarkTitle = (bookmark: Bookmark) => bookmark.note || `Bookmark at ${formatTime(bookmark.timestampSeconds)}`;
+
 export default function BookmarksPage() {
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([
-    {
-      id: '1',
-      videoId: '1',
-      userId: 'user1',
-      timestamp: 120,
-      title: 'Key concept introduction',
-      createdAt: new Date('2024-02-15'),
-    },
-    {
-      id: '2',
-      videoId: '1',
-      userId: 'user1',
-      timestamp: 300,
-      title: 'Important feature demo',
-      createdAt: new Date('2024-02-15'),
-    },
-    {
-      id: '3',
-      videoId: '2',
-      userId: 'user1',
-      timestamp: 450,
-      title: 'Advanced techniques',
-      createdAt: new Date('2024-02-14'),
-    },
-    {
-      id: '4',
-      videoId: '3',
-      userId: 'user1',
-      timestamp: 890,
-      title: 'Project example walkthrough',
-      createdAt: new Date('2024-02-13'),
-    },
-  ]);
-
+  const router = useRouter();
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const videoTitles: Record<string, string> = {
-    '1': 'Getting Started with Stream Forge',
-    '2': 'Advanced Features Tour',
-    '3': 'Company Training Session',
-    '4': 'Product Demo',
-  };
+  useEffect(() => {
+    let isMounted = true;
 
-  const filteredBookmarks = bookmarks.filter(
-    (bookmark) =>
-      bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      videoTitles[bookmark.videoId]?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    const loadBookmarks = async () => {
+      setIsLoading(true);
+      setError(null);
 
-  const handleDeleteBookmark = (id: string) => {
-    setBookmarks(bookmarks.filter((b) => b.id !== id));
-  };
+      const response = await apiClient.getMyBookmarks({ page: 1, pageSize: 50 });
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
+      if (!isMounted) {
+        return;
+      }
 
-    if (hours > 0) {
-      return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      if (response.success && response.data) {
+        setBookmarks(response.data.items);
+      } else {
+        setBookmarks([]);
+        setError(response.error ?? 'Failed to load bookmarks');
+      }
+
+      setIsLoading(false);
+    };
+
+    void loadBookmarks();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredBookmarks = bookmarks.filter((bookmark) => {
+    const title = getBookmarkTitle(bookmark).toLowerCase();
+    const videoTitle = bookmark.video?.title?.toLowerCase() ?? '';
+    const query = searchTerm.toLowerCase();
+
+    return title.includes(query) || videoTitle.includes(query);
+  });
+
+  const handleDeleteBookmark = async (bookmark: Bookmark) => {
+    const response = await apiClient.deleteBookmark(bookmark.videoId, bookmark.id);
+
+    if (response.success) {
+      setBookmarks((current) => current.filter((item) => item.id !== bookmark.id));
+    } else {
+      setError(response.error ?? 'Failed to delete bookmark');
     }
-    return `${minutes}:${String(secs).padStart(2, '0')}`;
   };
 
   return (
     <DashboardLayout title="My Bookmarks">
       <div className="space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Bookmarks</h1>
-          <p className="text-muted-foreground">
-            Saved timestamps from videos you're watching ({bookmarks.length})
-          </p>
+          <p className="text-muted-foreground">Saved timestamps from videos you're watching ({bookmarks.length})</p>
         </div>
 
-        {/* Search */}
         <Input
           placeholder="Search bookmarks by title or video..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(event) => setSearchTerm(event.target.value)}
           className="max-w-md"
         />
 
-        {/* Bookmarks Table */}
-        {filteredBookmarks.length > 0 ? (
+        {error && (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
+          </Card>
+        )}
+
+        {isLoading ? (
+          <Card className="py-12 text-center">
+            <CardContent className="flex items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading bookmarks...
+            </CardContent>
+          </Card>
+        ) : filteredBookmarks.length > 0 ? (
           <Card>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Bookmark Title</TableHead>
+                      <TableHead>Bookmark</TableHead>
                       <TableHead>Video</TableHead>
                       <TableHead>Timestamp</TableHead>
-                      <TableHead>Created</TableHead>
+                      <TableHead>Updated</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredBookmarks.map((bookmark) => (
                       <TableRow key={bookmark.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <span className="font-medium">{bookmark.title}</span>
+                        <TableCell className="font-medium">{getBookmarkTitle(bookmark)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {bookmark.video?.title || 'Unknown Video'}
                         </TableCell>
                         <TableCell>
-                          <span className="text-muted-foreground text-sm">
-                            {videoTitles[bookmark.videoId] || 'Unknown Video'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{formatTime(bookmark.timestamp)}</Badge>
+                          <Badge variant="outline">{formatTime(bookmark.timestampSeconds)}</Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {bookmark.createdAt.toLocaleDateString()}
+                          {bookmark.updatedAt.toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 mr-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="mr-2 h-8 w-8"
+                            onClick={() => router.push(`/videos/${bookmark.videoId}`)}
+                          >
                             <Play className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteBookmark(bookmark.id)}
+                            onClick={() => void handleDeleteBookmark(bookmark)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -155,27 +169,26 @@ export default function BookmarksPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="text-center py-12">
+          <Card className="py-12 text-center">
             <CardContent>
-              <p className="text-muted-foreground mb-4">No bookmarks yet</p>
+              <p className="mb-4 text-muted-foreground">No bookmarks yet</p>
               <p className="text-sm text-muted-foreground">
-                Click the bookmark icon while watching videos to save timestamps
+                Click the bookmark icon while watching videos to save timestamps.
               </p>
             </CardContent>
           </Card>
         )}
 
-        {/* Info Card */}
-        <Card className="bg-primary/5 border-primary/20">
+        <Card className="border-primary/20 bg-primary/5">
           <CardHeader>
             <CardTitle className="text-base">About Bookmarks</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
               Bookmarks let you save important timestamps within videos. Click the bookmark icon in the video player to save a timestamp.
             </p>
             <p>
-              You can give each bookmark a custom title and return to that exact moment in the video by clicking the 'Play' button.
+              You can return to the video from this page and pick up from your saved moments.
             </p>
           </CardContent>
         </Card>

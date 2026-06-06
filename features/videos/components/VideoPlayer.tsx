@@ -19,7 +19,7 @@ interface VideoPlayerProps {
   hlsUrl: string;
   title: string;
   duration: number;
-  onBookmarkAdd?: (timestamp: number) => void;
+  onBookmarkAdd?: (timestamp: number, note?: string) => void;
 }
 
 type QualityOption = {
@@ -221,7 +221,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Add bookmark
   const handleAddBookmark = () => {
     if (onBookmarkAdd) {
-      onBookmarkAdd(currentTime);
+      onBookmarkAdd(currentTime, bookmarkTitle.trim() || undefined);
       setBookmarkTitle('');
       setShowBookmarkInput(false);
     }
