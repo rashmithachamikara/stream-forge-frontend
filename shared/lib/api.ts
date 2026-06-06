@@ -592,6 +592,7 @@ class ApiClient {
   ): Promise<ApiResponse<PaginatedResponse<AccessGrant>>> {
     try {
       const params = new URLSearchParams();
+      appendQueryParam(params, 'isActive', filters.isActive);
       appendQueryParam(params, 'page', filters.page ?? 1);
       appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
 

@@ -410,7 +410,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                   )}
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4" />
-                    <span>Managed by admin/editor roles only</span>
+                    <span>Uploaded by {video.uploadedBy}</span>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">

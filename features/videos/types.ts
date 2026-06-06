@@ -161,4 +161,5 @@ export interface AccessGrantDto {
 export interface AccessGrantListFilters {
   page?: number;
   pageSize?: number;
+  isActive?: boolean;
 }

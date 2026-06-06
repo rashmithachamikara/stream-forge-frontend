@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Copy, KeyRound, Link2, Loader2, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
+import { Ban, Copy, KeyRound, Link2, Loader2, Plus, RefreshCw, Users } from 'lucide-react';
 import { capitalize } from '@/shared/lib/utils';
 
 type GrantFormState = {
@@ -45,6 +45,13 @@ const DEFAULT_FORM: GrantFormState = {
 };
 
 const PERMISSION_OPTIONS: AccessGrantPermission[] = ['View', 'Embed', 'Download'];
+const ACCESS_STATUS_FILTER_OPTIONS = [
+  { label: 'All grants', value: 'all' as const },
+  { label: 'Active', value: 'active' as const },
+  { label: 'Inactive', value: 'inactive' as const },
+];
+
+type AccessStatusFilter = 'all' | 'active' | 'inactive';
 
 const formatDateTime = (value: Date | null) => {
   if (!value) {
@@ -64,7 +71,8 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [lastShareToken, setLastShareToken] = useState<string | null>(null);
-  const [deletePendingId, setDeletePendingId] = useState<string | null>(null);
+  const [deactivatePendingId, setDeactivatePendingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<AccessStatusFilter>('all');
   const [form, setForm] = useState<GrantFormState>(DEFAULT_FORM);
 
   const selectedUser = useMemo(
@@ -76,7 +84,11 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
     setIsLoadingGrants(true);
     setError(null);
 
-    const response = await apiClient.getVideoAccessGrants(videoId, { page: 1, pageSize: 24 });
+    const response = await apiClient.getVideoAccessGrants(videoId, {
+      page: 1,
+      pageSize: 24,
+      isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
+    });
 
     if (response.success && response.data) {
       setGrants(response.data.items);
@@ -108,7 +120,7 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
 
   useEffect(() => {
     void loadGrants();
-  }, [videoId]);
+  }, [statusFilter, videoId]);
 
   useEffect(() => {
     if (!isDialogOpen) {
@@ -171,25 +183,31 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
     setIsSubmitting(false);
   };
 
-  const handleDeleteGrant = async (grant: AccessGrant) => {
-    if (!window.confirm(`Delete access grant for ${grant.userName || grant.shareToken || 'this recipient'}?`)) {
+  const handleDeactivateGrant = async (grant: AccessGrant) => {
+    if (!window.confirm(`Deactivate access grant for ${grant.userName || grant.shareToken || 'this recipient'}?`)) {
       return;
     }
 
-    setDeletePendingId(grant.id);
+    setDeactivatePendingId(grant.id);
     setError(null);
     setSuccessMessage(null);
 
     const response = await apiClient.deleteVideoAccessGrant(videoId, grant.id);
 
     if (response.success) {
-      setGrants((current) => current.filter((item) => item.id !== grant.id));
-      setSuccessMessage('Access grant deleted.');
+      if (statusFilter === 'active') {
+        setGrants((current) => current.filter((item) => item.id !== grant.id));
+      } else {
+        setGrants((current) =>
+          current.map((item) => (item.id === grant.id ? { ...item, isActive: false } : item))
+        );
+      }
+      setSuccessMessage('Access grant deactivated.');
     } else {
-      setError(response.error ?? 'Failed to delete access grant');
+      setError(response.error ?? 'Failed to deactivate access grant');
     }
 
-    setDeletePendingId(null);
+    setDeactivatePendingId(null);
   };
 
   if (!canManageAccess) {
@@ -204,6 +222,18 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
           <CardDescription>Control who can view, embed, or download this video.</CardDescription>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AccessStatusFilter)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ACCESS_STATUS_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={() => void loadGrants()} className="gap-2">
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -376,17 +406,18 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
                     <TableCell className="text-muted-foreground">{formatDateTime(grant.expiresAt)}</TableCell>
                     <TableCell className="text-right">
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => void handleDeleteGrant(grant)}
-                        disabled={deletePendingId === grant.id}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => void handleDeactivateGrant(grant)}
+                        disabled={!grant.isActive || deactivatePendingId === grant.id}
                       >
-                        {deletePendingId === grant.id ? (
+                        {deactivatePendingId === grant.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Trash2 className="h-4 w-4" />
+                          <Ban className="h-4 w-4" />
                         )}
+                        {grant.isActive ? 'Deactivate' : 'Inactive'}
                       </Button>
                     </TableCell>
                   </TableRow>
