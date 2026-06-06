@@ -527,6 +527,653 @@
                 },
             },
         },
+      "/api/v1/me/bookmarks":
+        {
+          "get":
+            {
+              "tags": ["Me"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/BookmarkDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/BookmarkDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/BookmarkDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/playlists":
+        {
+          "get":
+            {
+              "tags": ["Me"],
+              "parameters":
+                [
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/notifications":
+        {
+          "get":
+            {
+              "tags": ["Me"],
+              "parameters":
+                [
+                  {
+                    "name": "isRead",
+                    "in": "query",
+                    "schema": { "type": "boolean" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/NotificationDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/NotificationDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/NotificationDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/notifications/unread-count":
+        {
+          "get":
+            {
+              "tags": ["Me"],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UnreadNotificationCountDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UnreadNotificationCountDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/UnreadNotificationCountDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/notifications/{notificationId}/read":
+        {
+          "post":
+            {
+              "tags": ["Me"],
+              "parameters":
+                [
+                  {
+                    "name": "notificationId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/me/notifications/{notificationId}/unread":
+        {
+          "post":
+            {
+              "tags": ["Me"],
+              "parameters":
+                [
+                  {
+                    "name": "notificationId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/me/notifications/mark-all-read":
+        {
+          "post":
+            { "tags": ["Me"], "responses": { "200": { "description": "OK" } } },
+        },
+      "/api/v1/playlists":
+        {
+          "get":
+            {
+              "tags": ["Playlists"],
+              "parameters":
+                [
+                  {
+                    "name": "ownerId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "post":
+            {
+              "tags": ["Playlists"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreatePlaylistRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreatePlaylistRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreatePlaylistRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/playlists/{playlistId}":
+        {
+          "get":
+            {
+              "tags": ["Playlists"],
+              "parameters":
+                [
+                  {
+                    "name": "playlistId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                        },
+                    },
+                },
+            },
+          "patch":
+            {
+              "tags": ["Playlists"],
+              "parameters":
+                [
+                  {
+                    "name": "playlistId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdatePlaylistRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdatePlaylistRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdatePlaylistRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/PlaylistDto" },
+                            },
+                        },
+                    },
+                },
+            },
+          "delete":
+            {
+              "tags": ["Playlists"],
+              "parameters":
+                [
+                  {
+                    "name": "playlistId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/playlists/{playlistId}/videos":
+        {
+          "get":
+            {
+              "tags": ["Playlists"],
+              "parameters":
+                [
+                  {
+                    "name": "playlistId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistVideosPageDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistVideosPageDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/PlaylistVideosPageDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "post":
+            {
+              "tags": ["Playlists"],
+              "parameters":
+                [
+                  {
+                    "name": "playlistId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AddPlaylistVideoRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AddPlaylistVideoRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AddPlaylistVideoRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/playlists/{playlistId}/videos/{videoId}":
+        {
+          "delete":
+            {
+              "tags": ["Playlists"],
+              "parameters":
+                [
+                  {
+                    "name": "playlistId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/playlists/{playlistId}/videos/reorder":
+        {
+          "post":
+            {
+              "tags": ["Playlists"],
+              "parameters":
+                [
+                  {
+                    "name": "playlistId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/ReorderPlaylistVideosRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/ReorderPlaylistVideosRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/ReorderPlaylistVideosRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
       "/api/v1/weatherforecast":
         {
           "get":
@@ -1208,6 +1855,622 @@
                 },
             },
         },
+      "/api/v1/videos/{videoId}/reactions/summary":
+        {
+          "get":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/reaction":
+        {
+          "put":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/SetReactionRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/SetReactionRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/SetReactionRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "delete":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ReactionSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/comments":
+        {
+          "get":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "parentCommentId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CommentDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CommentDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CommentDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "post":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateCommentRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateCommentRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateCommentRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CommentDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CommentDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CommentDto" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/comments/{commentId}":
+        {
+          "patch":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "commentId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateCommentRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateCommentRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateCommentRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CommentDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CommentDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CommentDto" },
+                            },
+                        },
+                    },
+                },
+            },
+          "delete":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "commentId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/videos/{videoId}/bookmarks":
+        {
+          "get":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/BookmarkDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/BookmarkDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/BookmarkDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "post":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateBookmarkRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateBookmarkRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateBookmarkRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/BookmarkDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/BookmarkDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/BookmarkDto" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/bookmarks/{bookmarkId}":
+        {
+          "patch":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "bookmarkId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateBookmarkRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateBookmarkRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateBookmarkRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/BookmarkDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/BookmarkDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/BookmarkDto" },
+                            },
+                        },
+                    },
+                },
+            },
+          "delete":
+            {
+              "tags": ["VideoEngagement"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "bookmarkId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
       "/api/v1/videos/{videoId}/playback/manifest":
         {
           "get":
@@ -1778,6 +3041,17 @@
                 },
               "additionalProperties": false,
             },
+          "AddPlaylistVideoRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "orderIndex":
+                    { "type": "integer", "format": "int32", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
           "AuthResponseDto":
             {
               "type": "object",
@@ -1805,6 +3079,41 @@
                 },
               "additionalProperties": false,
             },
+          "BookmarkDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "timestampSeconds": { "type": "integer", "format": "int32" },
+                  "note": { "type": "string", "nullable": true },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt": { "type": "string", "format": "date-time" },
+                  "video": { "$ref": "#/components/schemas/VideoSummaryDto" },
+                },
+              "additionalProperties": false,
+            },
+          "BookmarkDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/BookmarkDto" },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "CategoryDto":
             {
               "type": "object",
@@ -1817,6 +3126,44 @@
                     { "type": "string", "format": "uuid", "nullable": true },
                   "displayOrder": { "type": "integer", "format": "int32" },
                   "createdAt": { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
+          "CommentDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "userId": { "type": "string", "format": "uuid" },
+                  "userName": { "type": "string", "nullable": true },
+                  "parentCommentId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "comment": { "type": "string", "nullable": true },
+                  "isEdited": { "type": "boolean" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt": { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
+          "CommentDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/CommentDto" },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
                 },
               "additionalProperties": false,
             },
@@ -1858,6 +3205,39 @@
                       "format": "date-time",
                       "nullable": true,
                     },
+                },
+              "additionalProperties": false,
+            },
+          "CreateBookmarkRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "timestampSeconds": { "type": "integer", "format": "int32" },
+                  "note": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "CreateCommentRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "comment": { "type": "string", "nullable": true },
+                  "parentCommentId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "CreatePlaylistRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "name": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "visibility":
+                    { "$ref": "#/components/schemas/PlaylistVisibility" },
                 },
               "additionalProperties": false,
             },
@@ -1905,8 +3285,118 @@
                 },
               "additionalProperties": false,
             },
+          "NotificationDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "videoId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "notificationType":
+                    { "$ref": "#/components/schemas/NotificationType" },
+                  "message": { "type": "string", "nullable": true },
+                  "isRead": { "type": "boolean" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
+          "NotificationDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        { "$ref": "#/components/schemas/NotificationDto" },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "NotificationType":
+            {
+              "enum":
+                ["Comment", "Like", "Upload", "ProcessingComplete", "Reply"],
+              "type": "string",
+            },
           "PermissionType":
             { "enum": ["View", "Embed", "Download"], "type": "string" },
+          "PlaylistDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "ownerId": { "type": "string", "format": "uuid" },
+                  "ownerName": { "type": "string", "nullable": true },
+                  "visibility":
+                    { "$ref": "#/components/schemas/PlaylistVisibility" },
+                  "videoCount": { "type": "integer", "format": "int32" },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt": { "type": "string", "format": "date-time" },
+                },
+              "additionalProperties": false,
+            },
+          "PlaylistDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/PlaylistDto" },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "PlaylistVideosPageDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "playlist": { "$ref": "#/components/schemas/PlaylistDto" },
+                  "videos":
+                    {
+                      "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "PlaylistVisibility":
+            { "enum": ["Public", "Private"], "type": "string" },
+          "ReactionSummaryDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "likeCount": { "type": "integer", "format": "int32" },
+                  "dislikeCount": { "type": "integer", "format": "int32" },
+                  "currentUserReaction":
+                    { "$ref": "#/components/schemas/ReactionType" },
+                },
+              "additionalProperties": false,
+            },
+          "ReactionType": { "enum": ["Like", "Dislike"], "type": "string" },
           "RefreshTokenRequestDto":
             {
               "type": "object",
@@ -1922,6 +3412,30 @@
                   "name": { "type": "string", "nullable": true },
                   "email": { "type": "string", "nullable": true },
                   "password": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "ReorderPlaylistVideosRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "videoIds":
+                    {
+                      "type": "array",
+                      "items": { "type": "string", "format": "uuid" },
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "SetReactionRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "reactionType":
+                    { "$ref": "#/components/schemas/ReactionType" },
                 },
               "additionalProperties": false,
             },
@@ -1956,6 +3470,42 @@
                 },
               "additionalProperties": false,
             },
+          "UnreadNotificationCountDto":
+            {
+              "type": "object",
+              "properties":
+                { "unreadCount": { "type": "integer", "format": "int32" } },
+              "additionalProperties": false,
+            },
+          "UpdateBookmarkRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "timestampSeconds": { "type": "integer", "format": "int32" },
+                  "note": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "UpdateCommentRequestDto":
+            {
+              "type": "object",
+              "properties":
+                { "comment": { "type": "string", "nullable": true } },
+              "additionalProperties": false,
+            },
+          "UpdatePlaylistRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "name": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "visibility":
+                    { "$ref": "#/components/schemas/PlaylistVisibility" },
+                },
+              "additionalProperties": false,
+            },
           "UpdateVideoRequestDto":
             {
               "type": "object",
@@ -1975,7 +3525,6 @@
                     },
                   "allowComments": { "type": "boolean", "nullable": true },
                   "allowLikes": { "type": "boolean", "nullable": true },
-                  "allowBookmarks": { "type": "boolean", "nullable": true },
                   "autoplay": { "type": "boolean", "nullable": true },
                   "loop": { "type": "boolean", "nullable": true },
                   "defaultVolume":
@@ -2124,7 +3673,6 @@
                   "status": { "$ref": "#/components/schemas/VideoStatus" },
                   "allowComments": { "type": "boolean" },
                   "allowLikes": { "type": "boolean" },
-                  "allowBookmarks": { "type": "boolean" },
                   "autoplay": { "type": "boolean" },
                   "loop": { "type": "boolean" },
                   "defaultVolume": { "type": "integer", "format": "int32" },
