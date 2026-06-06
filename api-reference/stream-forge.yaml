@@ -1584,6 +1584,11 @@
                     "schema": { "type": "string", "format": "uuid" },
                   },
                   {
+                    "name": "isActive",
+                    "in": "query",
+                    "schema": { "type": "boolean" },
+                  },
+                  {
                     "name": "page",
                     "in": "query",
                     "schema":
