@@ -293,8 +293,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     return (
       <DashboardLayout title="Watch Video">
         <div className="mx-auto max-w-6xl">
-          <Card className="py-16 text-center">
-            <CardContent>
+          <Card className="overflow-hidden py-0">
+            <CardContent className="flex aspect-video items-center justify-center p-0 text-center">
               <p className="text-muted-foreground">Loading video...</p>
             </CardContent>
           </Card>

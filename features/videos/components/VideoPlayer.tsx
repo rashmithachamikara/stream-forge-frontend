@@ -253,7 +253,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center justify-center overflow-hidden rounded-lg bg-black fullscreen:rounded-none"
+      className="relative aspect-video w-full flex items-center justify-center overflow-hidden rounded-lg bg-black fullscreen:rounded-none"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && !showSettings && !showBookmarksPanel && setShowControls(false)}
     >

@@ -493,10 +493,22 @@ export default function PlaylistsPage() {
           <>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredPlaylists.map((playlist) => (
-                <Card key={playlist.id} className="flex flex-col gap-0 overflow-hidden border-t-0 pt-0 pb-6 transition-shadow hover:shadow-lg">
+                <Card
+                  key={playlist.id}
+                  className="flex flex-col gap-0 overflow-hidden border-t-0 pt-0 pb-6 transition-shadow hover:shadow-lg cursor-pointer"
+                  onClick={() => openPlaylistVideos(playlist)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openPlaylistVideos(playlist);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/10 to-primary/5">
                     {renderPlaylistPreview(playlist)}
-                    <Badge className="absolute right-3 top-3">
+                    <Badge variant="outline" className="absolute bottom-3 right-3 z-10">
                       {playlist.visibility === 'Public' ? 'Public' : 'Private'}
                     </Badge>
                   </div>
@@ -523,7 +535,10 @@ export default function PlaylistsPage() {
                       <Button
                         variant="outline"
                         className="h-10 flex-1 bg-transparent"
-                        onClick={() => openPlaylistVideos(playlist)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openPlaylistVideos(playlist);
+                        }}
                       >
                         <Play className="mr-1 h-4 w-4" />
                         View videos
@@ -532,7 +547,10 @@ export default function PlaylistsPage() {
                         variant="outline"
                         size="icon"
                         className="h-10 w-10 bg-transparent"
-                        onClick={() => openEditDialog(playlist)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openEditDialog(playlist);
+                        }}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -540,7 +558,10 @@ export default function PlaylistsPage() {
                         variant="outline"
                         size="icon"
                         className="h-10 w-10 bg-transparent text-destructive hover:text-destructive"
-                        onClick={() => void handleDeletePlaylist(playlist)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDeletePlaylist(playlist);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
