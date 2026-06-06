@@ -30,7 +30,17 @@ import {
   VideoSummaryDto,
 } from '@/features/videos/types';
 import { UserListFilters, UserProfile, UserProfileDto } from '@/features/admin/types';
-import { Playlist } from '@/features/playlists/types';
+import {
+  AddPlaylistVideoRequest,
+  CreatePlaylistRequest,
+  Playlist,
+  PlaylistDto,
+  PlaylistListFilters,
+  PlaylistVideosPage,
+  PlaylistVideosPageDto,
+  ReorderPlaylistVideosRequest,
+  UpdatePlaylistRequest,
+} from '@/features/playlists/types';
 import {
   Notification,
   NotificationDto,
@@ -251,6 +261,23 @@ const mapNotification = (notification: NotificationDto): Notification => ({
 
 const mapUnreadNotificationCount = (count: UnreadNotificationCountDto): UnreadNotificationCount => ({
   unreadCount: count.unreadCount ?? 0,
+});
+
+const mapPlaylist = (playlist: PlaylistDto): Playlist => ({
+  id: playlist.id ?? '',
+  name: playlist.name ?? 'Untitled playlist',
+  description: playlist.description ?? '',
+  ownerId: playlist.ownerId ?? '',
+  ownerName: playlist.ownerName ?? 'Unknown owner',
+  visibility: playlist.visibility ?? 'Private',
+  videoCount: playlist.videoCount ?? 0,
+  createdAt: playlist.createdAt ? new Date(playlist.createdAt) : new Date(),
+  updatedAt: playlist.updatedAt ? new Date(playlist.updatedAt) : new Date(),
+});
+
+const mapPlaylistVideosPage = (page: PlaylistVideosPageDto): PlaylistVideosPage => ({
+  playlist: mapPlaylist(page.playlist ?? {}),
+  videos: mapPagedResponse(page.videos ?? emptyPagedResponse<VideoSummaryDto>(), mapVideoSummary),
 });
 
 const mapAccessGrant = (grant: AccessGrantDto): AccessGrant => ({
@@ -978,9 +1005,20 @@ class ApiClient {
   }
 
   // Playlist Endpoints
-  async getPlaylists(): Promise<ApiResponse<Playlist[]>> {
+  async getMyPlaylists(filters: PlaylistListFilters = {}): Promise<ApiResponse<PaginatedResponse<Playlist>>> {
     try {
-      return await this.request<Playlist[]>('/playlists');
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<PlaylistDto>>(
+        `${API_V1_PREFIX}/me/playlists?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapPlaylist),
+      };
     } catch (error) {
       return {
         success: false,
@@ -989,12 +1027,56 @@ class ApiClient {
     }
   }
 
-  async createPlaylist(data: Partial<Playlist>): Promise<ApiResponse<Playlist>> {
+  async getPlaylists(filters: PlaylistListFilters = {}): Promise<ApiResponse<PaginatedResponse<Playlist>>> {
     try {
-      return await this.request<Playlist>('/playlists', {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'ownerId', filters.ownerId);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<PlaylistDto>>(
+        `${API_V1_PREFIX}/playlists?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapPlaylist),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch playlists',
+      };
+    }
+  }
+
+  async getPlaylistById(playlistId: string): Promise<ApiResponse<Playlist>> {
+    try {
+      const response = await this.requestRaw<PlaylistDto>(`${API_V1_PREFIX}/playlists/${playlistId}`);
+
+      return {
+        success: true,
+        data: mapPlaylist(response),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch playlist',
+      };
+    }
+  }
+
+  async createPlaylist(data: CreatePlaylistRequest): Promise<ApiResponse<Playlist>> {
+    try {
+      const response = await this.requestRaw<PlaylistDto>(`${API_V1_PREFIX}/playlists`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
+
+      return {
+        success: true,
+        data: mapPlaylist(response),
+      };
     } catch (error) {
       return {
         success: false,
@@ -1003,16 +1085,126 @@ class ApiClient {
     }
   }
 
-  async addVideoToPlaylist(playlistId: string, videoId: string): Promise<ApiResponse<Playlist>> {
+  async updatePlaylist(playlistId: string, data: UpdatePlaylistRequest): Promise<ApiResponse<Playlist>> {
     try {
-      return await this.request<Playlist>(`/playlists/${playlistId}/videos`, {
-        method: 'POST',
-        body: JSON.stringify({ videoId }),
+      const response = await this.requestRaw<PlaylistDto>(`${API_V1_PREFIX}/playlists/${playlistId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
       });
+
+      return {
+        success: true,
+        data: mapPlaylist(response),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to update playlist',
+      };
+    }
+  }
+
+  async deletePlaylist(playlistId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/playlists/${playlistId}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to delete playlist',
+      };
+    }
+  }
+
+  async getPlaylistVideos(
+    playlistId: string,
+    filters: Pick<PlaylistListFilters, 'page' | 'pageSize'> = {}
+  ): Promise<ApiResponse<PlaylistVideosPage>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PlaylistVideosPageDto>(
+        `${API_V1_PREFIX}/playlists/${playlistId}/videos?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPlaylistVideosPage(response),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch playlist videos',
+      };
+    }
+  }
+
+  async addVideoToPlaylist(
+    playlistId: string,
+    data: AddPlaylistVideoRequest
+  ): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/playlists/${playlistId}/videos`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
     } catch (error) {
       return {
         success: false,
         error: 'Failed to add video to playlist',
+      };
+    }
+  }
+
+  async removeVideoFromPlaylist(playlistId: string, videoId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/playlists/${playlistId}/videos/${videoId}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to remove video from playlist',
+      };
+    }
+  }
+
+  async reorderPlaylistVideos(
+    playlistId: string,
+    data: ReorderPlaylistVideosRequest
+  ): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/playlists/${playlistId}/videos/reorder`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to reorder playlist videos',
       };
     }
   }

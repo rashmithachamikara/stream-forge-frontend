@@ -12,8 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
   Share2,
   Bookmark,
+  ListPlus,
   ThumbsUp,
   ThumbsDown,
   Eye,
@@ -32,6 +41,7 @@ import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { ReactionSummary, ReactionType, Video, VideoProcessingStatus } from '@/features/videos/types';
 import { useAuth } from '@/features/auth/AuthContext';
 import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
+import { Playlist } from '@/features/playlists/types';
 
 const ACTIVE_PROCESSING_STATUSES = new Set(['Uploading', 'Processing']);
 const PROCESSING_POLL_INTERVAL_MS = 4000;
@@ -58,11 +68,16 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const [processingStatus, setProcessingStatus] = useState<VideoProcessingStatus | null>(null);
   const [reactionSummary, setReactionSummary] = useState<ReactionSummary | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBookmarkSaving, setIsBookmarkSaving] = useState(false);
   const [isReactionSaving, setIsReactionSaving] = useState(false);
+  const [isPlaylistsLoading, setIsPlaylistsLoading] = useState(false);
+  const [isPlaylistDialogOpen, setIsPlaylistDialogOpen] = useState(false);
+  const [isPlaylistSaving, setIsPlaylistSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookmarkMessage, setBookmarkMessage] = useState<string | null>(null);
+  const [playlistMessage, setPlaylistMessage] = useState<string | null>(null);
 
   const loadVideo = useCallback(async ({ showLoading = false }: { showLoading?: boolean } = {}) => {
     if (showLoading) {
@@ -195,6 +210,61 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     setIsBookmarkSaving(false);
   };
 
+  const loadPlaylists = useCallback(async () => {
+    setIsPlaylistsLoading(true);
+    setError(null);
+
+    const response = await apiClient.getMyPlaylists({ page: 1, pageSize: 50 });
+
+    if (response.success && response.data) {
+      setPlaylists(response.data.items);
+    } else {
+      setPlaylists([]);
+      setError(response.error ?? 'Failed to load playlists');
+    }
+
+    setIsPlaylistsLoading(false);
+  }, []);
+
+  const handlePlaylistDialogChange = async (open: boolean) => {
+    setIsPlaylistDialogOpen(open);
+
+    if (open && playlists.length === 0 && !isPlaylistsLoading) {
+      await loadPlaylists();
+    }
+  };
+
+  const handleAddToPlaylist = async (playlistId: string) => {
+    if (!video) {
+      return;
+    }
+
+    setIsPlaylistSaving(true);
+    setPlaylistMessage(null);
+    setError(null);
+
+    const response = await apiClient.addVideoToPlaylist(playlistId, {
+      videoId: video.id,
+    });
+
+    if (response.success) {
+      const targetPlaylist = playlists.find((playlist) => playlist.id === playlistId);
+      setPlaylists((current) =>
+        current.map((playlist) =>
+          playlist.id === playlistId
+            ? { ...playlist, videoCount: playlist.videoCount + 1 }
+            : playlist
+        )
+      );
+      setPlaylistMessage(`Added to ${targetPlaylist?.name ?? 'playlist'}.`);
+      setIsPlaylistDialogOpen(false);
+    } else {
+      setError(response.error ?? 'Failed to add video to playlist');
+    }
+
+    setIsPlaylistSaving(false);
+  };
+
   const handleReaction = async (nextReaction: ReactionType) => {
     if (!video) {
       return;
@@ -262,7 +332,9 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
             hlsUrl={video.hlsUrl}
             title={video.title}
             duration={video.duration}
+            bookmarks={bookmarks}
             onBookmarkAdd={handleBookmarkAdd}
+            isBookmarkSaving={isBookmarkSaving}
           />
         ) : (
           <Card className={isVideoFailed ? 'border-destructive/30 bg-destructive/5' : 'border-primary/30 bg-primary/5'}>
@@ -345,10 +417,55 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   </>
                 )}
                 {video.allowBookmarks !== false && (
-                  <Button variant="outline" className="gap-2 bg-transparent" onClick={() => router.push('/bookmarks')}>
-                    <Bookmark className="h-4 w-4" />
-                    Saved {bookmarks.length > 0 ? `(${bookmarks.length})` : ''}
-                  </Button>
+                  <Dialog open={isPlaylistDialogOpen} onOpenChange={(open) => void handlePlaylistDialogChange(open)}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="gap-2 bg-transparent">
+                        <ListPlus className="h-4 w-4" />
+                        Save
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="border border-border bg-background sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Save to Playlist</DialogTitle>
+                        <DialogDescription>
+                          Choose a playlist to save this video for later.
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      {isPlaylistsLoading ? (
+                        <div className="py-6 text-sm text-muted-foreground">Loading playlists...</div>
+                      ) : playlists.length > 0 ? (
+                        <div className="space-y-3">
+                          {playlists.map((playlist) => (
+                            <button
+                              key={playlist.id}
+                              type="button"
+                              className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition hover:bg-muted"
+                              onClick={() => void handleAddToPlaylist(playlist.id)}
+                              disabled={isPlaylistSaving}
+                            >
+                              <div>
+                                <p className="font-medium text-foreground">{playlist.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {playlist.videoCount} videos, {playlist.visibility.toLowerCase()}
+                                </p>
+                              </div>
+                              <span className="text-sm text-primary">
+                                {isPlaylistSaving ? 'Saving...' : 'Add'}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-3 py-2">
+                          <p className="text-sm text-muted-foreground">
+                            You do not have any playlists yet.
+                          </p>
+                          <Button onClick={() => router.push('/playlists')}>Go to Playlists</Button>
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 )}
                 <Button variant="outline" className="gap-2 bg-transparent">
                   <Share2 className="h-4 w-4" />
@@ -432,6 +549,12 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
           {bookmarkMessage && (
             <Card className="border-chart-5/30 bg-chart-5/10">
               <CardContent className="py-3 text-sm text-foreground">{bookmarkMessage}</CardContent>
+            </Card>
+          )}
+
+          {playlistMessage && (
+            <Card className="border-chart-5/30 bg-chart-5/10">
+              <CardContent className="py-3 text-sm text-foreground">{playlistMessage}</CardContent>
             </Card>
           )}
 

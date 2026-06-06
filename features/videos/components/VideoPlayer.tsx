@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import {
   Play,
   Pause,
@@ -19,7 +21,9 @@ interface VideoPlayerProps {
   hlsUrl: string;
   title: string;
   duration: number;
+  bookmarks?: BookmarkType[];
   onBookmarkAdd?: (timestamp: number, note?: string) => void;
+  isBookmarkSaving?: boolean;
 }
 
 type QualityOption = {
@@ -27,11 +31,25 @@ type QualityOption = {
   label: string;
 };
 
+const formatTime = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
+};
+
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   hlsUrl,
   title,
   duration,
+  bookmarks = [],
   onBookmarkAdd,
+  isBookmarkSaving = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,7 +63,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showControls, setShowControls] = useState(true);
   const [quality, setQuality] = useState('auto');
   const [bookmarkTitle, setBookmarkTitle] = useState('');
-  const [showBookmarkInput, setShowBookmarkInput] = useState(false);
+  const [showBookmarksPanel, setShowBookmarksPanel] = useState(false);
   const [mediaDuration, setMediaDuration] = useState(duration);
   const [isLoading, setIsLoading] = useState(true);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
@@ -72,6 +90,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setQualityOptions([]);
     setUsesNativeHls(false);
     setShowSettings(false);
+    setShowBookmarksPanel(false);
 
     if (Hls.isSupported()) {
       const hlsInstance = new Hls();
@@ -114,6 +133,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, [hlsUrl]);
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const handleQualityChange = (value: string) => {
     setQuality(value);
     setShowSettings(false);
@@ -130,19 +161,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     hlsRef.current.nextLevel = Number(value);
   };
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === containerRef.current);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
-  // Handle play/pause
   const togglePlay = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -155,7 +173,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
-  // Handle mute/unmute
   const toggleMute = () => {
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
@@ -163,49 +180,44 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
-  // Handle fullscreen
   const toggleFullscreen = () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current) {
+      return;
+    }
 
     if (!isFullscreen) {
       if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
+        void containerRef.current.requestFullscreen();
         setIsFullscreen(true);
       }
-    } else {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-        setIsFullscreen(false);
-      }
+    } else if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      setIsFullscreen(false);
     }
   };
 
-  // Handle volume change
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
+  const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(event.target.value);
     setVolume(newVolume);
     if (videoRef.current) {
       videoRef.current.volume = newVolume;
     }
   };
 
-  // Handle time update
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
     }
   };
 
-  // Handle progress bar change
-  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
+  const handleProgressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(event.target.value);
     if (videoRef.current) {
       videoRef.current.currentTime = newTime;
       setCurrentTime(newTime);
     }
   };
 
-  // Auto-hide controls
   const handleMouseMove = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
@@ -218,25 +230,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
-  // Add bookmark
   const handleAddBookmark = () => {
     if (onBookmarkAdd) {
       onBookmarkAdd(currentTime, bookmarkTitle.trim() || undefined);
       setBookmarkTitle('');
-      setShowBookmarkInput(false);
     }
   };
 
-  // Format time display
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  const handleBookmarkSeek = (timestamp: number) => {
+    if (!videoRef.current) {
+      return;
     }
-    return `${minutes}:${String(secs).padStart(2, '0')}`;
+
+    videoRef.current.currentTime = timestamp;
+    setCurrentTime(timestamp);
+    setShowControls(true);
   };
 
   const displayDuration = mediaDuration > 0 ? mediaDuration : duration;
@@ -245,11 +253,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center justify-center bg-black rounded-lg overflow-hidden fullscreen:rounded-none"
+      className="relative flex items-center justify-center overflow-hidden rounded-lg bg-black fullscreen:rounded-none"
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => isPlaying && !showSettings && setShowControls(false)}
+      onMouseLeave={() => isPlaying && !showSettings && !showBookmarksPanel && setShowControls(false)}
     >
-      {/* Video Element */}
       <video
         ref={videoRef}
         className="w-full max-h-full bg-black object-contain fullscreen:h-full"
@@ -270,24 +277,83 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onPause={() => setIsPlaying(false)}
       />
 
+      {showBookmarksPanel && (
+        <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/95 text-white shadow-2xl backdrop-blur sm:w-80">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <div>
+              <h3 className="font-semibold">Bookmarks</h3>
+              <p className="text-xs text-white/60">{title}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/10 hover:text-white"
+              onClick={() => setShowBookmarksPanel(false)}
+            >
+              Close
+            </Button>
+          </div>
+
+          <div className="space-y-4 border-b border-white/10 px-4 py-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Add bookmark at {formatTime(currentTime)}</p>
+              <p className="text-xs text-white/60">Save the current playback position with an optional note.</p>
+            </div>
+            <Input
+              placeholder="Bookmark note (optional)"
+              value={bookmarkTitle}
+              onChange={(event) => setBookmarkTitle(event.target.value)}
+              className="border-white/15 bg-white/5 text-white placeholder:text-white/45"
+            />
+            <Button className="w-full" onClick={handleAddBookmark} disabled={isBookmarkSaving}>
+              {isBookmarkSaving ? 'Saving...' : 'Add bookmark'}
+            </Button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            {bookmarks.length > 0 ? (
+              <div className="space-y-3">
+                {bookmarks.map((bookmark) => (
+                  <button
+                    key={bookmark.id}
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-left transition hover:bg-white/10"
+                    onClick={() => handleBookmarkSeek(bookmark.timestampSeconds)}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-white">
+                        {bookmark.note || `Bookmark at ${formatTime(bookmark.timestampSeconds)}`}
+                      </p>
+                      <p className="text-xs text-white/60">{formatTime(bookmark.timestampSeconds)}</p>
+                    </div>
+                    <span className="text-xs text-white/50">Jump</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center text-center text-sm text-white/60">
+                No bookmarks yet for this video.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {(isLoading || playbackError) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-white text-sm z-10">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 text-sm text-white">
           {playbackError || 'Loading video...'}
         </div>
       )}
 
-      {/* Controls Overlay */}
       <div
         className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          showControls ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       >
-        {/* Top Controls */}
-        <div className="absolute top-0 left-0 right-0 p-4">
-          <h3 className="text-white font-semibold">{title}</h3>
+        <div className="absolute left-0 right-0 top-0 p-4">
+          <h3 className="font-semibold text-white">{title}</h3>
         </div>
 
-        {/* Center Play Button */}
         <div className="absolute inset-0 flex items-center justify-center">
           {!isPlaying && (
             <Button
@@ -295,14 +361,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               className="h-16 w-16 rounded-full bg-white/30 hover:bg-white/50"
               onClick={togglePlay}
             >
-              <Play className="h-8 w-8 text-white fill-white" />
+              <Play className="h-8 w-8 fill-white text-white" />
             </Button>
           )}
         </div>
 
-        {/* Bottom Controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
-          {/* Progress Bar */}
+        <div className="absolute bottom-0 left-0 right-0 space-y-3 p-4">
           <div className="flex items-center gap-2">
             <input
               type="range"
@@ -310,17 +374,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               max={displayDuration}
               value={currentTime}
               onChange={handleProgressChange}
-              className="flex-1 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-red-500"
+              className="h-1 flex-1 cursor-pointer appearance-none rounded-lg bg-white/30 accent-red-500"
               style={{
                 background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${progressPercent}%, rgba(255,255,255,0.3) ${progressPercent}%, rgba(255,255,255,0.3) 100%)`,
               }}
             />
           </div>
 
-          {/* Controls Bar */}
           <div className="flex items-center justify-between gap-2">
             <div className="relative flex items-center gap-2">
-              {/* Play/Pause */}
               <Button
                 size="icon"
                 variant="ghost"
@@ -334,19 +396,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 )}
               </Button>
 
-              {/* Volume */}
-              <div className="flex items-center gap-2 group">
+              <div className="group flex items-center gap-2">
                 <Button
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8 text-white hover:bg-white/20"
                   onClick={toggleMute}
                 >
-                  {isMuted ? (
-                    <VolumeX className="h-5 w-5" />
-                  ) : (
-                    <Volume2 className="h-5 w-5" />
-                  )}
+                  {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
                 </Button>
                 <input
                   type="range"
@@ -355,48 +412,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   step="0.1"
                   value={volume}
                   onChange={handleVolumeChange}
-                  className="w-0 group-hover:w-24 transition-all h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-red-500"
+                  className="h-1 w-0 cursor-pointer appearance-none rounded-lg bg-white/30 accent-red-500 transition-all group-hover:w-24"
                 />
               </div>
 
-              {/* Time Display */}
-              <span className="text-sm text-white ml-2 font-mono">
+              <span className="ml-2 font-mono text-sm text-white">
                 {formatTime(currentTime)} / {formatTime(displayDuration)}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Bookmark */}
-              {showBookmarkInput ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Bookmark title"
-                    value={bookmarkTitle}
-                    onChange={(e) => setBookmarkTitle(e.target.value)}
-                    className="px-2 py-1 text-xs rounded bg-white/20 text-white placeholder:text-white/50 border border-white/20"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={handleAddBookmark}
-                  >
-                    Save
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-white hover:bg-white/20"
-                  onClick={() => setShowBookmarkInput(true)}
-                  title="Add bookmark"
-                >
-                  <Bookmark className="h-5 w-5" />
-                </Button>
-              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="gap-2 px-3 text-white hover:bg-white/20"
+                onClick={() => {
+                  setShowBookmarksPanel((isOpen) => !isOpen);
+                  setShowControls(true);
+                }}
+                title="Open bookmarks"
+              >
+                <Bookmark className="h-5 w-5" />
+                Bookmarks
+              </Button>
 
-              {/* Share */}
               <Button
                 size="icon"
                 variant="ghost"
@@ -406,7 +445,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <Share2 className="h-5 w-5" />
               </Button>
 
-              {/* Settings */}
               <div className="relative">
                 <Button
                   size="icon"
@@ -486,18 +524,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 )}
               </div>
 
-              {/* Fullscreen */}
               <Button
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8 text-white hover:bg-white/20"
                 onClick={toggleFullscreen}
               >
-                {isFullscreen ? (
-                  <Minimize className="h-5 w-5" />
-                ) : (
-                  <Maximize className="h-5 w-5" />
-                )}
+                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
               </Button>
             </div>
           </div>
