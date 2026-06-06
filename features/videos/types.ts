@@ -52,6 +52,12 @@ export interface TagSummary {
   usageCount: number;
 }
 
+export interface TagSummaryDto {
+  id?: string;
+  name?: string | null;
+  usageCount?: number;
+}
+
 export interface VideoListFilters {
   search?: string;
   categoryId?: string;
@@ -126,8 +132,33 @@ export interface CategoryDto {
   createdAt?: string;
 }
 
-export interface TagSummaryDto {
+export type AccessGrantPermission = 'View' | 'Embed' | 'Download';
+
+export interface AccessGrant {
+  id: string;
+  videoId: string;
+  userId: string | null;
+  userName: string | null;
+  shareToken: string | null;
+  permissionType: AccessGrantPermission;
+  expiresAt: Date | null;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface AccessGrantDto {
   id?: string;
-  name?: string | null;
-  usageCount?: number;
+  videoId?: string;
+  userId?: string | null;
+  userName?: string | null;
+  shareToken?: string | null;
+  permissionType?: AccessGrantPermission;
+  expiresAt?: string | null;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
+export interface AccessGrantListFilters {
+  page?: number;
+  pageSize?: number;
 }

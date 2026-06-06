@@ -10,7 +10,7 @@
   - Details: [Phase 3 Plan](documentation/plans/Phase-plan-3.md)
 - [X] Phase 4: Editor Management
   - Details: [Phase 4 Plan](documentation/plans/Phase-plan-4.md)
-- [ ] Phase 5: Access Grants + Admin Read Views
+- [X] Phase 5: Access Grants + Admin Read Views
   - Details: [Phase 5 Plan](documentation/plans/Phase-plan-5.md)
 
 ## Global Checks

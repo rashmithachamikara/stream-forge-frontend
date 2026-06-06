@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import { capitalize } from '@/shared/lib/utils';
 import { Video, VideoProcessingStatus } from '@/features/videos/types';
+import { VideoAccessGrantsCard } from '@/features/videos/components/VideoAccessGrantsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -459,6 +460,8 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
             </Card>
           </div>
         </div>
+
+        <VideoAccessGrantsCard videoId={video.id} canManageAccess />
       </div>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>

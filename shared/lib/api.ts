@@ -1,9 +1,13 @@
 import { AuthResponseDto, AuthSession, AuthUserDto, User, UserRole } from '@/features/auth/types';
 import {
+  AccessGrant,
+  AccessGrantDto,
+  AccessGrantListFilters,
+  AccessGrantPermission,
   Category,
   CategoryDto,
-  TagSummary,
   TagSummaryDto,
+  TagSummary,
   Video,
   VideoDetailDto,
   VideoListFilters,
@@ -11,10 +15,12 @@ import {
   VideoProcessingStatusDto,
   VideoSummaryDto,
 } from '@/features/videos/types';
+import { UserListFilters, UserProfile, UserProfileDto } from '@/features/admin/types';
 import { Playlist } from '@/features/playlists/types';
 import { Notification } from '@/features/notifications/types';
 import { VideoAnalytics } from '@/features/admin/types';
 import { ApiResponse, PaginatedResponse } from '@/shared/types/api';
+import { capitalize } from '@/shared/lib/utils';
 import { getVideoManifestUrl, getVideoThumbnailUrl } from '@/features/videos/lib/playbackUrls';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.streamforge.local';
@@ -27,6 +33,12 @@ const numericRoleMap: Record<number, UserRole> = {
 };
 
 const stringRoleMap: Record<string, UserRole> = {
+  admin: 'admin',
+  editor: 'editor',
+  viewer: 'viewer',
+};
+
+const backendUserRoleMap: Record<string, UserRole> = {
   admin: 'admin',
   editor: 'editor',
   viewer: 'viewer',
@@ -55,7 +67,7 @@ const emptyPagedResponse = <T>(page = 1, pageSize = 24): PaginatedResponse<T> =>
   hasPreviousPage: false,
 });
 
-const appendQueryParam = (params: URLSearchParams, key: string, value: string | number | undefined) => {
+const appendQueryParam = (params: URLSearchParams, key: string, value: string | number | boolean | undefined) => {
   if (value !== undefined && value !== '') {
     params.set(key, String(value));
   }
@@ -176,6 +188,27 @@ const mapVideoProcessingStatus = (status: VideoProcessingStatusDto): VideoProces
   errorMessage: status.errorMessage ?? null,
   startedAt: status.startedAt ? new Date(status.startedAt) : null,
   completedAt: status.completedAt ? new Date(status.completedAt) : null,
+});
+
+const mapAccessGrant = (grant: AccessGrantDto): AccessGrant => ({
+  id: grant.id ?? '',
+  videoId: grant.videoId ?? '',
+  userId: grant.userId ?? null,
+  userName: grant.userName ?? null,
+  shareToken: grant.shareToken ?? null,
+  permissionType: grant.permissionType ?? 'View',
+  expiresAt: grant.expiresAt ? new Date(grant.expiresAt) : null,
+  isActive: grant.isActive ?? false,
+  createdAt: grant.createdAt ? new Date(grant.createdAt) : new Date(),
+});
+
+const mapUserProfile = (user: UserProfileDto): UserProfile => ({
+  id: user.id ?? '',
+  name: user.name ?? 'Unknown user',
+  email: user.email ?? '',
+  role: backendUserRoleMap[String(user.role ?? 'Viewer').toLowerCase()] ?? 'viewer',
+  isActive: user.isActive ?? false,
+  createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
 });
 
 const mapPagedResponse = <TDto, TDomain>(
@@ -487,9 +520,23 @@ class ApiClient {
   }
 
   // User Management (Admin)
-  async getUsers(page: number = 1, pageSize: number = 20): Promise<ApiResponse<PaginatedResponse<User>>> {
+  async getUsers(filters: UserListFilters = {}): Promise<ApiResponse<PaginatedResponse<UserProfile>>> {
     try {
-      return await this.request<PaginatedResponse<User>>(`/admin/users?page=${page}&pageSize=${pageSize}`);
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'search', filters.search);
+      appendQueryParam(params, 'role', filters.role ? capitalize(filters.role) : undefined);
+      appendQueryParam(params, 'isActive', filters.isActive);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 20);
+
+      const response = await this.requestRaw<PaginatedResponse<UserProfileDto>>(
+        `${API_V1_PREFIX}/users?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapUserProfile),
+      };
     } catch (error) {
       return {
         success: false,
@@ -535,6 +582,76 @@ class ApiClient {
       return {
         success: false,
         error: 'Failed to delete user',
+      };
+    }
+  }
+
+  async getVideoAccessGrants(
+    videoId: string,
+    filters: AccessGrantListFilters = {}
+  ): Promise<ApiResponse<PaginatedResponse<AccessGrant>>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<AccessGrantDto>>(
+        `${API_V1_PREFIX}/videos/${videoId}/access?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapAccessGrant),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch access grants',
+      };
+    }
+  }
+
+  async createVideoAccessGrant(
+    videoId: string,
+    data: {
+      userId?: string | null;
+      shareToken?: string | null;
+      permissionType: AccessGrantPermission;
+      expiresAt?: string | null;
+    }
+  ): Promise<ApiResponse<AccessGrant>> {
+    try {
+      const grant = await this.requestRaw<AccessGrantDto>(`${API_V1_PREFIX}/videos/${videoId}/access`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapAccessGrant(grant),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to create access grant',
+      };
+    }
+  }
+
+  async deleteVideoAccessGrant(videoId: string, accessControlId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/videos/${videoId}/access/${accessControlId}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to delete access grant',
       };
     }
   }

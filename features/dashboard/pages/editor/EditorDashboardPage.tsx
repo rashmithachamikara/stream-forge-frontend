@@ -334,7 +334,7 @@ export default function EditorDashboard() {
                 />
 
                 <Select value={statusFilter} onValueChange={(v) => {
-                  setStatusFilter(v);
+                  setStatusFilter(v as VideoStatus | 'all');
                   setCurrentPage(1);
                 }}>
                   <SelectTrigger>
@@ -350,7 +350,7 @@ export default function EditorDashboard() {
                 </Select>
 
                 <Select value={visibilityFilter} onValueChange={(v) => {
-                  setVisibilityFilter(v);
+                  setVisibilityFilter(v as VideoListFilters['visibility'] | 'all');
                   setCurrentPage(1);
                 }}>
                   <SelectTrigger>
@@ -673,7 +673,7 @@ export default function EditorDashboard() {
                 <Label htmlFor="visibility">Visibility</Label>
                 <Select
                   value={editForm.visibility}
-                  onValueChange={(v) => setEditForm({ ...editForm, visibility: v })}
+                  onValueChange={(v) => setEditForm({ ...editForm, visibility: v as VideoVisibility })}
                 >
                   <SelectTrigger id="visibility">
                     <SelectValue />
