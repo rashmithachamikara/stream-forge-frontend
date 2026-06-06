@@ -310,7 +310,11 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   Share
                 </Button>
                 {canManageVideo && (
-                  <Button variant="outline" className="gap-2 bg-transparent" disabled>
+                  <Button
+                    variant="outline"
+                    className="gap-2 bg-transparent"
+                    onClick={() => router.push(`/videos/${video.id}/manage`)}
+                  >
                     <Shield className="w-4 h-4" />
                     Manage
                   </Button>

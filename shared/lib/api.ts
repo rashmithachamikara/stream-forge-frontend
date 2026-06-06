@@ -620,6 +620,88 @@ class ApiClient {
       };
     }
   }
+
+  // Owned Videos (Editor) Endpoints
+  async getOwnedVideos(filters: VideoListFilters = {}): Promise<ApiResponse<PaginatedResponse<Video>>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'search', filters.search);
+      appendQueryParam(params, 'status', filters.status);
+      appendQueryParam(params, 'visibility', filters.visibility);
+      appendQueryParam(params, 'sort', filters.sort);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+
+      const response = await this.requestRaw<PaginatedResponse<VideoSummaryDto>>(
+        `${API_V1_PREFIX}/me/videos?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapVideoSummary),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch your videos',
+      };
+    }
+  }
+
+  async updateVideoMetadata(
+    id: string,
+    data: Partial<{
+      title: string;
+      description: string;
+      visibility: string;
+      categories: string[];
+      tags: string[];
+      allowComments: boolean;
+      allowLikes: boolean;
+      allowBookmarks: boolean;
+    }>
+  ): Promise<ApiResponse<Video>> {
+    try {
+      const video = await this.requestRaw<VideoDetailDto>(
+        `${API_V1_PREFIX}/videos/${id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+        }
+      );
+
+      return {
+        success: true,
+        data: mapVideoDetail(video),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to update video metadata',
+      };
+    }
+  }
+
+  async archiveVideo(id: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(
+        `${API_V1_PREFIX}/videos/${id}/archive`,
+        {
+          method: 'POST',
+        }
+      );
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to archive video',
+      };
+    }
+  }
 }
 
 export const apiClient = new ApiClient();

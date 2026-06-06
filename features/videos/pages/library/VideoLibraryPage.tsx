@@ -145,7 +145,7 @@ export default function VideoLibrary() {
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
           <Play className="w-12 h-12 text-white opacity-0 group-hover:opacity-90 group-hover:scale-110 transition-all drop-shadow-lg" />
         </div>
-        <Badge className="absolute top-2 right-2 bg-black/80 text-white">
+        <Badge className="absolute top-2 right-2 bg-black/80 text-white hidden">
           {formatDuration(video.duration)}
         </Badge>
       </div>
