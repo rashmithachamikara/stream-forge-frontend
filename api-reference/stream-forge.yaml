@@ -773,6 +773,28 @@
           "post":
             { "tags": ["Me"], "responses": { "200": { "description": "OK" } } },
         },
+      "/api/v1/me/notifications/{notificationId}":
+        {
+          "delete":
+            {
+              "tags": ["Me"],
+              "parameters":
+                [
+                  {
+                    "name": "notificationId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/me/notifications/read":
+        {
+          "delete":
+            { "tags": ["Me"], "responses": { "200": { "description": "OK" } } },
+        },
       "/api/v1/playlists":
         {
           "get":
@@ -3141,6 +3163,7 @@
                   "parentCommentId":
                     { "type": "string", "format": "uuid", "nullable": true },
                   "comment": { "type": "string", "nullable": true },
+                  "replyCount": { "type": "integer", "format": "int32" },
                   "isEdited": { "type": "boolean" },
                   "createdAt": { "type": "string", "format": "date-time" },
                   "updatedAt": { "type": "string", "format": "date-time" },
