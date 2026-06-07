@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/AuthContext';
@@ -16,12 +16,19 @@ import {
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UserRole } from '@/features/auth/types';
+import {
+  ACTIVE_VIEW_CHANGE_EVENT,
+  resolveActiveView,
+  setStoredView,
+  VIEW_DASHBOARD_PATHS,
+} from '@/shared/lib/viewMode';
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles: string[];
+  roles: UserRole[];
 }
 
 const navItems: NavItem[] = [
@@ -67,21 +74,43 @@ export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [activeView, setActiveView] = useState<UserRole | null>(null);
 
-  const filteredItems = navItems.filter((item) => item.roles.includes(user?.role || ''));
+  useEffect(() => {
+    if (!user) {
+      setActiveView(null);
+      return;
+    }
+
+    const nextView = resolveActiveView(user.role, pathname);
+    setActiveView(nextView);
+    setStoredView(nextView);
+  }, [pathname, user]);
+
+  useEffect(() => {
+    const handleViewChange = (event: Event) => {
+      setActiveView((event as CustomEvent<UserRole>).detail);
+    };
+
+    window.addEventListener(ACTIVE_VIEW_CHANGE_EVENT, handleViewChange);
+    return () => window.removeEventListener(ACTIVE_VIEW_CHANGE_EVENT, handleViewChange);
+  }, []);
+
+  const filteredItems = navItems.filter((item) => activeView && item.roles.includes(activeView));
 
   const NavContent = () => (
     <>
       <nav className="flex-1 space-y-1 px-3 py-6">
         {filteredItems.map((item) => {
           const Icon = item.icon;
+          const href = item.href === '/dashboard' && activeView ? VIEW_DASHBOARD_PATHS[activeView] : item.href;
           const isActive =
-            pathname === item.href ||
-            pathname.startsWith(`${item.href}/`) ||
+            pathname === href ||
+            pathname.startsWith(`${href}/`) ||
             (item.href === '/dashboard' && pathname.startsWith('/dashboard'));
 
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={href}>
               <Button
                 variant={isActive ? 'default' : 'ghost'}
                 className={cn(

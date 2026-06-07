@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
-import { LogOut, Settings, Bell } from 'lucide-react';
+import { LogOut, Settings, Bell, Eye, PencilLine, Shield, LayoutDashboard } from 'lucide-react';
+import { UserRole } from '@/features/auth/types';
+import {
+  ACTIVE_VIEW_CHANGE_EVENT,
+  getAllowedViews,
+  resolveActiveView,
+  setStoredView,
+  VIEW_DASHBOARD_PATHS,
+} from '@/shared/lib/viewMode';
 
 interface HeaderProps {
   title?: string;
@@ -20,8 +28,48 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [activeView, setActiveView] = useState<UserRole | null>(null);
+
+  const viewOptions: Array<{
+    role: UserRole;
+    label: string;
+    href: string;
+    icon: typeof Shield;
+  }> = [
+    { role: 'admin', label: 'Admin', href: '/dashboard/admin', icon: Shield },
+    { role: 'editor', label: 'Editor', href: '/dashboard/editor', icon: PencilLine },
+    { role: 'viewer', label: 'Viewer', href: '/dashboard/viewer', icon: Eye },
+  ];
+
+  useEffect(() => {
+    if (!user) {
+      setActiveView(null);
+      return;
+    }
+
+    setActiveView(resolveActiveView(user.role, pathname));
+  }, [pathname, user]);
+
+  useEffect(() => {
+    const handleViewChange = (event: Event) => {
+      const nextView = (event as CustomEvent<UserRole>).detail;
+      if (user && getAllowedViews(user.role).includes(nextView)) {
+        setActiveView(nextView);
+      }
+    };
+
+    window.addEventListener(ACTIVE_VIEW_CHANGE_EVENT, handleViewChange);
+    return () => window.removeEventListener(ACTIVE_VIEW_CHANGE_EVENT, handleViewChange);
+  }, [user]);
+
+  const availableViews = useMemo(
+    () => (user ? viewOptions.filter((option) => getAllowedViews(user.role).includes(option.role)) : []),
+    [user]
+  );
+  const currentView = viewOptions.find((option) => option.role === activeView);
 
   const handleLogout = async () => {
     await logout();
@@ -44,6 +92,38 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          {availableViews.length > 1 && currentView && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-9 gap-2 bg-transparent">
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span className="hidden sm:inline">{currentView.label}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 bg-card dark:bg-card/95 border-border/50 shadow-xl dark:shadow-2xl backdrop-blur-sm">
+                {availableViews.map((view) => {
+                  const Icon = view.icon;
+                  const isActive = currentView.role === view.role;
+
+                  return (
+                    <DropdownMenuItem
+                      key={view.role}
+                      onClick={() => {
+                        setStoredView(view.role);
+                        router.push(VIEW_DASHBOARD_PATHS[view.role]);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Icon className="mr-2 h-4 w-4" />
+                      <span>{view.label}</span>
+                      {isActive && <span className="ml-auto text-xs text-muted-foreground">Current</span>}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
           {/* Notifications */}
           <Button
             variant="ghost"

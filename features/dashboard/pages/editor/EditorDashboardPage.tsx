@@ -287,7 +287,7 @@ export default function EditorDashboard() {
   };
 
   return (
-    <DashboardLayout title="Editor Dashboard" requiredRoles={['editor']}>
+    <DashboardLayout title="Editor Dashboard" requiredRoles={['admin', 'editor']}>
       <div className="space-y-8">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

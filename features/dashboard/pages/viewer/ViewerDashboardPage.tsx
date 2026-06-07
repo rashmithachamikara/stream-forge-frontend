@@ -77,7 +77,7 @@ export default function ViewerDashboard() {
   );
 
   return (
-    <DashboardLayout title="Watch Videos" requiredRoles={['viewer']}>
+    <DashboardLayout title="Watch Videos" requiredRoles={['admin', 'editor', 'viewer']}>
       <div className="space-y-8">
         {/* Welcome Card */}
         <Card className="gradient-primary border-0 shadow-lg dark:shadow-2xl overflow-hidden relative">
