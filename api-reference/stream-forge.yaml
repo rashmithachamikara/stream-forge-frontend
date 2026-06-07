@@ -3,6 +3,802 @@
   "info": { "title": "StreamForge API", "version": "v1" },
   "paths":
     {
+      "/api/v1/admin/analytics/summary":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/views-over-time":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/most-watched-videos":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/most-liked-videos":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/most-commented-videos":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/most-engaged-videos":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/active-viewers":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ActiveViewersDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ActiveViewersDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/ActiveViewersDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/peak-watch-time":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/PeakWatchTimeItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/PeakWatchTimeItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/PeakWatchTimeItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/device-breakdown":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/DeviceBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/DeviceBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/DeviceBreakdownItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/browser-breakdown":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/BrowserBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/BrowserBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/BrowserBreakdownItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/auth-breakdown":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthBreakdownDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthBreakdownDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthBreakdownDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/category-breakdown":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryBreakdownItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/tag-breakdown":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TagBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TagBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TagBreakdownItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/analytics/reports/overview":
+        {
+          "get":
+            {
+              "tags": ["AdminAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "format",
+                    "in": "query",
+                    "schema": { "type": "string", "default": "csv" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
       "/api/v1/auth/register":
         {
           "post":
@@ -794,6 +1590,701 @@
         {
           "delete":
             { "tags": ["Me"], "responses": { "200": { "description": "OK" } } },
+        },
+      "/api/v1/me/analytics/summary":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/top-videos":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/most-liked-videos":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/most-commented-videos":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/most-engaged-videos":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 1 },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema":
+                      { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RankedVideoAnalyticsDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/views-over-time":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/device-breakdown":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/DeviceBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/DeviceBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/DeviceBreakdownItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/browser-breakdown":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/BrowserBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/BrowserBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/BrowserBreakdownItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/auth-breakdown":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthBreakdownDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthBreakdownDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AuthBreakdownDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/category-breakdown":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/CategoryBreakdownItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/tag-breakdown":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TagBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TagBreakdownItemDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TagBreakdownItemDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/me/analytics/reports/videos":
+        {
+          "get":
+            {
+              "tags": ["MeAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "format",
+                    "in": "query",
+                    "schema": { "type": "string", "default": "csv" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
         },
       "/api/v1/playlists":
         {
@@ -1870,6 +3361,263 @@
                               "schema":
                                 {
                                   "$ref": "#/components/schemas/VideoSummaryDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/analytics/events":
+        {
+          "post":
+            {
+              "tags": ["VideoAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RecordAnalyticsEventRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RecordAnalyticsEventRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RecordAnalyticsEventRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RecordAnalyticsEventResultDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RecordAnalyticsEventResultDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/RecordAnalyticsEventResultDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/analytics/summary":
+        {
+          "get":
+            {
+              "tags": ["VideoAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/analytics/timeseries":
+        {
+          "get":
+            {
+              "tags": ["VideoAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AnalyticsTimeSeriesPointDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/analytics/engagement":
+        {
+          "get":
+            {
+              "tags": ["VideoAnalytics"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "from",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "to",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsEngagementSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsEngagementSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AnalyticsEngagementSummaryDto",
                                 },
                             },
                         },
@@ -3063,6 +4811,16 @@
                 },
               "additionalProperties": false,
             },
+          "ActiveViewersDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "activeViewerCount": { "type": "integer", "format": "int32" },
+                  "windowMinutes": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
           "AddPlaylistVideoRequestDto":
             {
               "type": "object",
@@ -3071,6 +4829,62 @@
                   "videoId": { "type": "string", "format": "uuid" },
                   "orderIndex":
                     { "type": "integer", "format": "int32", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "AnalyticsEngagementSummaryDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "likeCount": { "type": "integer", "format": "int32" },
+                  "dislikeCount": { "type": "integer", "format": "int32" },
+                  "commentCount": { "type": "integer", "format": "int32" },
+                  "engagementScore": { "type": "integer", "format": "int32" },
+                  "engagementRate":
+                    { "type": "number", "format": "double", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "AnalyticsEventType":
+            {
+              "enum": ["Play", "Pause", "Seek", "Complete", "Close"],
+              "type": "string",
+            },
+          "AnalyticsSummaryDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "totalViews": { "type": "integer", "format": "int32" },
+                  "uniqueViewers": { "type": "integer", "format": "int32" },
+                  "totalWatchTime": { "type": "integer", "format": "int64" },
+                  "averageWatchTime": { "type": "number", "format": "double" },
+                  "averageCompletionRate":
+                    { "type": "number", "format": "double" },
+                  "completionCount": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
+          "AnalyticsTimeSeriesPointDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "periodStart": { "type": "string", "format": "date-time" },
+                  "viewCount": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
+          "AuthBreakdownDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "authenticatedViewCount":
+                    { "type": "integer", "format": "int32" },
+                  "anonymousViewCount":
+                    { "type": "integer", "format": "int32" },
                 },
               "additionalProperties": false,
             },
@@ -3133,6 +4947,28 @@
                   "totalPages": { "type": "integer", "format": "int32" },
                   "hasNextPage": { "type": "boolean" },
                   "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "BrowserBreakdownItemDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "browserFamily": { "type": "string", "nullable": true },
+                  "viewerCount": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
+          "CategoryBreakdownItemDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "categoryId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "categoryName": { "type": "string", "nullable": true },
+                  "viewCount": { "type": "integer", "format": "int32" },
                 },
               "additionalProperties": false,
             },
@@ -3298,6 +5134,16 @@
                 },
               "additionalProperties": false,
             },
+          "DeviceBreakdownItemDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "deviceType": { "type": "string", "nullable": true },
+                  "viewerCount": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
           "LoginRequestDto":
             {
               "type": "object",
@@ -3350,6 +5196,17 @@
               "enum":
                 ["Comment", "Like", "Upload", "ProcessingComplete", "Reply"],
               "type": "string",
+            },
+          "PeakWatchTimeItemDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "hourLabel": { "type": "string", "nullable": true },
+                  "watchActivityCount":
+                    { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
             },
           "PermissionType":
             { "enum": ["View", "Embed", "Download"], "type": "string" },
@@ -3406,6 +5263,45 @@
             },
           "PlaylistVisibility":
             { "enum": ["Public", "Private"], "type": "string" },
+          "RankedVideoAnalyticsDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "title": { "type": "string", "nullable": true },
+                  "viewCount": { "type": "integer", "format": "int32" },
+                  "totalWatchTime": { "type": "integer", "format": "int64" },
+                  "likeCount": { "type": "integer", "format": "int32" },
+                  "dislikeCount": { "type": "integer", "format": "int32" },
+                  "commentCount": { "type": "integer", "format": "int32" },
+                  "engagementScore": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
+          "RankedVideoAnalyticsDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/RankedVideoAnalyticsDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "ReactionSummaryDto":
             {
               "type": "object",
@@ -3420,6 +5316,37 @@
               "additionalProperties": false,
             },
           "ReactionType": { "enum": ["Like", "Dislike"], "type": "string" },
+          "RecordAnalyticsEventRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "sessionId": { "type": "string", "format": "uuid" },
+                  "eventType":
+                    { "$ref": "#/components/schemas/AnalyticsEventType" },
+                  "eventTime":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "position":
+                    { "type": "integer", "format": "int32", "nullable": true },
+                  "durationWatched":
+                    { "type": "integer", "format": "int32", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "RecordAnalyticsEventResultDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "eventRecorded": { "type": "boolean" },
+                  "viewCountIncremented": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "RefreshTokenRequestDto":
             {
               "type": "object",
@@ -3459,6 +5386,17 @@
                 {
                   "reactionType":
                     { "$ref": "#/components/schemas/ReactionType" },
+                },
+              "additionalProperties": false,
+            },
+          "TagBreakdownItemDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "tagId": { "type": "string", "format": "uuid" },
+                  "tagName": { "type": "string", "nullable": true },
+                  "viewCount": { "type": "integer", "format": "int32" },
                 },
               "additionalProperties": false,
             },
