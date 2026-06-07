@@ -5,6 +5,8 @@ import Hls from 'hls.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
+import { AnalyticsEventType } from '@/features/admin/types';
+import { apiClient } from '@/shared/lib/api';
 import {
   Play,
   Pause,
@@ -18,6 +20,7 @@ import {
 } from 'lucide-react';
 
 interface VideoPlayerProps {
+  videoId?: string;
   hlsUrl: string;
   title: string;
   duration: number;
@@ -29,6 +32,19 @@ interface VideoPlayerProps {
 type QualityOption = {
   value: string;
   label: string;
+};
+
+const ANALYTICS_TRACK_PAUSE = process.env.NEXT_PUBLIC_ANALYTICS_TRACK_PAUSE !== 'false';
+const ANALYTICS_TRACK_SEEK = process.env.NEXT_PUBLIC_ANALYTICS_TRACK_SEEK !== 'false';
+const ANALYTICS_TRACK_CLOSE = process.env.NEXT_PUBLIC_ANALYTICS_TRACK_CLOSE !== 'false';
+const ANALYTICS_PLAY_HEARTBEAT_MS = 10000;
+
+const createAnalyticsSessionId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
 const formatTime = (seconds: number) => {
@@ -44,6 +60,7 @@ const formatTime = (seconds: number) => {
 };
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  videoId,
   hlsUrl,
   title,
   duration,
@@ -54,6 +71,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const analyticsSessionIdRef = useRef(createAnalyticsSessionId());
+  const watchedSinceLastEventRef = useRef(0);
+  const lastPlaybackPositionRef = useRef(0);
+  const isSeekingRef = useRef(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -91,6 +112,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setUsesNativeHls(false);
     setShowSettings(false);
     setShowBookmarksPanel(false);
+    analyticsSessionIdRef.current = createAnalyticsSessionId();
+    watchedSinceLastEventRef.current = 0;
+    lastPlaybackPositionRef.current = 0;
+    isSeekingRef.current = false;
 
     if (Hls.isSupported()) {
       const hlsInstance = new Hls();
@@ -132,6 +157,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.load();
     };
   }, [hlsUrl]);
+
+  const sendAnalyticsEvent = (eventType: AnalyticsEventType) => {
+    if (!videoId || !videoRef.current) {
+      return;
+    }
+
+    const durationWatched = Math.floor(watchedSinceLastEventRef.current);
+    watchedSinceLastEventRef.current = 0;
+
+    void apiClient.recordAnalyticsEvent(videoId, {
+      sessionId: analyticsSessionIdRef.current,
+      eventType,
+      eventTime: new Date().toISOString(),
+      position: Math.floor(videoRef.current.currentTime),
+      durationWatched,
+    });
+  };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -206,7 +248,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+      const nextTime = videoRef.current.currentTime;
+      const delta = nextTime - lastPlaybackPositionRef.current;
+
+      if (!isSeekingRef.current && isPlaying && delta > 0 && delta < 5) {
+        watchedSinceLastEventRef.current += delta;
+      }
+
+      lastPlaybackPositionRef.current = nextTime;
+      setCurrentTime(nextTime);
     }
   };
 
@@ -215,6 +265,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (videoRef.current) {
       videoRef.current.currentTime = newTime;
       setCurrentTime(newTime);
+      lastPlaybackPositionRef.current = newTime;
     }
   };
 
@@ -244,8 +295,65 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     videoRef.current.currentTime = timestamp;
     setCurrentTime(timestamp);
+    lastPlaybackPositionRef.current = timestamp;
     setShowControls(true);
   };
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+    lastPlaybackPositionRef.current = videoRef.current?.currentTime ?? 0;
+    sendAnalyticsEvent('Play');
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+    if (ANALYTICS_TRACK_PAUSE) {
+      sendAnalyticsEvent('Pause');
+    }
+  };
+
+  const handleSeeking = () => {
+    isSeekingRef.current = true;
+    if (ANALYTICS_TRACK_SEEK) {
+      sendAnalyticsEvent('Seek');
+    }
+  };
+
+  const handleSeeked = () => {
+    isSeekingRef.current = false;
+    lastPlaybackPositionRef.current = videoRef.current?.currentTime ?? currentTime;
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    sendAnalyticsEvent('Complete');
+  };
+
+  useEffect(() => {
+    if (!isPlaying || !videoId) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      sendAnalyticsEvent('Play');
+    }, ANALYTICS_PLAY_HEARTBEAT_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [isPlaying, videoId]);
+
+  useEffect(() => {
+    if (!videoId || !ANALYTICS_TRACK_CLOSE) {
+      return;
+    }
+
+    const handleClose = () => sendAnalyticsEvent('Close');
+    window.addEventListener('pagehide', handleClose);
+
+    return () => {
+      window.removeEventListener('pagehide', handleClose);
+      handleClose();
+    };
+  }, [videoId]);
 
   const displayDuration = mediaDuration > 0 ? mediaDuration : duration;
   const progressPercent = displayDuration > 0 ? (currentTime / displayDuration) * 100 : 0;
@@ -273,8 +381,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setPlaybackError('Unable to load this video stream.');
           setIsLoading(false);
         }}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
+        onPlay={handlePlay}
+        onPause={handlePause}
+        onSeeking={handleSeeking}
+        onSeeked={handleSeeked}
+        onEnded={handleEnded}
       />
 
       {showBookmarksPanel && (

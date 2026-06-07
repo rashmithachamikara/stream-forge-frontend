@@ -329,6 +329,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
       <div className="mx-auto max-w-6xl space-y-8">
         {isVideoReady ? (
           <VideoPlayer
+            videoId={video.id}
             hlsUrl={video.hlsUrl}
             title={video.title}
             duration={video.duration}

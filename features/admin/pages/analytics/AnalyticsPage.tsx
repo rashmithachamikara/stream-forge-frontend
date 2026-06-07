@@ -1,441 +1,486 @@
 'use client';
 
-import React, { useState } from 'react';
-import { DashboardLayout } from '@/shared/components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Users, Play, Clock, ArrowUp, ArrowDown } from 'lucide-react';
-import { VideoAnalytics } from '@/features/admin/types';
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { apiClient } from '@/shared/lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Activity,
+  Clock,
+  Download,
+  Eye,
+  Loader2,
+  MessageSquare,
+  MousePointerClick,
+  Play,
+  ThumbsUp,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
+import {
+  ActiveViewers,
+  AnalyticsBreakdownItem,
+  AnalyticsSummary,
+  AnalyticsTimeSeriesPoint,
+  AuthBreakdown,
+  PeakWatchTimeItem,
+  RankedAnalyticsKind,
+  RankedVideoAnalytics,
+} from '@/features/admin/types';
 
-// Simple line chart component
-const LineChart = ({ data }: { data: { date: string; views: number }[] }) => {
-  if (!data || data.length === 0) {
-    return (
-      <div className="w-full h-64 flex items-center justify-center text-muted-foreground">
-        No data available
-      </div>
-    );
+type DateRangeState = {
+  start: string;
+  end: string;
+};
+
+const formatDateInput = (date: Date) => date.toISOString().slice(0, 10);
+
+const getDefaultDateRange = (): DateRangeState => {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 30);
+
+  return {
+    start: formatDateInput(start),
+    end: formatDateInput(end),
+  };
+};
+
+const toDateRange = (dateRange: DateRangeState) => ({
+  from: new Date(`${dateRange.start}T00:00:00.000Z`),
+  to: new Date(`${dateRange.end}T23:59:59.999Z`),
+});
+
+const formatNumber = (value: number) => value.toLocaleString();
+
+const formatDuration = (seconds: number) => {
+  const totalSeconds = Math.round(seconds);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
   }
 
-  const maxViews = Math.max(...data.map((d) => d.views));
-  const minViews = Math.min(...data.map((d) => d.views));
-  const chartHeight = 180;
+  return `${minutes}m`;
+};
+
+const EmptyState = ({ message }: { message: string }) => (
+  <div className="flex min-h-32 items-center justify-center text-sm text-muted-foreground">{message}</div>
+);
+
+const BreakdownList = ({ items, emptyLabel }: { items: AnalyticsBreakdownItem[]; emptyLabel: string }) => {
+  const maxValue = Math.max(...items.map((item) => item.value), 0);
+
+  if (items.length === 0) {
+    return <EmptyState message={emptyLabel} />;
+  }
 
   return (
-    <div className="w-full">
-      {/* Chart Info */}
-      <div className="flex items-center justify-between mb-4 px-2">
-        <div className="text-sm text-muted-foreground">
-          Total views: <span className="font-semibold text-foreground">{data.reduce((sum, d) => sum + d.views, 0).toLocaleString()}</span>
+    <div className="space-y-3">
+      {items.slice(0, 5).map((item) => (
+        <div key={item.label} className="space-y-1">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="truncate text-muted-foreground">{item.label}</span>
+            <span className="font-medium">{formatNumber(item.value)}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full border border-border bg-muted">
+            <div
+              className="h-full bg-chart-5"
+              style={{ width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%` }}
+            />
+          </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          Range: <span className="font-semibold text-foreground">{minViews}</span> - <span className="font-semibold text-foreground">{maxViews}</span>
-        </div>
-      </div>
-
-      {/* Chart */}
-      <div className="w-full">
-        {/* Chart bars container */}
-        <div className="flex items-end gap-0.5 px-2 pb-2 border-b-2 border-border" style={{ height: `${chartHeight + 10}px` }}>
-          {data.map((point, idx) => {
-            const height = maxViews > 0 ? Math.max((point.views / maxViews) * chartHeight, 4) : 4;
-            return (
-              <div key={idx} className="flex-1 h-full flex flex-col justify-end group">
-                <div className="relative w-full flex flex-col items-center justify-end">
-                  {/* Tooltip on hover */}
-                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-popover text-popover-foreground px-2 py-1 rounded shadow-lg text-xs whitespace-nowrap z-10 pointer-events-none">
-                    <div className="font-semibold">{point.views} views</div>
-                    <div className="text-muted-foreground">{point.date}</div>
-                  </div>
-                  <div
-                    className="w-full bg-gradient-to-t from-blue-500 to-blue-400 dark:from-blue-600 dark:to-blue-500 rounded-t-sm transition-all hover:from-blue-600 hover:to-blue-500 dark:hover:from-blue-500 dark:hover:to-blue-400 cursor-pointer border-t-2 border-blue-600 dark:border-blue-400"
-                    style={{ height: `${height}px` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Date labels - x-axis */}
-        <div className="flex gap-0.5 px-2 pt-2">
-          {data.map((point, idx) => (
-            <div key={idx} className="flex-1 flex justify-center">
-              {(idx % 4 === 0 || idx === data.length - 1) && (
-                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                  {point.date}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      ))}
     </div>
   );
 };
 
 export default function AnalyticsDashboard() {
-  const [dateRange, setDateRange] = useState({
-    start: '2024-02-01',
-    end: '2024-02-29',
-  });
+  const [dateRange, setDateRange] = useState<DateRangeState>(getDefaultDateRange);
+  const [rankingKind, setRankingKind] = useState<Exclude<RankedAnalyticsKind, 'top'>>('most-watched');
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [viewsOverTime, setViewsOverTime] = useState<AnalyticsTimeSeriesPoint[]>([]);
+  const [rankedVideos, setRankedVideos] = useState<RankedVideoAnalytics[]>([]);
+  const [activeViewers, setActiveViewers] = useState<ActiveViewers | null>(null);
+  const [peakWatchTime, setPeakWatchTime] = useState<PeakWatchTimeItem[]>([]);
+  const [deviceBreakdown, setDeviceBreakdown] = useState<AnalyticsBreakdownItem[]>([]);
+  const [browserBreakdown, setBrowserBreakdown] = useState<AnalyticsBreakdownItem[]>([]);
+  const [categoryBreakdown, setCategoryBreakdown] = useState<AnalyticsBreakdownItem[]>([]);
+  const [tagBreakdown, setTagBreakdown] = useState<AnalyticsBreakdownItem[]>([]);
+  const [authBreakdown, setAuthBreakdown] = useState<AuthBreakdown | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data
-  const viewsData = [
-    { date: 'Feb 1', views: 120 },
-    { date: 'Feb 2', views: 150 },
-    { date: 'Feb 3', views: 140 },
-    { date: 'Feb 4', views: 180 },
-    { date: 'Feb 5', views: 220 },
-    { date: 'Feb 6', views: 200 },
-    { date: 'Feb 7', views: 250 },
-    { date: 'Feb 8', views: 280 },
-    { date: 'Feb 9', views: 300 },
-    { date: 'Feb 10', views: 320 },
-    { date: 'Feb 11', views: 290 },
-    { date: 'Feb 12', views: 310 },
-    { date: 'Feb 13', views: 340 },
-    { date: 'Feb 14', views: 380 },
-    { date: 'Feb 15', views: 420 },
-    { date: 'Feb 16', views: 400 },
-    { date: 'Feb 17', views: 390 },
-    { date: 'Feb 18', views: 410 },
-    { date: 'Feb 19', views: 450 },
-    { date: 'Feb 20', views: 480 },
-    { date: 'Feb 21', views: 460 },
-    { date: 'Feb 22', views: 490 },
-    { date: 'Feb 23', views: 510 },
-    { date: 'Feb 24', views: 530 },
-    { date: 'Feb 25', views: 520 },
-    { date: 'Feb 26', views: 550 },
-    { date: 'Feb 27', views: 580 },
-    { date: 'Feb 28', views: 600 },
-    { date: 'Feb 29', views: 620 },
-  ];
+  const analyticsRange = useMemo(() => toDateRange(dateRange), [dateRange]);
 
-  const videoAnalytics: VideoAnalytics[] = [
-    {
-      videoId: '1',
-      title: 'Getting Started with Stream Forge',
-      views: 1234,
-      avgWatchTime: 420,
-      completionRate: 78,
-    },
-    {
-      videoId: '2',
-      title: 'Advanced Features Tour',
-      views: 856,
-      avgWatchTime: 890,
-      completionRate: 65,
-    },
-    {
-      videoId: '3',
-      title: 'Company Training Session',
-      views: 789,
-      avgWatchTime: 1950,
-      completionRate: 82,
-    },
-    {
-      videoId: '4',
-      title: 'Product Demo',
-      views: 1542,
-      avgWatchTime: 720,
-      completionRate: 71,
-    },
-    {
-      videoId: '5',
-      title: 'Video Upload Guide',
-      views: 698,
-      avgWatchTime: 540,
-      completionRate: 69,
-    },
-    {
-      videoId: '6',
-      title: 'Security Best Practices',
-      views: 543,
-      avgWatchTime: 980,
-      completionRate: 75,
-    },
-    {
-      videoId: '7',
-      title: 'API Integration Tutorial',
-      views: 432,
-      avgWatchTime: 1200,
-      completionRate: 68,
-    },
-    {
-      videoId: '8',
-      title: 'Mobile App Overview',
-      views: 876,
-      avgWatchTime: 650,
-      completionRate: 73,
-    },
-  ];
+  const loadAnalytics = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-  const totalViews = videoAnalytics.reduce((sum, v) => sum + v.views, 0);
-  const avgCompletionRate =
-    videoAnalytics.reduce((sum, v) => sum + v.completionRate, 0) /
-    videoAnalytics.length;
-  const totalWatchMinutes = videoAnalytics.reduce((sum, v) => sum + (v.avgWatchTime * v.views) / 60, 0);
+    const [
+      summaryResponse,
+      viewsResponse,
+      rankedResponse,
+      activeResponse,
+      peakResponse,
+      deviceResponse,
+      browserResponse,
+      categoryResponse,
+      tagResponse,
+      authResponse,
+    ] = await Promise.all([
+      apiClient.getAdminAnalyticsSummary(analyticsRange),
+      apiClient.getAdminViewsOverTime(analyticsRange),
+      apiClient.getAdminRankedVideos(rankingKind, { ...analyticsRange, page: 1, pageSize: 10 }),
+      apiClient.getAdminActiveViewers(),
+      apiClient.getAdminPeakWatchTime(analyticsRange),
+      apiClient.getAdminBreakdown('device', analyticsRange),
+      apiClient.getAdminBreakdown('browser', analyticsRange),
+      apiClient.getAdminBreakdown('category', analyticsRange),
+      apiClient.getAdminBreakdown('tag', analyticsRange),
+      apiClient.getAdminAuthBreakdown(analyticsRange),
+    ]);
+
+    setSummary(summaryResponse.data ?? null);
+    setViewsOverTime(viewsResponse.data ?? []);
+    setRankedVideos(rankedResponse.data?.items ?? []);
+    setActiveViewers(activeResponse.data ?? null);
+    setPeakWatchTime(peakResponse.data ?? []);
+    setDeviceBreakdown(deviceResponse.data ?? []);
+    setBrowserBreakdown(browserResponse.data ?? []);
+    setCategoryBreakdown(categoryResponse.data ?? []);
+    setTagBreakdown(tagResponse.data ?? []);
+    setAuthBreakdown(authResponse.data ?? null);
+
+    const firstError = [
+      summaryResponse,
+      viewsResponse,
+      rankedResponse,
+      activeResponse,
+      peakResponse,
+      deviceResponse,
+      browserResponse,
+      categoryResponse,
+      tagResponse,
+      authResponse,
+    ].find((response) => !response.success);
+
+    if (firstError) {
+      setError(firstError.error ?? 'Some analytics could not be loaded.');
+    }
+
+    setIsLoading(false);
+  }, [analyticsRange, rankingKind]);
+
+  useEffect(() => {
+    void loadAnalytics();
+  }, [loadAnalytics]);
+
+  const chartData = viewsOverTime.map((point) => ({
+    date: point.periodStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    views: point.viewCount,
+  }));
+
+  const peakChartData = peakWatchTime.map((item) => ({
+    hour: item.hourLabel,
+    activity: item.watchActivityCount,
+  }));
+
+  const authItems: AnalyticsBreakdownItem[] = authBreakdown
+    ? [
+        { label: 'Authenticated', value: authBreakdown.authenticatedViewCount },
+        { label: 'Anonymous', value: authBreakdown.anonymousViewCount },
+      ]
+    : [];
 
   const stats = [
     {
       label: 'Total Views',
-      value: totalViews,
-      change: 15,
+      value: formatNumber(summary?.totalViews ?? 0),
       icon: Play,
     },
     {
+      label: 'Unique Viewers',
+      value: formatNumber(summary?.uniqueViewers ?? 0),
+      icon: Users,
+    },
+    {
       label: 'Total Watch Time',
-      value: `${Math.floor(totalWatchMinutes)}m`,
-      change: 22,
+      value: formatDuration(summary?.totalWatchTime ?? 0),
       icon: Clock,
     },
     {
       label: 'Avg Completion',
-      value: `${avgCompletionRate.toFixed(0)}%`,
-      change: -5,
+      value: `${Math.round(summary?.averageCompletionRate ?? 0)}%`,
       icon: TrendingUp,
-    },
-    {
-      label: 'Active Viewers',
-      value: 1240,
-      change: 8,
-      icon: Users,
     },
   ];
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
+  const handleExport = async () => {
+    setIsExporting(true);
+    setError(null);
+
+    const response = await apiClient.downloadAdminAnalyticsOverview(analyticsRange);
+
+    if (response.success && response.data) {
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `streamforge-analytics-${dateRange.start}-${dateRange.end}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } else {
+      setError(response.error ?? 'Failed to download analytics export');
     }
-    return `${minutes}m`;
+
+    setIsExporting(false);
   };
 
   return (
     <DashboardLayout title="Analytics Dashboard" requiredRoles={['admin']}>
       <div className="space-y-8">
-        {/* Date Range Filter */}
         <Card>
-          <CardHeader>
-            <CardTitle>Date Range</CardTitle>
+          <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle>Analytics</CardTitle>
+              <CardDescription>Platform playback and engagement metrics.</CardDescription>
+            </div>
+            <Button variant="outline" className="gap-2" onClick={() => void handleExport()} disabled={isExporting}>
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Export CSV
+            </Button>
           </CardHeader>
-          <CardContent className="flex gap-4">
+          <CardContent className="flex flex-col gap-4 md:flex-row md:items-end">
             <div className="flex-1">
-              <label className="text-sm font-medium text-foreground block mb-2">
-                Start Date
-              </label>
+              <label className="mb-2 block text-sm font-medium text-foreground">Start Date</label>
               <Input
                 type="date"
                 value={dateRange.start}
-                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                onChange={(event) => setDateRange((current) => ({ ...current, start: event.target.value }))}
               />
             </div>
             <div className="flex-1">
-              <label className="text-sm font-medium text-foreground block mb-2">
-                End Date
-              </label>
+              <label className="mb-2 block text-sm font-medium text-foreground">End Date</label>
               <Input
                 type="date"
                 value={dateRange.end}
-                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                onChange={(event) => setDateRange((current) => ({ ...current, end: event.target.value }))}
               />
             </div>
-            <div className="flex items-end">
-              <Button>Update</Button>
-            </div>
+            <Button onClick={() => void loadAnalytics()} disabled={isLoading}>
+              {isLoading ? 'Loading...' : 'Refresh'}
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => {
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => {
             const Icon = stat.icon;
-            const isPositive = stat.change >= 0;
+
             return (
-              <Card key={index}>
+              <Card key={stat.label}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                   <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
                   <Icon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                    {isPositive ? (
-                      <ArrowUp className="w-3 h-3 text-green-600" />
-                    ) : (
-                      <ArrowDown className="w-3 h-3 text-red-600" />
-                    )}
-                    <span className={isPositive ? 'text-green-600' : 'text-red-600'}>
-                      {Math.abs(stat.change)}%
-                    </span>
-                    from previous period
-                  </p>
+                  <div className="text-2xl font-bold">{isLoading ? '-' : stat.value}</div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
 
-        {/* Views Over Time Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Views Over Time</CardTitle>
-            <CardDescription>
-              Total views by date for the selected period
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LineChart data={viewsData} />
-          </CardContent>
-        </Card>
-
-        {/* Top Videos */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Most Watched Videos</CardTitle>
-            <CardDescription>
-              Videos ranked by views and engagement metrics
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Video Title</TableHead>
-                    <TableHead className="text-right">Views</TableHead>
-                    <TableHead className="text-right">Avg Watch Time</TableHead>
-                    <TableHead className="text-right">Completion Rate</TableHead>
-                    <TableHead className="text-right">Trend</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {videoAnalytics
-                    .sort((a, b) => b.views - a.views)
-                    .map((video, idx) => (
-                      <TableRow key={video.videoId}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium text-foreground">#{idx + 1}</span>
-                            <span className="line-clamp-2">{video.title}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {video.views}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatTime(video.avgWatchTime)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden border border-border">
-                              <div
-                                className="h-full bg-blue-500 dark:bg-blue-600"
-                                style={{
-                                  width: `${video.completionRate}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="text-sm font-medium">
-                              {video.completionRate}%
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge className="gap-1">
-                            <ArrowUp className="w-3 h-3" />
-                            {Math.floor(Math.random() * 30 + 5)}%
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Engagement Metrics */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Viewer Demographics */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Peak Watch Time</CardTitle>
+              <CardTitle>Views Over Time</CardTitle>
+              <CardDescription>Counted views for the selected period.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {['9:00 AM', '2:00 PM', '6:00 PM'].map((time, idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{time}</span>
-                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden border border-border">
-                    <div
-                      className="h-full bg-green-500 dark:bg-green-600"
-                      style={{ width: `${[85, 65, 95][idx]}%` }}
+            <CardContent>
+              {isLoading ? (
+                <EmptyState message="Loading chart..." />
+              ) : chartData.length > 0 ? (
+                <ChartContainer config={{ views: { label: 'Views', color: '#0891b2' } }} className="h-72">
+                  <BarChart data={chartData}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                    <YAxis tickLine={false} axisLine={false} width={40} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar
+                      dataKey="views"
+                      fill="var(--color-views)"
+                      radius={[4, 4, 0, 0]}
                     />
-                  </div>
-                  <span className="text-sm font-medium">
-                    {[450, 320, 520][idx]}
-                  </span>
-                </div>
-              ))}
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <EmptyState message="No view data for this range." />
+              )}
             </CardContent>
           </Card>
 
-          {/* Device Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Viewers</CardTitle>
+              <CardDescription>Recent playback activity window.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 text-3xl font-bold">
+                  <Activity className="h-6 w-6 text-chart-5" />
+                  {isLoading ? '-' : formatNumber(activeViewers?.activeViewerCount ?? 0)}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Last {activeViewers?.windowMinutes ?? 0} minutes
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Completion count</p>
+                <p className="text-2xl font-semibold">{formatNumber(summary?.completionCount ?? 0)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle>Video Rankings</CardTitle>
+              <CardDescription>Ranked by selected analytics metric.</CardDescription>
+            </div>
+            <Tabs value={rankingKind} onValueChange={(value) => setRankingKind(value as typeof rankingKind)}>
+              <TabsList>
+                <TabsTrigger value="most-watched">Watched</TabsTrigger>
+                <TabsTrigger value="most-liked">Liked</TabsTrigger>
+                <TabsTrigger value="most-commented">Commented</TabsTrigger>
+                <TabsTrigger value="most-engaged">Engaged</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <EmptyState message="Loading ranked videos..." />
+            ) : rankedVideos.length > 0 ? (
+              <div className="space-y-3">
+                {rankedVideos.map((video, index) => (
+                  <div key={video.videoId} className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        #{index + 1} {video.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatNumber(video.viewCount)} views, {formatDuration(video.totalWatchTime)} watched
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <ThumbsUp className="h-4 w-4" />
+                        {formatNumber(video.likeCount)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="h-4 w-4" />
+                        {formatNumber(video.commentCount)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MousePointerClick className="h-4 w-4" />
+                        {formatNumber(video.engagementScore)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState message="No ranked videos for this range." />
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Peak Watch Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {peakChartData.length > 0 ? (
+                <ChartContainer config={{ activity: { label: 'Activity', color: '#16a34a' } }} className="h-64">
+                  <BarChart data={peakChartData} margin={{ left: 8, right: 16, bottom: 8 }}>
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="hour"
+                      tickLine={false}
+                      axisLine={false}
+                      interval="preserveStartEnd"
+                      tickMargin={8}
+                    />
+                    <YAxis tickLine={false} axisLine={false} width={36} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="activity" fill="var(--color-activity)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <EmptyState message="No peak activity data." />
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Device Breakdown</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {['Desktop', 'Mobile', 'Tablet'].map((device, idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{device}</span>
-                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden border border-border">
-                    <div
-                      className="h-full bg-purple-500 dark:bg-purple-600"
-                      style={{ width: `${[65, 25, 10][idx]}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-medium">
-                    {[1235, 456, 189][idx]}
-                  </span>
-                </div>
-              ))}
+            <CardContent>
+              <BreakdownList items={deviceBreakdown} emptyLabel="No device data." />
             </CardContent>
           </Card>
 
-          {/* Geographic Distribution */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Top Regions</CardTitle>
+              <CardTitle className="text-base">Browser Breakdown</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {['US', 'EU', 'APAC'].map((region, idx) => (
-                <div key={idx} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{region}</span>
-                  <div className="w-24 h-2 bg-muted rounded-full overflow-hidden border border-border">
-                    <div
-                      className="h-full bg-orange-500 dark:bg-orange-600"
-                      style={{ width: `${[60, 30, 10][idx]}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-medium">
-                    {[1234, 567, 234][idx]}
-                  </span>
-                </div>
-              ))}
+            <CardContent>
+              <BreakdownList items={browserBreakdown} emptyLabel="No browser data." />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Auth Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BreakdownList items={authItems} emptyLabel="No auth breakdown data." />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Category Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BreakdownList items={categoryBreakdown} emptyLabel="No category data." />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Tag Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <BreakdownList items={tagBreakdown} emptyLabel="No tag data." />
             </CardContent>
           </Card>
         </div>

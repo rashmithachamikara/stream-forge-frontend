@@ -29,7 +29,36 @@ import {
   VideoProcessingStatusDto,
   VideoSummaryDto,
 } from '@/features/videos/types';
-import { UserListFilters, UserProfile, UserProfileDto } from '@/features/admin/types';
+import {
+  ActiveViewers,
+  ActiveViewersDto,
+  AnalyticsBreakdownItem,
+  AnalyticsBreakdownKind,
+  AnalyticsDateRange,
+  AnalyticsEngagementSummary,
+  AnalyticsEngagementSummaryDto,
+  AnalyticsSummary,
+  AnalyticsSummaryDto,
+  AnalyticsTimeSeriesPoint,
+  AnalyticsTimeSeriesPointDto,
+  AuthBreakdown,
+  AuthBreakdownDto,
+  BrowserBreakdownItemDto,
+  CategoryBreakdownItemDto,
+  DeviceBreakdownItemDto,
+  PeakWatchTimeItem,
+  PeakWatchTimeItemDto,
+  RankedAnalyticsKind,
+  RankedVideoAnalytics,
+  RankedVideoAnalyticsDto,
+  RecordAnalyticsEventRequest,
+  RecordAnalyticsEventResult,
+  RecordAnalyticsEventResultDto,
+  TagBreakdownItemDto,
+  UserListFilters,
+  UserProfile,
+  UserProfileDto,
+} from '@/features/admin/types';
 import {
   AddPlaylistVideoRequest,
   CreatePlaylistRequest,
@@ -48,13 +77,15 @@ import {
   UnreadNotificationCount,
   UnreadNotificationCountDto,
 } from '@/features/notifications/types';
-import { VideoAnalytics } from '@/features/admin/types';
 import { ApiResponse, PaginatedResponse } from '@/shared/types/api';
 import { capitalize } from '@/shared/lib/utils';
 import { getVideoManifestUrl, getVideoThumbnailUrl } from '@/features/videos/lib/playbackUrls';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.streamforge.local';
 const API_V1_PREFIX = '/api/v1';
+const ANALYTICS_API_BASE_URL = process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT_BASE_URL || API_BASE_URL;
+const ANALYTICS_INGESTION_ENABLED = process.env.NEXT_PUBLIC_ANALYTICS_INGESTION_ENABLED !== 'false';
+const ANALYTICS_SEND_ANONYMOUS = process.env.NEXT_PUBLIC_ANALYTICS_SEND_ANONYMOUS !== 'false';
 
 const numericRoleMap: Record<number, UserRole> = {
   1: 'admin',
@@ -301,6 +332,81 @@ const mapUserProfile = (user: UserProfileDto): UserProfile => ({
   createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
 });
 
+const mapAnalyticsSummary = (summary: AnalyticsSummaryDto): AnalyticsSummary => ({
+  totalViews: summary.totalViews ?? 0,
+  uniqueViewers: summary.uniqueViewers ?? 0,
+  totalWatchTime: summary.totalWatchTime ?? 0,
+  averageWatchTime: summary.averageWatchTime ?? 0,
+  averageCompletionRate: summary.averageCompletionRate ?? 0,
+  completionCount: summary.completionCount ?? 0,
+});
+
+const mapAnalyticsTimeSeriesPoint = (point: AnalyticsTimeSeriesPointDto): AnalyticsTimeSeriesPoint => ({
+  periodStart: point.periodStart ? new Date(point.periodStart) : new Date(),
+  viewCount: point.viewCount ?? 0,
+});
+
+const mapAnalyticsEngagementSummary = (summary: AnalyticsEngagementSummaryDto): AnalyticsEngagementSummary => ({
+  likeCount: summary.likeCount ?? 0,
+  dislikeCount: summary.dislikeCount ?? 0,
+  commentCount: summary.commentCount ?? 0,
+  engagementScore: summary.engagementScore ?? 0,
+  engagementRate: summary.engagementRate ?? null,
+});
+
+const mapRankedVideoAnalytics = (video: RankedVideoAnalyticsDto): RankedVideoAnalytics => ({
+  videoId: video.videoId ?? '',
+  title: video.title ?? 'Untitled video',
+  viewCount: video.viewCount ?? 0,
+  totalWatchTime: video.totalWatchTime ?? 0,
+  likeCount: video.likeCount ?? 0,
+  dislikeCount: video.dislikeCount ?? 0,
+  commentCount: video.commentCount ?? 0,
+  engagementScore: video.engagementScore ?? 0,
+});
+
+const mapActiveViewers = (activeViewers: ActiveViewersDto): ActiveViewers => ({
+  activeViewerCount: activeViewers.activeViewerCount ?? 0,
+  windowMinutes: activeViewers.windowMinutes ?? 0,
+});
+
+const mapPeakWatchTimeItem = (item: PeakWatchTimeItemDto): PeakWatchTimeItem => ({
+  hourLabel: item.hourLabel ?? 'Unknown',
+  watchActivityCount: item.watchActivityCount ?? 0,
+});
+
+const mapDeviceBreakdownItem = (item: DeviceBreakdownItemDto): AnalyticsBreakdownItem => ({
+  label: item.deviceType ?? 'Unknown',
+  value: item.viewerCount ?? 0,
+});
+
+const mapBrowserBreakdownItem = (item: BrowserBreakdownItemDto): AnalyticsBreakdownItem => ({
+  label: item.browserFamily ?? 'Unknown',
+  value: item.viewerCount ?? 0,
+});
+
+const mapCategoryBreakdownItem = (item: CategoryBreakdownItemDto): AnalyticsBreakdownItem => ({
+  label: item.categoryName ?? 'Uncategorized',
+  value: item.viewCount ?? 0,
+});
+
+const mapTagBreakdownItem = (item: TagBreakdownItemDto): AnalyticsBreakdownItem => ({
+  label: item.tagName ?? 'Untagged',
+  value: item.viewCount ?? 0,
+});
+
+const mapAuthBreakdown = (breakdown: AuthBreakdownDto): AuthBreakdown => ({
+  authenticatedViewCount: breakdown.authenticatedViewCount ?? 0,
+  anonymousViewCount: breakdown.anonymousViewCount ?? 0,
+});
+
+const mapRecordAnalyticsEventResult = (
+  result: RecordAnalyticsEventResultDto | undefined
+): RecordAnalyticsEventResult => ({
+  eventRecorded: result?.eventRecorded ?? false,
+  viewCountIncremented: result?.viewCountIncremented ?? false,
+});
+
 const mapPagedResponse = <TDto, TDomain>(
   response: PaginatedResponse<TDto>,
   mapper: (item: TDto) => TDomain
@@ -317,6 +423,7 @@ const mapPagedResponse = <TDto, TDomain>(
 class ApiClient {
   private token: string | null = null;
   private baseUrl = normalizeApiBaseUrl(API_BASE_URL);
+  private analyticsBaseUrl = normalizeApiBaseUrl(ANALYTICS_API_BASE_URL);
 
   constructor() {
     // Load token from localStorage
@@ -334,6 +441,41 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
     }
+  }
+
+  hasAuthToken() {
+    return Boolean(this.token);
+  }
+
+  private appendDateRange(params: URLSearchParams, filters: AnalyticsDateRange = {}) {
+    appendQueryParam(params, 'from', filters.from?.toISOString());
+    appendQueryParam(params, 'to', filters.to?.toISOString());
+  }
+
+  private async requestRawFromBase<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
+    const isFormData = options.body instanceof FormData;
+    const headers = new Headers(options.headers);
+
+    if (!isFormData && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    if (this.token) {
+      headers.set('Authorization', `Bearer ${this.token}`);
+    }
+
+    const response = await fetch(`${baseUrl}${path}`, {
+      ...options,
+      headers,
+    });
+
+    const data = await response.json().catch(() => undefined);
+
+    if (!response.ok) {
+      throw new Error(data?.error || data?.message || 'Request failed');
+    }
+
+    return data;
   }
 
   private async requestRaw<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -988,19 +1130,291 @@ class ApiClient {
   }
 
   // Analytics Endpoints
-  async getAnalytics(startDate: Date, endDate: Date): Promise<ApiResponse<VideoAnalytics[]>> {
-    try {
-      const params = new URLSearchParams({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      });
+  async recordAnalyticsEvent(
+    videoId: string,
+    request: RecordAnalyticsEventRequest
+  ): Promise<ApiResponse<RecordAnalyticsEventResult>> {
+    if (!ANALYTICS_INGESTION_ENABLED || (!ANALYTICS_SEND_ANONYMOUS && !this.hasAuthToken())) {
+      return {
+        success: true,
+        data: { eventRecorded: false, viewCountIncremented: false },
+      };
+    }
 
-      return await this.request<VideoAnalytics[]>(`/admin/analytics?${params.toString()}`);
+    try {
+      const result = await this.requestRawFromBase<RecordAnalyticsEventResultDto>(
+        this.analyticsBaseUrl,
+        `${API_V1_PREFIX}/videos/${videoId}/analytics/events`,
+        {
+          method: 'POST',
+          body: JSON.stringify(request),
+        }
+      );
+
+      return {
+        success: true,
+        data: mapRecordAnalyticsEventResult(result),
+      };
     } catch (error) {
       return {
         success: false,
-        error: 'Failed to fetch analytics',
+        error: 'Failed to record analytics event',
       };
+    }
+  }
+
+  async getAdminAnalyticsSummary(filters: AnalyticsDateRange = {}): Promise<ApiResponse<AnalyticsSummary>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const summary = await this.requestRaw<AnalyticsSummaryDto>(
+        `${API_V1_PREFIX}/admin/analytics/summary?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapAnalyticsSummary(summary),
+      };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch analytics summary' };
+    }
+  }
+
+  async getAdminViewsOverTime(filters: AnalyticsDateRange = {}): Promise<ApiResponse<AnalyticsTimeSeriesPoint[]>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const points = await this.requestRaw<AnalyticsTimeSeriesPointDto[]>(
+        `${API_V1_PREFIX}/admin/analytics/views-over-time?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: points.map(mapAnalyticsTimeSeriesPoint),
+      };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch views over time' };
+    }
+  }
+
+  async getAdminRankedVideos(
+    kind: Exclude<RankedAnalyticsKind, 'top'>,
+    filters: AnalyticsDateRange & { page?: number; pageSize?: number } = {}
+  ): Promise<ApiResponse<PaginatedResponse<RankedVideoAnalytics>>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 10);
+      const response = await this.requestRaw<PaginatedResponse<RankedVideoAnalyticsDto>>(
+        `${API_V1_PREFIX}/admin/analytics/${kind}-videos?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapRankedVideoAnalytics),
+      };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch ranked videos' };
+    }
+  }
+
+  async getAdminActiveViewers(): Promise<ApiResponse<ActiveViewers>> {
+    try {
+      const response = await this.requestRaw<ActiveViewersDto>(`${API_V1_PREFIX}/admin/analytics/active-viewers`);
+
+      return {
+        success: true,
+        data: mapActiveViewers(response),
+      };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch active viewers' };
+    }
+  }
+
+  async getAdminPeakWatchTime(filters: AnalyticsDateRange = {}): Promise<ApiResponse<PeakWatchTimeItem[]>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const response = await this.requestRaw<PeakWatchTimeItemDto[]>(
+        `${API_V1_PREFIX}/admin/analytics/peak-watch-time?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: response.map(mapPeakWatchTimeItem),
+      };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch peak watch time' };
+    }
+  }
+
+  async getAdminBreakdown(
+    kind: AnalyticsBreakdownKind,
+    filters: AnalyticsDateRange = {}
+  ): Promise<ApiResponse<AnalyticsBreakdownItem[]>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const path = `${API_V1_PREFIX}/admin/analytics/${kind}-breakdown?${params.toString()}`;
+
+      if (kind === 'device') {
+        const response = await this.requestRaw<DeviceBreakdownItemDto[]>(path);
+        return { success: true, data: response.map(mapDeviceBreakdownItem) };
+      }
+
+      if (kind === 'browser') {
+        const response = await this.requestRaw<BrowserBreakdownItemDto[]>(path);
+        return { success: true, data: response.map(mapBrowserBreakdownItem) };
+      }
+
+      if (kind === 'category') {
+        const response = await this.requestRaw<CategoryBreakdownItemDto[]>(path);
+        return { success: true, data: response.map(mapCategoryBreakdownItem) };
+      }
+
+      const response = await this.requestRaw<TagBreakdownItemDto[]>(path);
+      return { success: true, data: response.map(mapTagBreakdownItem) };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch analytics breakdown' };
+    }
+  }
+
+  async getAdminAuthBreakdown(filters: AnalyticsDateRange = {}): Promise<ApiResponse<AuthBreakdown>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const response = await this.requestRaw<AuthBreakdownDto>(
+        `${API_V1_PREFIX}/admin/analytics/auth-breakdown?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapAuthBreakdown(response),
+      };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch auth breakdown' };
+    }
+  }
+
+  async downloadAdminAnalyticsOverview(filters: AnalyticsDateRange = {}): Promise<ApiResponse<Blob>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      params.set('format', 'csv');
+      const headers = new Headers();
+
+      if (this.token) {
+        headers.set('Authorization', `Bearer ${this.token}`);
+      }
+
+      const response = await fetch(`${this.baseUrl}${API_V1_PREFIX}/admin/analytics/reports/overview?${params.toString()}`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      return {
+        success: true,
+        data: await response.blob(),
+      };
+    } catch (error) {
+      return { success: false, error: 'Failed to download analytics export' };
+    }
+  }
+
+  async getMeAnalyticsSummary(filters: AnalyticsDateRange = {}): Promise<ApiResponse<AnalyticsSummary>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const summary = await this.requestRaw<AnalyticsSummaryDto>(
+        `${API_V1_PREFIX}/me/analytics/summary?${params.toString()}`
+      );
+
+      return { success: true, data: mapAnalyticsSummary(summary) };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch analytics summary' };
+    }
+  }
+
+  async getMeViewsOverTime(filters: AnalyticsDateRange = {}): Promise<ApiResponse<AnalyticsTimeSeriesPoint[]>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const points = await this.requestRaw<AnalyticsTimeSeriesPointDto[]>(
+        `${API_V1_PREFIX}/me/analytics/views-over-time?${params.toString()}`
+      );
+
+      return { success: true, data: points.map(mapAnalyticsTimeSeriesPoint) };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch views over time' };
+    }
+  }
+
+  async getMeRankedVideos(
+    kind: RankedAnalyticsKind,
+    filters: AnalyticsDateRange & { page?: number; pageSize?: number } = {}
+  ): Promise<ApiResponse<PaginatedResponse<RankedVideoAnalytics>>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 10);
+      const endpoint = kind === 'top' ? 'top-videos' : `${kind}-videos`;
+      const response = await this.requestRaw<PaginatedResponse<RankedVideoAnalyticsDto>>(
+        `${API_V1_PREFIX}/me/analytics/${endpoint}?${params.toString()}`
+      );
+
+      return { success: true, data: mapPagedResponse(response, mapRankedVideoAnalytics) };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch ranked videos' };
+    }
+  }
+
+  async getMeBreakdown(
+    kind: AnalyticsBreakdownKind,
+    filters: AnalyticsDateRange = {}
+  ): Promise<ApiResponse<AnalyticsBreakdownItem[]>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const path = `${API_V1_PREFIX}/me/analytics/${kind}-breakdown?${params.toString()}`;
+
+      if (kind === 'device') {
+        const response = await this.requestRaw<DeviceBreakdownItemDto[]>(path);
+        return { success: true, data: response.map(mapDeviceBreakdownItem) };
+      }
+
+      if (kind === 'browser') {
+        const response = await this.requestRaw<BrowserBreakdownItemDto[]>(path);
+        return { success: true, data: response.map(mapBrowserBreakdownItem) };
+      }
+
+      if (kind === 'category') {
+        const response = await this.requestRaw<CategoryBreakdownItemDto[]>(path);
+        return { success: true, data: response.map(mapCategoryBreakdownItem) };
+      }
+
+      const response = await this.requestRaw<TagBreakdownItemDto[]>(path);
+      return { success: true, data: response.map(mapTagBreakdownItem) };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch analytics breakdown' };
+    }
+  }
+
+  async getMeAuthBreakdown(filters: AnalyticsDateRange = {}): Promise<ApiResponse<AuthBreakdown>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const response = await this.requestRaw<AuthBreakdownDto>(
+        `${API_V1_PREFIX}/me/analytics/auth-breakdown?${params.toString()}`
+      );
+
+      return { success: true, data: mapAuthBreakdown(response) };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch auth breakdown' };
     }
   }
 
