@@ -26,6 +26,7 @@ import { RoleChip } from '@/shared/components/RoleChip';
 import { RoleFilter, USER_ROLE_FILTER_OPTIONS } from '@/shared/lib/roles';
 import { UserListFilters, UserProfile } from '@/features/admin/types';
 import { Loader2, Search, ChevronLeft, ChevronRight, Users, ShieldCheck } from 'lucide-react';
+import { ErrorPanel, PageHeader } from '@/shared/components/AppChrome';
 
 const PAGE_SIZE = 12;
 const ACTIVE_FILTER_OPTIONS = [
@@ -125,6 +126,7 @@ export default function UserManagementPage() {
   return (
     <DashboardLayout title="User Management" requiredRoles={['admin']}>
       <div className="space-y-6">
+        <PageHeader title="User Management" description="Browse, filter, and audit platform user access." />
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div className="space-y-1">
@@ -173,11 +175,7 @@ export default function UserManagementPage() {
               </Select>
             </div>
 
-            {error && (
-              <Card className="border-destructive/30 bg-destructive/5">
-                <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
-              </Card>
-            )}
+            {error && <ErrorPanel message={error} />}
 
             <div className="overflow-hidden rounded-lg border">
               <Table>

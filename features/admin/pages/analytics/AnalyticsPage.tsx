@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { ErrorPanel, PageHeader, StatTile } from '@/shared/components/AppChrome';
 import {
   ActiveViewers,
   AnalyticsBreakdownItem,
@@ -252,6 +253,10 @@ export default function AnalyticsDashboard() {
   return (
     <DashboardLayout title="Analytics Dashboard" requiredRoles={['admin']}>
       <div className="space-y-8">
+        <PageHeader
+          title="Analytics"
+          description="Platform playback, engagement, and viewer activity metrics."
+        />
         <Card>
           <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -286,22 +291,14 @@ export default function AnalyticsDashboard() {
           </CardContent>
         </Card>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <ErrorPanel message={error} />}
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
 
             return (
-              <Card key={stat.label}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{isLoading ? '-' : stat.value}</div>
-                </CardContent>
-              </Card>
+              <StatTile key={stat.label} label={stat.label} value={isLoading ? '-' : stat.value} icon={Icon} />
             );
           })}
         </div>

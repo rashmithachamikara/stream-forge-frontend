@@ -26,6 +26,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,6 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Clock, Edit2, Loader2, Play, Plus, Trash2 } from 'lucide-react';
+import { AppEmptyState, ErrorPanel, LoadingPanel, PageHeader } from '@/shared/components/AppChrome';
 
 const PLAYLIST_PAGE_SIZE = 24;
 const PLAYLIST_VIDEO_PAGE_SIZE = 12;
@@ -70,6 +81,7 @@ export default function PlaylistsPage() {
   const [editPlaylist, setEditPlaylist] = useState<PlaylistFormState>(emptyPlaylistForm);
 
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
+  const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null);
   const [playlistVideosPage, setPlaylistVideosPage] = useState<PlaylistVideosPage | null>(null);
   const [playlistVideosPageNumber, setPlaylistVideosPageNumber] = useState(1);
   const [isVideosLoading, setIsVideosLoading] = useState(false);
@@ -271,10 +283,6 @@ export default function PlaylistsPage() {
   };
 
   const handleDeletePlaylist = async (playlist: Playlist) => {
-    if (!window.confirm(`Delete "${playlist.name}"?`)) {
-      return;
-    }
-
     setError(null);
 
     const response = await apiClient.deletePlaylist(playlist.id);
@@ -286,6 +294,7 @@ export default function PlaylistsPage() {
         setPlaylistVideosPage(null);
         setIsVideosOpen(false);
       }
+      setPlaylistToDelete(null);
     } else {
       setError(response.error ?? 'Failed to delete playlist');
     }
@@ -451,14 +460,13 @@ export default function PlaylistsPage() {
   return (
     <DashboardLayout title="Playlists">
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Playlists</h1>
-            <p className="text-muted-foreground">Create and manage your saved video collections.</p>
-          </div>
+        <PageHeader
+          title="Playlists"
+          description="Create and manage saved video collections."
+          action={
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 gradient-primary text-white font-medium">
+              <Button className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Playlist
               </Button>
@@ -471,7 +479,8 @@ export default function PlaylistsPage() {
               {renderPlaylistForm(newPlaylist, setNewPlaylist, 'Create Playlist')}
             </DialogContent>
           </Dialog>
-        </div>
+          }
+        />
 
         <Input
           placeholder="Search playlists..."
@@ -480,15 +489,10 @@ export default function PlaylistsPage() {
           className="max-w-md"
         />
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <ErrorPanel message={error} />}
 
         {isLoading ? (
-          <Card>
-            <CardContent className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading playlists...
-            </CardContent>
-          </Card>
+          <LoadingPanel label="Loading playlists" />
         ) : filteredPlaylists.length > 0 ? (
           <>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -560,7 +564,7 @@ export default function PlaylistsPage() {
                         className="h-10 w-10 bg-transparent text-destructive hover:text-destructive"
                         onClick={(event) => {
                           event.stopPropagation();
-                          void handleDeletePlaylist(playlist);
+                          setPlaylistToDelete(playlist);
                         }}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -594,17 +598,16 @@ export default function PlaylistsPage() {
             </div>
           </>
         ) : (
-          <Card className="py-12 text-center">
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">
-                {searchTerm ? 'No playlists match your search.' : 'No playlists yet.'}
-              </p>
+          <AppEmptyState
+            title={searchTerm ? 'No playlists match your search' : 'No playlists yet'}
+            description={searchTerm ? 'Try a shorter search term.' : 'Create your first collection for saved videos.'}
+            action={
               <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
                 <Plus className="h-4 w-4" />
                 Create your first playlist
               </Button>
-            </CardContent>
-          </Card>
+            }
+          />
         )}
 
         <Dialog
@@ -712,6 +715,33 @@ export default function PlaylistsPage() {
             )}
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={Boolean(playlistToDelete)} onOpenChange={(open) => !open && setPlaylistToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete playlist?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {playlistToDelete
+                  ? `This will permanently delete "${playlistToDelete.name}" from your playlists.`
+                  : 'This will permanently delete the selected playlist.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (playlistToDelete) {
+                    void handleDeletePlaylist(playlistToDelete);
+                  }
+                }}
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

@@ -20,7 +20,6 @@ import {
   Info,
   Trash2,
   Check,
-  Loader2,
   X,
   MessageSquare,
   ThumbsUp,
@@ -28,6 +27,7 @@ import {
   Reply,
 } from 'lucide-react';
 import { Notification, NotificationListFilters } from '@/features/notifications/types';
+import { AppEmptyState, ErrorPanel, LoadingPanel, PageHeader } from '@/shared/components/AppChrome';
 
 type ReadFilter = 'all' | 'read' | 'unread';
 
@@ -193,13 +193,10 @@ export default function NotificationsPage() {
   return (
     <DashboardLayout title="Notifications">
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
-            <p className="text-muted-foreground">
-              {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-            </p>
-          </div>
+        <PageHeader
+          title="Notifications"
+          description={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}.`}
+          action={
           <div className="flex flex-wrap items-center gap-2">
             <Select value={readFilter} onValueChange={(value) => setReadFilter(value as ReadFilter)}>
               <SelectTrigger className="w-44">
@@ -222,21 +219,13 @@ export default function NotificationsPage() {
               Clear read
             </Button>
           </div>
-        </div>
+          }
+        />
 
-        {error && (
-          <Card className="border-destructive/30 bg-destructive/5">
-            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
-          </Card>
-        )}
+        {error && <ErrorPanel message={error} />}
 
         {isLoading ? (
-          <Card className="py-12 text-center">
-            <CardContent className="flex items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading notifications...
-            </CardContent>
-          </Card>
+          <LoadingPanel label="Loading notifications" />
         ) : notifications.length > 0 ? (
           <div className="space-y-3">
             {notifications.map((notification) => (
@@ -314,12 +303,7 @@ export default function NotificationsPage() {
             ))}
           </div>
         ) : (
-          <Card className="py-12 text-center">
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">No notifications</p>
-              <p className="text-sm text-muted-foreground">You're all caught up.</p>
-            </CardContent>
-          </Card>
+          <AppEmptyState title="No notifications" description="You are all caught up." />
         )}
 
         <Card className="bg-muted/50">

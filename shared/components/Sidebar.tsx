@@ -107,7 +107,7 @@ export const Sidebar: React.FC = () => {
 
   const NavContent = () => (
     <>
-      <nav className="flex-1 space-y-1 px-3 py-6">
+      <nav className="flex-1 space-y-1.5 px-3 py-5">
         {filteredItems.map((item) => {
           const Icon = item.icon;
           const href = item.href === '/dashboard' && activeView ? VIEW_DASHBOARD_PATHS[activeView] : item.href;
@@ -121,10 +121,10 @@ export const Sidebar: React.FC = () => {
               <Button
                 variant={isActive ? 'default' : 'ghost'}
                 className={cn(
-                  'w-full justify-start gap-3 h-10 rounded-lg font-medium transition-all',
+                  'h-10 w-full justify-start gap-3 rounded-lg font-semibold transition-all duration-200',
                   isActive
-                    ? 'gradient-primary text-white shadow-md'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 dark:hover:bg-secondary'
+                    ? 'border border-primary/30 bg-primary/15 text-foreground shadow-[inset_3px_0_0_var(--primary)]'
+                    : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -143,14 +143,17 @@ export const Sidebar: React.FC = () => {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 lg:hidden z-40 hover:bg-secondary rounded-lg"
+        className="fixed left-4 top-4 z-[55] rounded-lg border border-border/70 bg-background/85 shadow-lg backdrop-blur-xl hover:bg-secondary lg:hidden"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </Button>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-card dark:bg-card/50 border-r border-border/50 h-[calc(100vh-64px)] sticky top-16 shadow-sm">
+      <aside
+        data-app-sidebar
+        className="sticky top-16 hidden h-[calc(100dvh-64px)] w-64 flex-col border-r border-border/70 bg-sidebar/70 shadow-[20px_0_60px_rgba(0,0,0,0.18)] backdrop-blur-xl lg:flex"
+      >
         <NavContent />
       </aside>
 
@@ -158,10 +161,13 @@ export const Sidebar: React.FC = () => {
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+            className="fixed inset-0 z-40 bg-background/75 backdrop-blur-sm lg:hidden"
             onClick={() => setIsOpen(false)}
           />
-          <aside className="fixed top-16 left-0 w-64 bg-card dark:bg-card/50 border-r border-border/50 h-[calc(100vh-64px)] z-40 lg:hidden overflow-y-auto shadow-lg">
+          <aside
+            data-app-sidebar
+            className="fixed left-0 top-16 z-50 h-[calc(100dvh-64px)] w-72 overflow-y-auto border-r border-border/70 bg-sidebar/95 shadow-2xl backdrop-blur-xl lg:hidden"
+          >
             <NavContent />
           </aside>
         </>

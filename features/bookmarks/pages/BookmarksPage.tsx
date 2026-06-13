@@ -16,8 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Trash2, Play, Loader2 } from 'lucide-react';
+import { Trash2, Play } from 'lucide-react';
 import { Bookmark } from '@/features/bookmarks/types';
+import { AppEmptyState, ErrorPanel, LoadingPanel, PageHeader } from '@/shared/components/AppChrome';
 
 const formatTime = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -91,10 +92,10 @@ export default function BookmarksPage() {
   return (
     <DashboardLayout title="My Bookmarks">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">My Bookmarks</h1>
-          <p className="text-muted-foreground">Saved timestamps from videos you're watching ({bookmarks.length})</p>
-        </div>
+        <PageHeader
+          title="My Bookmarks"
+          description={`Saved timestamps from videos you are watching (${bookmarks.length}).`}
+        />
 
         <Input
           placeholder="Search bookmarks by title or video..."
@@ -103,19 +104,10 @@ export default function BookmarksPage() {
           className="max-w-md"
         />
 
-        {error && (
-          <Card className="border-destructive/30 bg-destructive/5">
-            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
-          </Card>
-        )}
+        {error && <ErrorPanel message={error} />}
 
         {isLoading ? (
-          <Card className="py-12 text-center">
-            <CardContent className="flex items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading bookmarks...
-            </CardContent>
-          </Card>
+          <LoadingPanel label="Loading bookmarks" />
         ) : filteredBookmarks.length > 0 ? (
           <Card>
             <CardContent className="p-0">
@@ -169,14 +161,10 @@ export default function BookmarksPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="py-12 text-center">
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">No bookmarks yet</p>
-              <p className="text-sm text-muted-foreground">
-                Click the bookmark icon while watching videos to save timestamps.
-              </p>
-            </CardContent>
-          </Card>
+          <AppEmptyState
+            title="No bookmarks yet"
+            description="Click the bookmark icon while watching videos to save timestamps."
+          />
         )}
 
         <Card className="border-primary/20 bg-primary/5">

@@ -34,6 +34,7 @@ import {
   Trash2,
   Plus,
 } from 'lucide-react';
+import { PageHeader } from '@/shared/components/AppChrome';
 
 interface AIModel {
   id: string;
@@ -213,17 +214,11 @@ export default function AdminSettingsPage() {
   return (
     <DashboardLayout title="Admin Settings" requiredRoles={['admin']}>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <Settings className="w-8 h-8" />
-              System Settings
-            </h1>
-            <p className="text-muted-foreground">
-              Configure AI models, API keys, and system preferences
-            </p>
-          </div>
+        <PageHeader
+          title="System Settings"
+          description="Configure AI models, API keys, video processing, storage, and security preferences."
+          icon={Settings}
+          action={
           <Button
             onClick={handleSaveSettings}
             disabled={saveStatus === 'saving'}
@@ -242,11 +237,12 @@ export default function AdminSettingsPage() {
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                Save Changes
-              </>
-            )}
+              Save Changes
+            </>
+          )}
           </Button>
-        </div>
+          }
+        />
 
         {/* Tabs */}
         <Tabs defaultValue="ai-models" className="space-y-6">

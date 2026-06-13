@@ -11,6 +11,7 @@ import { Play, Eye, Filter, Grid, List, Plus } from 'lucide-react';
 import { apiClient } from '@/shared/lib/api';
 import { Category, TagSummary, Video } from '@/features/videos/types';
 import { formatDuration } from '@/features/videos/utils';
+import { AppEmptyState, ErrorPanel, LoadingPanel, PageHeader, VideoTile } from '@/shared/components/AppChrome';
 
 export default function VideoLibrary() {
   const router = useRouter();
@@ -132,48 +133,27 @@ export default function VideoLibrary() {
   };
 
   const VideoCardGrid = ({ video }: { video: Video }) => (
-    <Card
-      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full flex flex-col"
+    <VideoTile
+      title={video.title}
+      description={video.description}
+      thumbnail={video.thumbnail}
       onClick={() => goToVideo(video.id)}
-    >
-      <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
-        <img 
-          src={video.thumbnail} 
-          alt={video.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-          <Play className="w-12 h-12 text-white opacity-0 group-hover:opacity-90 group-hover:scale-110 transition-all drop-shadow-lg" />
-        </div>
-        <Badge className="absolute top-2 right-2 bg-black/80 text-white hidden">
-          {formatDuration(video.duration)}
-        </Badge>
-      </div>
-      <CardContent className="p-4 flex-1 flex flex-col">
-        <h3 className="font-semibold line-clamp-2 mb-2">{video.title}</h3>
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">
-          {video.description}
-        </p>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+      meta={
+        <div className="flex items-center justify-between">
           <span className="flex items-center gap-1">
-            <Eye className="w-3 h-3" />
+            <Eye className="h-3 w-3" />
             {video.views}
           </span>
           <span>{video.uploadedAt.toLocaleDateString()}</span>
         </div>
-        <Button
-          className="w-full mt-4 gap-2"
-          variant="outline"
-          onClick={(event) => {
-            event.stopPropagation();
-            goToVideo(video.id);
-          }}
-        >
-          <Play className="w-4 h-4" />
+      }
+      action={
+        <Button className="w-full gap-2" variant="outline" onClick={() => goToVideo(video.id)}>
+          <Play className="h-4 w-4" />
           Watch
         </Button>
-      </CardContent>
-    </Card>
+      }
+    />
   );
 
   const VideoCardList = ({ video }: { video: Video }) => (
@@ -230,20 +210,16 @@ export default function VideoLibrary() {
   return (
     <DashboardLayout title="Video Library">
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Video Library</h1>
-            <p className="text-muted-foreground">Browse and watch videos</p>
-          </div>
-          <Button 
-            className="gap-2 gradient-primary text-white font-medium"
-            onClick={() => window.location.href = '/videos/upload'}
-          >
-            <Plus className="w-4 h-4" />
-            New Video
-          </Button>
-        </div>
+        <PageHeader
+          title="Video Library"
+          description="Browse, filter, and watch published videos across your organization."
+          action={
+            <Button className="gap-2" onClick={() => window.location.href = '/videos/upload'}>
+              <Plus className="h-4 w-4" />
+              New Video
+            </Button>
+          }
+        />
 
         {/* Search and Filters */}
         <Card>
@@ -355,18 +331,10 @@ export default function VideoLibrary() {
         </div>
 
         {/* Videos */}
-        {error && (
-          <Card className="border-destructive/40 bg-destructive/5">
-            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
-          </Card>
-        )}
+        {error && <ErrorPanel message={error} />}
 
         {isLoading ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <p className="text-muted-foreground">Loading videos...</p>
-            </CardContent>
-          </Card>
+          <LoadingPanel label="Loading videos" />
         ) : videos.length > 0 ? (
           <>
             <div
@@ -418,12 +386,11 @@ export default function VideoLibrary() {
             )}
           </>
         ) : (
-          <Card className="text-center py-12">
-            <CardContent>
-              <p className="text-muted-foreground mb-4">No videos found matching your criteria</p>
-              <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
-            </CardContent>
-          </Card>
+          <AppEmptyState
+            title="No videos match these filters"
+            description="Clear filters or adjust your search to find more videos."
+            action={<Button variant="outline" onClick={clearFilters}>Clear filters</Button>}
+          />
         )}
       </div>
     </DashboardLayout>

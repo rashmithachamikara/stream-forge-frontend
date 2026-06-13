@@ -3,9 +3,10 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Video, Eye, TrendingUp, ArrowRight } from 'lucide-react';
+import { PageHeader, StatTile } from '@/shared/components/AppChrome';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -20,27 +21,26 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout title="Admin Dashboard" requiredRoles={['admin']}>
       <div className="space-y-8">
+        <PageHeader
+          title="Admin Dashboard"
+          description="Monitor users, video volume, and viewing activity from the operator console."
+        />
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <Card key={index}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-semibold text-green-600">{stat.change}</span> from last month
-                  </p>
-                </CardContent>
-              </Card>
+              <StatTile
+                key={index}
+                label={stat.label}
+                value={stat.value}
+                icon={Icon}
+                helper={<><span className="font-semibold text-primary">{stat.change}</span> from last month</>}
+              />
             );
           })}
         </div>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div className="space-y-1">
               <CardTitle>Users</CardTitle>

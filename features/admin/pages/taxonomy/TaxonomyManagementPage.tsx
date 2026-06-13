@@ -66,6 +66,7 @@ import {
   CornerDownRight,
   ArrowUpDown,
 } from 'lucide-react';
+import { PageHeader } from '@/shared/components/AppChrome';
 
 const TAG_PAGE_SIZE = 12;
 const NO_PARENT_VALUE = '__none__';
@@ -526,12 +527,10 @@ export default function TaxonomyManagementPage() {
   return (
     <DashboardLayout title="Taxonomy" requiredRoles={['admin']}>
       <div className="space-y-6">
-        <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle>Taxonomy</CardTitle>
-            <CardDescription>Manage shared categories and tags used across the video library.</CardDescription>
-          </CardHeader>
-        </Card>
+        <PageHeader
+          title="Taxonomy"
+          description="Manage shared categories and tags used across the video library."
+        />
 
         <Tabs defaultValue="categories" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:w-auto">

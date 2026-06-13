@@ -35,6 +35,7 @@ import {
   Globe,
   AlertCircle,
 } from 'lucide-react';
+import { PageHeader } from '@/shared/components/AppChrome';
 
 interface QualityOption {
   id: string;
@@ -242,13 +243,10 @@ export default function UploadVideoPage() {
   return (
     <DashboardLayout title="Upload Video">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Upload New Video</h1>
-          <p className="text-muted-foreground">
-            Upload your video and configure transcoding options
-          </p>
-        </div>
+        <PageHeader
+          title="Upload New Video"
+          description="Upload a video file, assign metadata, and configure playback outputs."
+        />
 
         {uploadComplete ? (
           /* Success State */
@@ -257,7 +255,7 @@ export default function UploadVideoPage() {
               <div className="text-center space-y-4">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
                 <div>
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Upload Complete!</h3>
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Upload complete</h3>
                   <p className="text-muted-foreground">
                     Your video has been uploaded successfully and is being processed.
                   </p>
