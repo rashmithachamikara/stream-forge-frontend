@@ -51,7 +51,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Pencil, Plus, Search, Tags, Trash2, FolderTree, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Loader2,
+  Pencil,
+  Plus,
+  Search,
+  Tags,
+  Trash2,
+  FolderTree,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  CornerDownRight,
+  ArrowUpDown,
+} from 'lucide-react';
 
 const TAG_PAGE_SIZE = 12;
 const NO_PARENT_VALUE = '__none__';
@@ -65,25 +79,29 @@ type CategoryFormState = {
   name: string;
   description: string;
   parentCategoryId: string;
-  displayOrder: string;
 };
 
 type TagFormState = {
   name: string;
 };
 
+type CategoryTreeRow = {
+  category: Category;
+  depth: number;
+  siblingIndex: number;
+  siblingCount: number;
+};
+
 const createEmptyCategoryForm = (): CategoryFormState => ({
   name: '',
   description: '',
   parentCategoryId: NO_PARENT_VALUE,
-  displayOrder: '0',
 });
 
 const createCategoryFormFromItem = (category: Category): CategoryFormState => ({
   name: category.name,
   description: category.description,
   parentCategoryId: category.parentCategoryId ?? NO_PARENT_VALUE,
-  displayOrder: String(category.displayOrder),
 });
 
 const createEmptyTagForm = (): TagFormState => ({
@@ -121,6 +139,9 @@ export default function TaxonomyManagementPage() {
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
+  const [orderDraftCategories, setOrderDraftCategories] = useState<Category[]>([]);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   const [tags, setTags] = useState<TagSummary[]>([]);
   const [tagSearch, setTagSearch] = useState('');
@@ -154,6 +175,44 @@ export default function TaxonomyManagementPage() {
     () => sortedCategories.filter((category) => category.id !== editingCategory?.id),
     [editingCategory?.id, sortedCategories]
   );
+
+  const buildCategoryTreeRows = (inputCategories: Category[]) => {
+    const normalizedCategories = [...inputCategories].sort(
+      (left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name)
+    );
+    const childrenByParent = new Map<string | null, Category[]>();
+
+    normalizedCategories.forEach((category) => {
+      const key = category.parentCategoryId ?? null;
+      const siblings = childrenByParent.get(key) ?? [];
+      siblings.push(category);
+      childrenByParent.set(key, siblings);
+    });
+
+    const rows: CategoryTreeRow[] = [];
+
+    const visit = (parentCategoryId: string | null, depth: number) => {
+      const siblings = childrenByParent.get(parentCategoryId) ?? [];
+
+      siblings.forEach((category, siblingIndex) => {
+        rows.push({
+          category,
+          depth,
+          siblingIndex,
+          siblingCount: siblings.length,
+        });
+
+        visit(category.id, depth + 1);
+      });
+    };
+
+    visit(null, 0);
+
+    return rows;
+  };
+
+  const categoryTreeRows = useMemo(() => buildCategoryTreeRows(sortedCategories), [sortedCategories]);
+  const orderDraftRows = useMemo(() => buildCategoryTreeRows(orderDraftCategories), [orderDraftCategories]);
 
   useEffect(() => {
     void loadCategories();
@@ -228,15 +287,9 @@ export default function TaxonomyManagementPage() {
   const submitCategory = async () => {
     const trimmedName = categoryForm.name.trim();
     const trimmedDescription = categoryForm.description.trim();
-    const displayOrder = Number(categoryForm.displayOrder);
 
     if (!trimmedName) {
       setCategoryNotice({ type: 'error', message: 'Category name is required.' });
-      return;
-    }
-
-    if (Number.isNaN(displayOrder)) {
-      setCategoryNotice({ type: 'error', message: 'Display order must be a number.' });
       return;
     }
 
@@ -251,7 +304,6 @@ export default function TaxonomyManagementPage() {
     if (editingCategory) {
       const payload: UpdateCategoryRequest = {
         name: trimmedName,
-        displayOrder,
       };
 
       if (trimmedDescription) {
@@ -268,11 +320,19 @@ export default function TaxonomyManagementPage() {
 
       response = await apiClient.updateCategory(editingCategory.id, payload);
     } else {
+      const siblingCategories = categories.filter(
+        (category) => (category.parentCategoryId ?? null) === parentCategoryId
+      );
+      const nextDisplayOrder =
+        siblingCategories.length > 0
+          ? Math.max(...siblingCategories.map((category) => category.displayOrder)) + 1
+          : 0;
+
       const payload: CreateCategoryRequest = {
         name: trimmedName,
         description: trimmedDescription || undefined,
         parentCategoryId: parentCategoryId ?? undefined,
-        displayOrder,
+        displayOrder: nextDisplayOrder,
       };
 
       response = await apiClient.createCategory(payload);
@@ -383,6 +443,86 @@ export default function TaxonomyManagementPage() {
     setTagPage(1);
   };
 
+  const openDisplayOrderDialog = () => {
+    setOrderDraftCategories(sortedCategories.map((category) => ({ ...category })));
+    setCategoryNotice(null);
+    setIsOrderDialogOpen(true);
+  };
+
+  const moveDraftCategory = (row: CategoryTreeRow, direction: 'up' | 'down') => {
+    const siblingCategories = [...orderDraftCategories]
+      .filter(
+        (category) => (category.parentCategoryId ?? null) === (row.category.parentCategoryId ?? null)
+      )
+      .sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name));
+    const currentIndex = row.siblingIndex;
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (targetIndex < 0 || targetIndex >= siblingCategories.length) {
+      return;
+    }
+
+    const currentCategory = siblingCategories[currentIndex];
+    const targetCategory = siblingCategories[targetIndex];
+
+    setOrderDraftCategories((currentCategories) =>
+      currentCategories.map((category) => {
+        if (category.id === currentCategory.id) {
+          return { ...category, displayOrder: targetCategory.displayOrder };
+        }
+
+        if (category.id === targetCategory.id) {
+          return { ...category, displayOrder: currentCategory.displayOrder };
+        }
+
+        return category;
+      })
+    );
+  };
+
+  const saveDisplayOrder = async () => {
+    const changedCategories = orderDraftCategories.filter((draftCategory) => {
+      const existingCategory = categories.find((category) => category.id === draftCategory.id);
+      return existingCategory && existingCategory.displayOrder !== draftCategory.displayOrder;
+    });
+
+    if (changedCategories.length === 0) {
+      setIsOrderDialogOpen(false);
+      return;
+    }
+
+    setIsSavingOrder(true);
+    setCategoryNotice(null);
+
+    const responses = await Promise.all(
+      changedCategories.map((category) =>
+        apiClient.updateCategory(category.id, { displayOrder: category.displayOrder })
+      )
+    );
+
+    const failedResponse = responses.find((response) => !response.success);
+
+    if (failedResponse) {
+      setCategoryNotice({
+        type: 'error',
+        message: failedResponse.error ?? 'Failed to update category order.',
+      });
+      setIsSavingOrder(false);
+      return;
+    }
+
+    await loadCategories();
+    setIsOrderDialogOpen(false);
+    setCategoryNotice({ type: 'success', message: 'Category order updated.' });
+    setIsSavingOrder(false);
+  };
+
+  const getSiblingCategories = (row: CategoryTreeRow, sourceCategories: Category[]) => {
+    return [...sourceCategories].filter(
+      (category) => (category.parentCategoryId ?? null) === (row.category.parentCategoryId ?? null)
+    ).sort((left, right) => left.displayOrder - right.displayOrder || left.name.localeCompare(right.name));
+  };
+
   return (
     <DashboardLayout title="Taxonomy" requiredRoles={['admin']}>
       <div className="space-y-6">
@@ -412,10 +552,16 @@ export default function TaxonomyManagementPage() {
                   <CardTitle>Categories</CardTitle>
                   <CardDescription>Organize videos with reusable parent-child categories.</CardDescription>
                 </div>
-                <Button className="gap-2" onClick={openCreateCategoryDialog}>
-                  <Plus className="h-4 w-4" />
-                  New category
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="gap-2" onClick={openDisplayOrderDialog}>
+                    <ArrowUpDown className="h-4 w-4" />
+                    Display order
+                  </Button>
+                  <Button className="gap-2" onClick={openCreateCategoryDialog}>
+                    <Plus className="h-4 w-4" />
+                    New category
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {renderNotice(categoryNotice)}
@@ -424,34 +570,54 @@ export default function TaxonomyManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Parent</TableHead>
-                        <TableHead>Display Order</TableHead>
                         <TableHead className="w-[140px] text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isCategoriesLoading ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                          <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
                             <div className="inline-flex items-center gap-2">
                               <Loader2 className="h-4 w-4 animate-spin" />
                               Loading categories...
                             </div>
                           </TableCell>
                         </TableRow>
-                      ) : sortedCategories.length > 0 ? (
-                        sortedCategories.map((category) => (
+                      ) : categoryTreeRows.length > 0 ? (
+                        categoryTreeRows.map((row) => {
+                          const { category, depth, siblingIndex, siblingCount } = row;
+
+                          return (
                           <TableRow key={category.id}>
-                            <TableCell className="font-medium">{category.name}</TableCell>
+                            <TableCell>
+                              <div
+                                className="flex items-start gap-2"
+                                style={{ paddingLeft: `${depth * 20}px` }}
+                              >
+                                {depth > 0 ? (
+                                  <CornerDownRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <FolderTree className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                                )}
+                                <div className="space-y-1">
+                                  <div className="font-medium text-foreground">{category.name}</div>
+                                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                    {category.parentCategoryId ? (
+                                      <span>Child of {categoryNameMap[category.parentCategoryId] ?? 'Unknown category'}</span>
+                                    ) : (
+                                      <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+                                        Root
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
                             <TableCell className="max-w-sm text-muted-foreground">
                               {category.description || 'No description'}
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {category.parentCategoryId ? categoryNameMap[category.parentCategoryId] ?? 'Unknown category' : 'None'}
-                            </TableCell>
-                            <TableCell>{category.displayOrder}</TableCell>
                             <TableCell>
                               <div className="flex justify-end gap-2">
                                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openEditCategoryDialog(category)}>
@@ -470,10 +636,10 @@ export default function TaxonomyManagementPage() {
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))
+                        )})
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="py-10 text-center text-muted-foreground">
+                          <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
                             No categories found
                           </TableCell>
                         </TableRow>
@@ -665,15 +831,6 @@ export default function TaxonomyManagementPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="category-display-order">Display order</Label>
-                <Input
-                  id="category-display-order"
-                  type="number"
-                  value={categoryForm.displayOrder}
-                  onChange={(event) => setCategoryForm((current) => ({ ...current, displayOrder: event.target.value }))}
-                />
-              </div>
             </div>
             {renderNotice(categoryNotice)}
           </div>
@@ -689,6 +846,109 @@ export default function TaxonomyManagementPage() {
             <Button type="button" onClick={() => void submitCategory()} disabled={isSavingCategory} className="gap-2">
               {isSavingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {editingCategory ? 'Save category' : 'Create category'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isOrderDialogOpen}
+        onOpenChange={(open) => {
+          setIsOrderDialogOpen(open);
+          if (!open) {
+            setOrderDraftCategories([]);
+          }
+        }}
+      >
+        <DialogContent className="border border-border bg-background sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Display order</DialogTitle>
+            <DialogDescription>Reorder sibling categories, then save the whole batch once.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Display Order</TableHead>
+                    <TableHead className="w-[140px] text-right">Move</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orderDraftRows.map((row) => {
+                    const siblingCategories = getSiblingCategories(row, orderDraftCategories);
+                    return (
+                      <TableRow key={row.category.id}>
+                        <TableCell>
+                          <div
+                            className="flex items-start gap-2"
+                            style={{ paddingLeft: `${row.depth * 20}px` }}
+                          >
+                            {row.depth > 0 ? (
+                              <CornerDownRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <FolderTree className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                            )}
+                            <div className="space-y-1">
+                              <div className="font-medium text-foreground">{row.category.name}</div>
+                              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                {row.category.parentCategoryId ? (
+                                  <span>Child of {categoryNameMap[row.category.parentCategoryId] ?? 'Unknown category'}</span>
+                                ) : (
+                                  <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+                                    Root
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{row.category.displayOrder}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => moveDraftCategory(row, 'up')}
+                              disabled={row.siblingIndex === 0 || isSavingOrder || siblingCategories.length <= 1}
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => moveDraftCategory(row, 'down')}
+                              disabled={row.siblingIndex === row.siblingCount - 1 || isSavingOrder || siblingCategories.length <= 1}
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            {renderNotice(categoryNotice)}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsOrderDialogOpen(false)}
+              disabled={isSavingOrder}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void saveDisplayOrder()} disabled={isSavingOrder} className="gap-2">
+              {isSavingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Save order
             </Button>
           </DialogFooter>
         </DialogContent>
