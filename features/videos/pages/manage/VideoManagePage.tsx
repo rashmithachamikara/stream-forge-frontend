@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import { capitalize } from '@/shared/lib/utils';
-import { Video, VideoProcessingStatus } from '@/features/videos/types';
+import { Category, TagSummary, Video, VideoProcessingStatus } from '@/features/videos/types';
 import { VideoAccessGrantsCard } from '@/features/videos/components/VideoAccessGrantsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +55,8 @@ type ManageFormState = {
   title: string;
   description: string;
   visibility: Video['visibility'];
+  categoryId: string | null;
+  tagIds: string[];
   allowComments: boolean;
   allowLikes: boolean;
   allowBookmarks: boolean;
@@ -64,6 +66,8 @@ const getManageFormState = (video: Video): ManageFormState => ({
   title: video.title,
   description: video.description,
   visibility: video.visibility,
+  categoryId: video.categoryId ?? null,
+  tagIds: video.tagDetails?.map((tag) => tag.id) ?? [],
   allowComments: video.allowComments ?? true,
   allowLikes: video.allowLikes ?? true,
   allowBookmarks: video.allowBookmarks ?? true,
@@ -73,6 +77,8 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
   const router = useRouter();
   const [video, setVideo] = useState<Video | null>(null);
   const [processingStatus, setProcessingStatus] = useState<VideoProcessingStatus | null>(null);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+  const [availableTags, setAvailableTags] = useState<TagSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -84,6 +90,8 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     title: '',
     description: '',
     visibility: 'public',
+    categoryId: null,
+    tagIds: [],
     allowComments: true,
     allowLikes: true,
     allowBookmarks: true,
@@ -128,6 +136,35 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     };
   }, [videoId]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadMetadata = async () => {
+      const [categoryResponse, tagResponse] = await Promise.all([
+        apiClient.getCategories(),
+        apiClient.getTags(undefined, 1, 100),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (categoryResponse.success && categoryResponse.data) {
+        setAvailableCategories(categoryResponse.data);
+      }
+
+      if (tagResponse.success && tagResponse.data) {
+        setAvailableTags(tagResponse.data.items);
+      }
+    };
+
+    void loadMetadata();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const visibilityLabel = useMemo(() => capitalize(form.visibility), [form.visibility]);
   const savedForm = useMemo(() => (video ? getManageFormState(video) : null), [video]);
   const hasChanges = Boolean(
@@ -135,6 +172,9 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
       (form.title !== savedForm.title ||
         form.description !== savedForm.description ||
         form.visibility !== savedForm.visibility ||
+        form.categoryId !== savedForm.categoryId ||
+        form.tagIds.length !== savedForm.tagIds.length ||
+        form.tagIds.some((tagId, index) => tagId !== savedForm.tagIds[index]) ||
         form.allowComments !== savedForm.allowComments ||
         form.allowLikes !== savedForm.allowLikes ||
         form.allowBookmarks !== savedForm.allowBookmarks)
@@ -144,6 +184,15 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     if (value === 'public') return <Globe className="h-4 w-4" />;
     if (value === 'private') return <Lock className="h-4 w-4" />;
     return <Users className="h-4 w-4" />;
+  };
+
+  const toggleTag = (tagId: string) => {
+    setForm((current) => ({
+      ...current,
+      tagIds: current.tagIds.includes(tagId)
+        ? current.tagIds.filter((currentTagId) => currentTagId !== tagId)
+        : [...current.tagIds, tagId],
+    }));
   };
 
   const saveChanges = async () => {
@@ -156,6 +205,8 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
       title: form.title,
       description: form.description,
       visibility: form.visibility,
+      categoryId: form.categoryId,
+      tagIds: form.tagIds,
       allowComments: form.allowComments,
       allowLikes: form.allowLikes,
       allowBookmarks: form.allowBookmarks,
@@ -322,8 +373,43 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Video ID</Label>
-                  <Input value={video.id} readOnly />
+                  <Label htmlFor="category">Category</Label>
+                  <Select
+                    value={form.categoryId ?? 'none'}
+                    onValueChange={(value) => setForm((current) => ({ ...current, categoryId: value === 'none' ? null : value }))}
+                  >
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No category</SelectItem>
+                      {availableCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Tags</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags.length > 0 ? (
+                      availableTags.map((tag) => (
+                        <Button
+                          key={tag.id}
+                          type="button"
+                          size="sm"
+                          variant={form.tagIds.includes(tag.id) ? 'default' : 'outline'}
+                          onClick={() => toggleTag(tag.id)}
+                        >
+                          {tag.name}
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No tags available</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -394,6 +480,10 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                   </Badge>
                 </div>
                 <div className="grid gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    <span>Video ID {video.id}</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <Eye className="h-4 w-4" />
                     <span>{video.views} views</span>

@@ -453,7 +453,14 @@ export default function UploadVideoPage() {
                             return (
                               <Badge key={tagId} variant="outline" className="gap-1">
                                 {tag?.name ?? tagId}
-                                <X className="w-3 h-3 cursor-pointer" onClick={() => toggleTag(tagId)} />
+                                <button
+                                  type="button"
+                                  aria-label={`Remove ${tag?.name ?? 'tag'}`}
+                                  className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                                  onClick={() => toggleTag(tagId)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
                               </Badge>
                             );
                           })}

@@ -222,6 +222,7 @@ const mapVideoSummary = (video: VideoSummaryDto): Video => {
     views: video.viewCount ?? 0,
     categories: categoryNames,
     tags: tags.map((tag) => tag.name),
+    tagDetails: tags,
     visibility: normalizeVideoVisibility(video.visibility),
     hlsUrl: resolveApiUrl(video.playbackManifestUrl) || getVideoManifestUrl(videoId),
     transcodedVersions: [],
@@ -1902,8 +1903,8 @@ class ApiClient {
       title: string;
       description: string;
       visibility: string;
-      categories: string[];
-      tags: string[];
+      categoryId: string | null;
+      tagIds: string[];
       allowComments: boolean;
       allowLikes: boolean;
       allowBookmarks: boolean;

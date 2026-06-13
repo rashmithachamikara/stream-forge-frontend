@@ -9,6 +9,7 @@ export interface Video {
   views: number;
   categories: string[];
   tags: string[];
+  tagDetails?: TagSummary[];
   visibility: VideoVisibility;
   hlsUrl: string;
   transcriptUrl?: string;
