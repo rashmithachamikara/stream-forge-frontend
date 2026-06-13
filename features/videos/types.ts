@@ -66,10 +66,34 @@ export interface Category {
   createdAt: Date;
 }
 
+export interface CreateCategoryRequest {
+  name: string;
+  description?: string | null;
+  parentCategoryId?: string | null;
+  displayOrder: number;
+}
+
+export interface UpdateCategoryRequest {
+  name?: string;
+  description?: string | null;
+  parentCategoryId?: string | null;
+  clearParentCategory?: boolean;
+  displayOrder?: number | null;
+  clearDescription?: boolean;
+}
+
 export interface TagSummary {
   id: string;
   name: string;
   usageCount: number;
+}
+
+export interface CreateTagRequest {
+  name: string;
+}
+
+export interface UpdateTagRequest {
+  name?: string;
 }
 
 export interface TagSummaryDto {

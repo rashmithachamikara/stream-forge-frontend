@@ -12,6 +12,7 @@ import {
   BarChart3,
   Bookmark,
   List,
+  Tags,
   Menu,
   X,
 } from 'lucide-react';
@@ -66,6 +67,12 @@ const navItems: NavItem[] = [
     label: 'Analytics',
     href: '/admin/analytics',
     icon: BarChart3,
+    roles: ['admin'],
+  },
+  {
+    label: 'Taxonomy',
+    href: '/admin/taxonomy',
+    icon: Tags,
     roles: ['admin'],
   },
 ];

@@ -11,16 +11,20 @@ import {
   Comment,
   CommentDto,
   CommentListFilters,
+  CreateCategoryRequest,
   CreateBookmarkRequest,
   CreateCommentRequest,
+  CreateTagRequest,
   ReactionSummary,
   ReactionSummaryDto,
   ReactionType,
   SetReactionRequest,
   TagSummaryDto,
   TagSummary,
+  UpdateCategoryRequest,
   UpdateBookmarkRequest,
   UpdateCommentRequest,
+  UpdateTagRequest,
   Video,
   VideoDetailDto,
   VideoBookmark,
@@ -728,6 +732,62 @@ class ApiClient {
     }
   }
 
+  async createCategory(data: CreateCategoryRequest): Promise<ApiResponse<Category>> {
+    try {
+      const response = await this.requestRaw<CategoryDto>(`${API_V1_PREFIX}/categories`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapCategory(response),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create category',
+      };
+    }
+  }
+
+  async updateCategory(categoryId: string, data: UpdateCategoryRequest): Promise<ApiResponse<Category>> {
+    try {
+      const response = await this.requestRaw<CategoryDto>(`${API_V1_PREFIX}/categories/${categoryId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapCategory(response),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update category',
+      };
+    }
+  }
+
+  async deleteCategory(categoryId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/categories/${categoryId}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete category',
+      };
+    }
+  }
+
   async getTags(search?: string, page = 1, pageSize = 24): Promise<ApiResponse<PaginatedResponse<TagSummary>>> {
     try {
       const params = new URLSearchParams();
@@ -747,6 +807,62 @@ class ApiClient {
       return {
         success: false,
         error: 'Failed to fetch tags',
+      };
+    }
+  }
+
+  async createTag(data: CreateTagRequest): Promise<ApiResponse<TagSummary>> {
+    try {
+      const response = await this.requestRaw<TagSummaryDto>(`${API_V1_PREFIX}/tags`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapTagSummary(response),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create tag',
+      };
+    }
+  }
+
+  async updateTag(tagId: string, data: UpdateTagRequest): Promise<ApiResponse<TagSummary>> {
+    try {
+      const response = await this.requestRaw<TagSummaryDto>(`${API_V1_PREFIX}/tags/${tagId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+
+      return {
+        success: true,
+        data: mapTagSummary(response),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update tag',
+      };
+    }
+  }
+
+  async deleteTag(tagId: string): Promise<ApiResponse<void>> {
+    try {
+      await this.requestRaw<void>(`${API_V1_PREFIX}/tags/${tagId}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete tag',
       };
     }
   }
