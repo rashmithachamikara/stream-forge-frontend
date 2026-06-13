@@ -1069,6 +1069,62 @@
                     },
                 },
             },
+          "post":
+            {
+              "tags": ["Categories"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateCategoryRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateCategoryRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateCategoryRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                        },
+                    },
+                },
+            },
         },
       "/api/v1/categories/{categoryId}":
         {
@@ -1109,6 +1165,85 @@
                         },
                     },
                 },
+            },
+          "patch":
+            {
+              "tags": ["Categories"],
+              "parameters":
+                [
+                  {
+                    "name": "categoryId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateCategoryRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateCategoryRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateCategoryRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                { "$ref": "#/components/schemas/CategoryDto" },
+                            },
+                        },
+                    },
+                },
+            },
+          "delete":
+            {
+              "tags": ["Categories"],
+              "parameters":
+                [
+                  {
+                    "name": "categoryId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
             },
         },
       "/api/v1/categories/{categoryId}/videos":
@@ -2773,6 +2908,68 @@
                     },
                 },
             },
+          "post":
+            {
+              "tags": ["Tags"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateTagRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateTagRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/CreateTagRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         },
       "/api/v1/tags/{tagId}":
         {
@@ -2819,6 +3016,91 @@
                         },
                     },
                 },
+            },
+          "patch":
+            {
+              "tags": ["Tags"],
+              "parameters":
+                [
+                  {
+                    "name": "tagId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateTagRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateTagRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateTagRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TagSummaryDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "delete":
+            {
+              "tags": ["Tags"],
+              "parameters":
+                [
+                  {
+                    "name": "tagId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
             },
         },
       "/api/v1/tags/{tagId}/videos":
@@ -5077,6 +5359,19 @@
                 },
               "additionalProperties": false,
             },
+          "CreateCategoryRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "name": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "parentCategoryId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "displayOrder": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
           "CreateCommentRequestDto":
             {
               "type": "object",
@@ -5098,6 +5393,12 @@
                   "visibility":
                     { "$ref": "#/components/schemas/PlaylistVisibility" },
                 },
+              "additionalProperties": false,
+            },
+          "CreateTagRequestDto":
+            {
+              "type": "object",
+              "properties": { "name": { "type": "string", "nullable": true } },
               "additionalProperties": false,
             },
           "CreateUploadSessionRequestDto":
@@ -5448,6 +5749,22 @@
                 },
               "additionalProperties": false,
             },
+          "UpdateCategoryRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "name": { "type": "string", "nullable": true },
+                  "description": { "type": "string", "nullable": true },
+                  "parentCategoryId":
+                    { "type": "string", "format": "uuid", "nullable": true },
+                  "clearParentCategory": { "type": "boolean" },
+                  "displayOrder":
+                    { "type": "integer", "format": "int32", "nullable": true },
+                  "clearDescription": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "UpdateCommentRequestDto":
             {
               "type": "object",
@@ -5465,6 +5782,12 @@
                   "visibility":
                     { "$ref": "#/components/schemas/PlaylistVisibility" },
                 },
+              "additionalProperties": false,
+            },
+          "UpdateTagRequestDto":
+            {
+              "type": "object",
+              "properties": { "name": { "type": "string", "nullable": true } },
               "additionalProperties": false,
             },
           "UpdateVideoRequestDto":
