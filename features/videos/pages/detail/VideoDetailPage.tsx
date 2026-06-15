@@ -323,6 +323,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const isVideoReady = video.status === 'Ready' || !video.status;
   const isVideoFailed = video.status === 'Failed';
   const processingProgress = processingStatus?.progress ?? 0;
+  const isLiked = reactionSummary?.currentUserReaction === 'Like';
+  const isDisliked = reactionSummary?.currentUserReaction === 'Dislike';
 
   return (
     <DashboardLayout title="Watch Video">
@@ -398,8 +400,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 {video.allowLikes !== false && (
                   <>
                     <Button
-                      variant={reactionSummary?.currentUserReaction === 'Like' ? 'default' : 'outline'}
-                      className="gap-2"
+                      variant={isLiked ? 'default' : 'outline'}
+                      className={isLiked ? 'gap-2 bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary)/0.82)] hover:text-white active:bg-[hsl(var(--primary)/0.82)] active:text-white' : 'gap-2'}
                       onClick={() => void handleReaction('Like')}
                       disabled={isReactionSaving}
                     >
@@ -407,8 +409,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                       Like {reactionSummary ? `(${reactionSummary.likeCount})` : ''}
                     </Button>
                     <Button
-                      variant={reactionSummary?.currentUserReaction === 'Dislike' ? 'default' : 'outline'}
-                      className="gap-2"
+                      variant={isDisliked ? 'default' : 'outline'}
+                      className={isDisliked ? 'gap-2 bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary)/0.82)] hover:text-white active:bg-[hsl(var(--primary)/0.82)] active:text-white' : 'gap-2'}
                       onClick={() => void handleReaction('Dislike')}
                       disabled={isReactionSaving}
                     >

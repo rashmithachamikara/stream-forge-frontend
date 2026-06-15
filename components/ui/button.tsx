@@ -5,11 +5,11 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/shared/lib/utils'
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer active:translate-y-px",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive cursor-pointer",
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow-[0_12px_26px_hsl(var(--primary)/0.22)] hover:bg-primary/94 hover:shadow-[0_16px_32px_hsl(var(--primary)/0.24)]',
+        default: 'bg-primary text-primary-foreground shadow-[0_12px_26px_hsl(var(--primary)/0.22)] hover:bg-[hsl(var(--primary)/0.82)] hover:text-white hover:shadow-[0_20px_38px_hsl(var(--primary)/0.34)] active:bg-[hsl(var(--primary)/0.82)] active:text-white active:shadow-[0_8px_18px_hsl(var(--primary)/0.22)]',
         destructive:
           'bg-destructive text-white shadow-[0_12px_24px_hsl(0_84%_60%/0.22)] hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
         outline:
