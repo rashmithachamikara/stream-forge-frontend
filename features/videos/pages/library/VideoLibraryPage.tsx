@@ -7,8 +7,7 @@ import { PortalEmptyState, PortalPage } from '@/shared/components/portal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Play, Eye, Plus, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -17,8 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { apiClient } from '@/shared/lib/api';
+import { VideoPreviewCard } from '@/features/videos/components/VideoPreviewCard';
 import { Category, TagSummary, Video } from '@/features/videos/types';
-import { formatDuration } from '@/features/videos/utils';
 
 export default function VideoLibrary() {
   const router = useRouter();
@@ -138,43 +137,6 @@ export default function VideoLibrary() {
     setCurrentPage(1);
   };
 
-  const VideoCardGrid = ({ video }: { video: Video }) => (
-    <Card
-      className="h-full cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
-      onClick={() => goToVideo(video.id)}
-    >
-      <div className="group relative aspect-video overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5">
-        <img src={video.thumbnail} alt={video.title} className="h-full w-full object-cover" />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-          <Play className="h-12 w-12 text-white opacity-0 drop-shadow-lg transition-all group-hover:scale-110 group-hover:opacity-90" />
-        </div>
-        <Badge className="absolute right-3 top-3 bg-black/78 text-white">{formatDuration(video.duration)}</Badge>
-      </div>
-      <CardContent className="flex flex-1 flex-col p-4">
-        <h3 className="mb-2 line-clamp-2 font-semibold">{video.title}</h3>
-        <p className="mb-3 line-clamp-2 flex-1 text-xs text-muted-foreground">{video.description}</p>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {video.views}
-          </span>
-          <span>{video.uploadedAt.toLocaleDateString()}</span>
-        </div>
-        <Button
-          className="mt-4 w-full gap-2"
-          variant="outline"
-          onClick={(event) => {
-            event.stopPropagation();
-            goToVideo(video.id);
-          }}
-        >
-          <Play className="h-4 w-4" />
-          Watch
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <DashboardLayout title="Video Library">
       <PortalPage>
@@ -271,7 +233,9 @@ export default function VideoLibrary() {
         ) : videos.length > 0 ? (
           <>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {videos.map((video) => <VideoCardGrid key={video.id} video={video} />)}
+              {videos.map((video) => (
+                <VideoPreviewCard key={video.id} video={video} onOpen={goToVideo} compact showDescription={false} />
+              ))}
             </div>
 
             <div className="flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
