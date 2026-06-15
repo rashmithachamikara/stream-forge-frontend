@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { PortalEmptyState, PortalPage, PortalSectionHeader } from '@/shared/components/portal';
 import { apiClient } from '@/shared/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -192,14 +193,14 @@ export default function NotificationsPage() {
 
   return (
     <DashboardLayout title="Notifications">
-      <div className="space-y-6">
+      <PortalPage>
+        <PortalSectionHeader
+          kicker="Inbox"
+          title="Notifications"
+          description={`${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}.`}
+        />
+
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
-            <p className="text-muted-foreground">
-              {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-            </p>
-          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={readFilter} onValueChange={(value) => setReadFilter(value as ReadFilter)}>
               <SelectTrigger className="w-44">
@@ -314,12 +315,10 @@ export default function NotificationsPage() {
             ))}
           </div>
         ) : (
-          <Card className="py-12 text-center">
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">No notifications</p>
-              <p className="text-sm text-muted-foreground">You're all caught up.</p>
-            </CardContent>
-          </Card>
+          <PortalEmptyState
+            title="No notifications"
+            description="You are all caught up. New comments, reactions, uploads, and processing updates will appear here."
+          />
         )}
 
         <Card className="bg-muted/50">
@@ -353,7 +352,7 @@ export default function NotificationsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PortalPage>
     </DashboardLayout>
   );
 }

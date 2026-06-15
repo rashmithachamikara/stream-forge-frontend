@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { PortalHero, PortalPage, PortalSectionHeader } from '@/shared/components/portal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Play, Eye, Clock, Bookmark } from 'lucide-react';
+import { Play, Eye, Clock, Bookmark, Film } from 'lucide-react';
 import { mockVideos } from '@/features/videos/data/mockVideos';
 import { Video } from '@/features/videos/types';
 import { formatDuration } from '@/features/videos/utils';
@@ -78,53 +79,62 @@ export default function ViewerDashboard() {
 
   return (
     <DashboardLayout title="Watch Videos" requiredRoles={['admin', 'editor', 'viewer']}>
-      <div className="space-y-8">
-        {/* Welcome Card */}
-        <Card className="gradient-primary border-0 shadow-lg dark:shadow-2xl overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-black/5 to-transparent dark:from-black/20 dark:to-transparent" />
-          <CardHeader className="relative z-10">
-            <CardTitle className="text-white text-2xl">Welcome Back!</CardTitle>
-            <CardDescription className="text-white/80">Continue watching your favorite videos and explore new content</CardDescription>
-          </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="flex flex-wrap gap-2">
-              <Button className="gap-2 bg-white text-primary hover:bg-white/90 font-semibold" variant="default">
-                <Play className="w-4 h-4" />
-                Continue Watching
+      <PortalPage>
+        <PortalHero
+          kicker="Viewer Workspace"
+          title="Watch Videos"
+          actions={
+            <>
+              <Button className="gap-2" onClick={() => router.push('/videos')}>
+                <Play className="h-4 w-4" />
+                Open library
               </Button>
-              <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20">
-                Saved for Later
+              <Button variant="outline" className="bg-transparent" onClick={() => router.push('/bookmarks')}>
+                Review bookmarks
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </>
+          }
+          aside={
+            <>
+              <div className="rounded-[1.5rem] border border-border/80 bg-background/80 p-5">
+                <p className="portal-kicker">Continue watching</p>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Film className="h-5 w-5" />
+                  </div>
+                  <p className="font-semibold text-foreground">Recent videos</p>
+                </div>
+              </div>
+              <div className="rounded-[1.5rem] border border-border/80 bg-background/80 p-5">
+                <p className="portal-kicker">Featured</p>
+                <p className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-foreground">Highlighted videos</p>
+              </div>
+            </>
+          }
+        />
 
-        {/* Recently Added Section */}
-        <div>
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/30">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Recently Added</h2>
-              <p className="text-sm text-muted-foreground">Latest videos from your organization</p>
-            </div>
-            <Button variant="outline" className="border-border/50 hover:bg-secondary bg-transparent">View All</Button>
-          </div>
+        <section className="space-y-5">
+          <PortalSectionHeader
+            kicker="New Releases"
+            title="Recently added"
+            actionLabel="View library"
+            onAction={() => router.push('/videos')}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {recentVideos.slice(0, 4).map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Featured Section */}
-        <div>
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/30">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Featured Content</h2>
-              <p className="text-sm text-muted-foreground">Handpicked videos just for you</p>
-            </div>
-            <Button variant="outline" className="border-border/50 hover:bg-secondary bg-transparent">View All</Button>
-          </div>
+        <section className="space-y-5">
+          <PortalSectionHeader
+            kicker="Editorial Picks"
+            title="Featured content"
+            actionLabel="Browse all"
+            onAction={() => router.push('/videos')}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {recentVideos.slice(0, 2).map((video) => (
@@ -179,7 +189,7 @@ export default function ViewerDashboard() {
                       <Play className="w-4 h-4" />
                       Play Now
                     </Button>
-                    <Button variant="outline" size="icon" className="h-10 w-10 border-border/50 hover:bg-secondary bg-transparent">
+                    <Button variant="outline" size="icon" className="h-10 w-10 bg-transparent">
                       <Bookmark className="w-4 h-4" />
                     </Button>
                   </div>
@@ -187,8 +197,9 @@ export default function ViewerDashboard() {
               </Card>
             ))}
           </div>
-        </div>
-      </div>
+        </section>
+
+      </PortalPage>
     </DashboardLayout>
   );
 }

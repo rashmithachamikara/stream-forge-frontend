@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { PortalPage, PortalSectionHeader, PortalStatCard, PortalStatGrid } from '@/shared/components/portal';
 import { apiClient } from '@/shared/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -251,7 +252,13 @@ export default function AnalyticsDashboard() {
 
   return (
     <DashboardLayout title="Analytics Dashboard" requiredRoles={['admin']}>
-      <div className="space-y-8">
+      <PortalPage>
+        <PortalSectionHeader
+          kicker="Playback Intelligence"
+          title="Analytics"
+          description="Track view volume, engagement, viewer composition, and the content categories that are carrying adoption."
+        />
+
         <Card>
           <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
@@ -288,23 +295,15 @@ export default function AnalyticsDashboard() {
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <PortalStatGrid>
           {stats.map((stat) => {
             const Icon = stat.icon;
 
             return (
-              <Card key={stat.label}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{isLoading ? '-' : stat.value}</div>
-                </CardContent>
-              </Card>
+              <PortalStatCard key={stat.label} label={stat.label} value={isLoading ? '-' : stat.value} icon={Icon} />
             );
           })}
-        </div>
+        </PortalStatGrid>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
           <Card>
@@ -484,7 +483,7 @@ export default function AnalyticsDashboard() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </PortalPage>
     </DashboardLayout>
   );
 }

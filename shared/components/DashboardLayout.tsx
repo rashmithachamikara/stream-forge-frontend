@@ -19,12 +19,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   return (
     <ProtectedRoute requiredRoles={requiredRoles}>
-      <div className="flex h-screen flex-col bg-background">
+      <div className="portal-shell flex min-h-[100dvh] flex-col bg-transparent">
         <Header title={title} />
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1">
           <Sidebar />
-          <main className="flex-1 overflow-y-auto">
-            <div className="p-6 lg:p-8">{children}</div>
+          <main id="portal-main" className="min-w-0 flex-1">
+            <div className="px-4 pb-8 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-6">{children}</div>
           </main>
         </div>
       </div>

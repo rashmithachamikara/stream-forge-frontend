@@ -1,17 +1,24 @@
 import React from "react"
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { IBM_Plex_Mono, Manrope } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/features/auth/AuthContext'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: 'Stream Forge',
-  description: 'Self-hosted Video-on-Demand Streaming Platform',
-  generator: 'v0.app',
+  description: 'Enterprise video operations platform for secure streaming, publishing, and analytics.',
   icons: {
     icon: [
       {
@@ -38,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${manrope.variable} ${plexMono.variable} font-sans antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>

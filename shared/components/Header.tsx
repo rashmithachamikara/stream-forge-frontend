@@ -77,30 +77,31 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
   };
 
   return (
-    <header className="bg-card/95 dark:bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50 shadow-sm dark:shadow-md">
-      <div className="px-6 py-3 flex items-center justify-between h-16">
-        <div className="flex items-center gap-4">
-          <div className="w-9 h-9 gradient-primary rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-            <span className="text-white text-sm font-bold">SF</span>
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/88 backdrop-blur-xl">
+      <div className="mx-auto flex h-[76px] w-full max-w-[1480px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl gradient-primary shadow-[0_14px_30px_hsl(var(--primary)/0.22)]">
+            <span className="text-sm font-semibold tracking-[0.18em] text-white">SF</span>
           </div>
-          <div>
-            <h1 className="text-base font-semibold text-foreground">{title}</h1>
-            <p className="text-xs text-muted-foreground capitalize font-medium">
+          <div className="min-w-0">
+            <p className="portal-kicker">Stream Forge Portal</p>
+            <h1 className="truncate text-lg font-semibold tracking-[-0.03em] text-foreground">{title}</h1>
+            <p className="truncate text-xs text-muted-foreground capitalize">
               {user?.role} • {user?.name}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {availableViews.length > 1 && currentView && (
+          {availableViews.length > 1 && currentView ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="h-9 gap-2 bg-transparent">
+                <Button variant="outline" className="hidden h-10 gap-2 bg-background/90 sm:inline-flex">
                   <LayoutDashboard className="h-4 w-4" />
-                  <span className="hidden sm:inline">{currentView.label}</span>
+                  <span>{currentView.label} view</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 bg-card dark:bg-card/95 border-border/50 shadow-xl dark:shadow-2xl backdrop-blur-sm">
+              <DropdownMenuContent align="end" className="w-48 border-border/70 bg-card/98 shadow-xl backdrop-blur-xl">
                 {availableViews.map((view) => {
                   const Icon = view.icon;
                   const isActive = currentView.role === view.role;
@@ -112,53 +113,51 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
                         setStoredView(view.role);
                         router.push(VIEW_DASHBOARD_PATHS[view.role]);
                       }}
-                      className="cursor-pointer"
+                      className="cursor-pointer rounded-lg"
                     >
                       <Icon className="mr-2 h-4 w-4" />
                       <span>{view.label}</span>
-                      {isActive && <span className="ml-auto text-xs text-muted-foreground">Current</span>}
+                      {isActive ? <span className="ml-auto text-xs text-muted-foreground">Current</span> : null}
                     </DropdownMenuItem>
                   );
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
+          ) : null}
 
-          {/* Notifications */}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setNotificationOpen(!notificationOpen)}
-            className="relative hover:bg-secondary rounded-lg h-9 w-9"
+            className="relative h-10 w-10 rounded-2xl hover:bg-secondary"
           >
             <Bell className="w-4 h-4 text-muted-foreground" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full animate-pulse" />
+            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary" />
           </Button>
 
-          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 hover:bg-secondary">
+              <Button variant="ghost" className="relative h-10 w-10 rounded-2xl p-0 hover:bg-secondary">
                 <InitialsAvatar name={user?.name} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-card dark:bg-card/95 border-border/50 shadow-xl dark:shadow-2xl backdrop-blur-sm">
+            <DropdownMenuContent align="end" className="w-60 border-border/70 bg-card/98 shadow-xl backdrop-blur-xl">
               <div className="px-2 py-2 text-sm">
                 <p className="font-semibold text-foreground">{user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                <p className="text-xs text-muted-foreground mt-1 capitalize">Role: {user?.role}</p>
+                <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                <p className="mt-1 text-xs text-muted-foreground capitalize">Role: {user?.role}</p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => router.push(user?.role === 'admin' ? '/admin/settings' : '/settings')} 
+              <DropdownMenuItem
+                onClick={() => router.push(user?.role === 'admin' ? '/admin/settings' : '/settings')}
                 className="cursor-pointer"
               >
-                <Settings className="w-4 h-4 mr-2" />
+                <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
-                <LogOut className="w-4 h-4 mr-2" />
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
                 <span>Sign Out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

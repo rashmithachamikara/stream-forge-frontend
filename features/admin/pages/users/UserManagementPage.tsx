@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { PortalPage, PortalSectionHeader, PortalStatCard, PortalStatGrid } from '@/shared/components/portal';
 import { apiClient } from '@/shared/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -124,7 +125,18 @@ export default function UserManagementPage() {
 
   return (
     <DashboardLayout title="User Management" requiredRoles={['admin']}>
-      <div className="space-y-6">
+      <PortalPage>
+        <PortalSectionHeader
+          kicker="Access Control"
+          title="Users"
+          description="Browse account status, search by identity, and keep role assignments clean across the organization."
+        />
+
+        <PortalStatGrid>
+          <PortalStatCard label="Total users" value={totalCount} icon={Users} />
+          <PortalStatCard label="Current page" value={currentPage} icon={ShieldCheck} />
+        </PortalStatGrid>
+
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div className="space-y-1">
@@ -263,7 +275,7 @@ export default function UserManagementPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PortalPage>
     </DashboardLayout>
   );
 }

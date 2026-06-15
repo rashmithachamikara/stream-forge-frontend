@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { PortalEmptyState, PortalPage, PortalSectionHeader } from '@/shared/components/portal';
 import { apiClient } from '@/shared/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,11 +91,12 @@ export default function BookmarksPage() {
 
   return (
     <DashboardLayout title="My Bookmarks">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">My Bookmarks</h1>
-          <p className="text-muted-foreground">Saved timestamps from videos you're watching ({bookmarks.length})</p>
-        </div>
+      <PortalPage>
+        <PortalSectionHeader
+          kicker="Saved Moments"
+          title="My bookmarks"
+          description={`Saved timestamps from the videos you are watching (${bookmarks.length}).`}
+        />
 
         <Input
           placeholder="Search bookmarks by title or video..."
@@ -169,14 +171,10 @@ export default function BookmarksPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="py-12 text-center">
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">No bookmarks yet</p>
-              <p className="text-sm text-muted-foreground">
-                Click the bookmark icon while watching videos to save timestamps.
-              </p>
-            </CardContent>
-          </Card>
+          <PortalEmptyState
+            title="No bookmarks yet"
+            description="Save a timestamp from the player to build a quick return list for important moments."
+          />
         )}
 
         <Card className="border-primary/20 bg-primary/5">
@@ -192,7 +190,7 @@ export default function BookmarksPage() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </PortalPage>
     </DashboardLayout>
   );
 }

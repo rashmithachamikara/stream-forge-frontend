@@ -3,18 +3,25 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PortalEmptyState, PortalPage } from '@/shared/components/portal';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Play, Eye, Filter, Grid, List, Plus } from 'lucide-react';
+import { Play, Eye, Plus, Search } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { apiClient } from '@/shared/lib/api';
 import { Category, TagSummary, Video } from '@/features/videos/types';
 import { formatDuration } from '@/features/videos/utils';
 
 export default function VideoLibrary() {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -30,7 +37,7 @@ export default function VideoLibrary() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFilterLoading, setIsFilterLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const pageSize = viewMode === 'grid' ? 12 : 10;
+  const pageSize = 12;
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -66,7 +73,7 @@ export default function VideoLibrary() {
       setIsFilterLoading(false);
     };
 
-    loadFilters();
+    void loadFilters();
 
     return () => {
       isMounted = false;
@@ -112,7 +119,7 @@ export default function VideoLibrary() {
       setIsLoading(false);
     };
 
-    loadVideos();
+    void loadVideos();
 
     return () => {
       isMounted = false;
@@ -133,299 +140,177 @@ export default function VideoLibrary() {
 
   const VideoCardGrid = ({ video }: { video: Video }) => (
     <Card
-      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group h-full flex flex-col"
+      className="h-full cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
       onClick={() => goToVideo(video.id)}
     >
-      <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden">
-        <img 
-          src={video.thumbnail} 
-          alt={video.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-          <Play className="w-12 h-12 text-white opacity-0 group-hover:opacity-90 group-hover:scale-110 transition-all drop-shadow-lg" />
+      <div className="group relative aspect-video overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5">
+        <img src={video.thumbnail} alt={video.title} className="h-full w-full object-cover" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+          <Play className="h-12 w-12 text-white opacity-0 drop-shadow-lg transition-all group-hover:scale-110 group-hover:opacity-90" />
         </div>
-        <Badge className="absolute top-2 right-2 bg-black/80 text-white hidden">
-          {formatDuration(video.duration)}
-        </Badge>
+        <Badge className="absolute right-3 top-3 bg-black/78 text-white">{formatDuration(video.duration)}</Badge>
       </div>
-      <CardContent className="p-4 flex-1 flex flex-col">
-        <h3 className="font-semibold line-clamp-2 mb-2">{video.title}</h3>
-        <p className="text-xs text-muted-foreground mb-3 line-clamp-2 flex-1">
-          {video.description}
-        </p>
+      <CardContent className="flex flex-1 flex-col p-4">
+        <h3 className="mb-2 line-clamp-2 font-semibold">{video.title}</h3>
+        <p className="mb-3 line-clamp-2 flex-1 text-xs text-muted-foreground">{video.description}</p>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Eye className="w-3 h-3" />
+            <Eye className="h-3 w-3" />
             {video.views}
           </span>
           <span>{video.uploadedAt.toLocaleDateString()}</span>
         </div>
         <Button
-          className="w-full mt-4 gap-2"
+          className="mt-4 w-full gap-2"
           variant="outline"
           onClick={(event) => {
             event.stopPropagation();
             goToVideo(video.id);
           }}
         >
-          <Play className="w-4 h-4" />
+          <Play className="h-4 w-4" />
           Watch
         </Button>
       </CardContent>
     </Card>
   );
 
-  const VideoCardList = ({ video }: { video: Video }) => (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => goToVideo(video.id)}>
-      <CardContent className="p-6 flex items-start gap-6">
-        <div className="relative w-40 h-24 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-          <img 
-            src={video.thumbnail} 
-            alt={video.title}
-            className="w-full h-full object-cover rounded-lg"
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Play className="w-8 h-8 text-white opacity-70 drop-shadow-lg" />
-          </div>
-          <Badge className="absolute top-1 right-1 bg-black/80 text-white text-xs">
-            {formatDuration(video.duration)}
-          </Badge>
-        </div>
-        <div className="flex-1">
-          <h3 className="font-semibold text-lg mb-2">{video.title}</h3>
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-            {video.description}
-          </p>
-          <div className="flex flex-wrap gap-1 mb-4">
-            {video.categories.map((cat) => (
-              <Badge key={cat} variant="secondary" className="text-xs">
-                {cat}
-              </Badge>
-            ))}
-          </div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Eye className="w-3 h-3" />
-              {video.views} views
-            </span>
-            <span>{video.uploadedAt.toLocaleDateString()}</span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(event) => {
-                event.stopPropagation();
-                goToVideo(video.id);
-              }}
-            >
-              <Play className="w-3 h-3 mr-1" />
-              Watch
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
   return (
     <DashboardLayout title="Video Library">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <PortalPage>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Video Library</h1>
-            <p className="text-muted-foreground">Browse and watch videos</p>
+            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">Video Library</h1>
+            <p className="text-sm text-muted-foreground">{totalCount} published videos</p>
           </div>
-          <Button 
-            className="gap-2 gradient-primary text-white font-medium"
-            onClick={() => window.location.href = '/videos/upload'}
-          >
-            <Plus className="w-4 h-4" />
-            New Video
+          <Button className="gap-2" onClick={() => (window.location.href = '/videos/upload')}>
+            <Plus className="h-4 w-4" />
+            Upload video
           </Button>
         </div>
 
-        {/* Search and Filters */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              Search & Filter
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              placeholder="Search videos by title or description..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Categories
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedCategoryId === null ? 'default' : 'outline'}
-                    size="sm"
-                    disabled={isFilterLoading}
-                    onClick={() => setSelectedCategoryId(null)}
-                  >
-                    All
-                  </Button>
-                  {categories.map((category) => (
-                    <Button
-                      key={category.id}
-                      variant={selectedCategoryId === category.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setSelectedCategoryId(category.id);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {category.name}
-                    </Button>
-                  ))}
-                </div>
+          <CardContent className="p-3">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search videos"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-9"
+                />
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Tags
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedTagId === null ? 'default' : 'outline'}
-                    size="sm"
-                    disabled={isFilterLoading}
-                    onClick={() => setSelectedTagId(null)}
-                  >
-                    All
-                  </Button>
-                  {tags.map((tag) => (
-                    <Button
-                      key={tag.id}
-                      variant={selectedTagId === tag.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setSelectedTagId(tag.id);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {tag.name}
-                    </Button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:w-auto">
+                <Select
+                  value={selectedCategoryId ?? 'all'}
+                  onValueChange={(value) => {
+                    setSelectedCategoryId(value === 'all' ? null : value);
+                    setCurrentPage(1);
+                  }}
+                  disabled={isFilterLoading}
+                >
+                  <SelectTrigger className="w-full min-w-[180px]">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={selectedTagId ?? 'all'}
+                  onValueChange={(value) => {
+                    setSelectedTagId(value === 'all' ? null : value);
+                    setCurrentPage(1);
+                  }}
+                  disabled={isFilterLoading}
+                >
+                  <SelectTrigger className="w-full min-w-[180px]">
+                    <SelectValue placeholder="Tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All tags</SelectItem>
+                    {tags.map((tag) => (
+                      <SelectItem key={tag.id} value={tag.id}>
+                        {tag.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button variant="outline" onClick={clearFilters} className="w-full bg-transparent">
+                  Reset
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {videos.length} of {totalCount} videos
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => {
-                setViewMode('grid');
-                setCurrentPage(1);
-              }}
-            >
-              <Grid className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => {
-                setViewMode('list');
-                setCurrentPage(1);
-              }}
-            >
-              <List className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Videos */}
-        {error && (
+        {error ? (
           <Card className="border-destructive/40 bg-destructive/5">
             <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
           </Card>
-        )}
+        ) : null}
 
         {isLoading ? (
-          <Card className="text-center py-12">
+          <Card className="py-12 text-center">
             <CardContent>
               <p className="text-muted-foreground">Loading videos...</p>
             </CardContent>
           </Card>
         ) : videos.length > 0 ? (
           <>
-            <div
-              className={
-                viewMode === 'grid'
-                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                  : 'space-y-4'
-              }
-            >
-              {videos.map((video) =>
-                viewMode === 'grid' ? (
-                  <VideoCardGrid key={video.id} video={video} />
-                ) : (
-                  <VideoCardList key={video.id} video={video} />
-                )
-              )}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {videos.map((video) => <VideoCardGrid key={video.id} video={video} />)}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={!hasPreviousPage}
-                >
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                    >
-                      {page}
-                    </Button>
-                  ))}
+            <div className="flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                {videos.length} of {totalCount} videos
+              </p>
+              {totalPages > 1 ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Button variant="outline" onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={!hasPreviousPage}>
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button key={page} variant={currentPage === page ? 'default' : 'outline'} size="sm" onClick={() => setCurrentPage(page)}>
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button variant="outline" onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={!hasNextPage}>
+                    Next
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={!hasNextPage}
-                >
-                  Next
-                </Button>
-              </div>
-            )}
+              ) : (
+                <div />
+              )}
+            </div>
           </>
         ) : (
-          <Card className="text-center py-12">
-            <CardContent>
-              <p className="text-muted-foreground mb-4">No videos found matching your criteria</p>
-              <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
-            </CardContent>
-          </Card>
+          <PortalEmptyState
+            title="No videos match the current filters"
+            description="Clear one or more filters to widen the library view and surface additional published content."
+            action={
+              <Button variant="outline" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            }
+          />
         )}
-      </div>
+      </PortalPage>
     </DashboardLayout>
   );
 }
