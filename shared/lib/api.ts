@@ -216,7 +216,7 @@ const mapVideoSummary = (video: VideoSummaryDto): Video => {
     title: video.title ?? 'Untitled video',
     description: video.description ?? '',
     thumbnail: resolveApiUrl(video.thumbnailUrl) || getVideoThumbnailUrl(videoId),
-    duration: 0,
+    duration: video.durationSeconds ?? 0,
     uploadedBy: video.uploaderName ?? 'Unknown uploader',
     uploadedAt: video.createdAt ? new Date(video.createdAt) : new Date(),
     views: video.viewCount ?? 0,

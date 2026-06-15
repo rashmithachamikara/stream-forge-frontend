@@ -125,6 +125,7 @@ export interface VideoSummaryDto {
   categoryName?: string | null;
   visibility?: 'Public' | 'Private' | 'Internal';
   status?: VideoStatus;
+  durationSeconds?: number | null;
   viewCount?: number;
   createdAt?: string;
   updatedAt?: string;

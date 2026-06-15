@@ -6026,6 +6026,8 @@
                   "visibility":
                     { "$ref": "#/components/schemas/VideoVisibility" },
                   "status": { "$ref": "#/components/schemas/VideoStatus" },
+                  "durationSeconds":
+                    { "type": "integer", "format": "int32", "nullable": true },
                   "viewCount": { "type": "integer", "format": "int64" },
                   "createdAt": { "type": "string", "format": "date-time" },
                   "updatedAt": { "type": "string", "format": "date-time" },
