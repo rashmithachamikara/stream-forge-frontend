@@ -241,23 +241,23 @@ export default function UploadVideoPage() {
 
   return (
     <DashboardLayout title="Upload Video">
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="mx-auto max-w-5xl space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Upload New Video</h1>
-          <p className="text-muted-foreground">
-            Upload your video and configure transcoding options
+          <h1 className="mb-2 text-3xl font-semibold tracking-[-0.035em] text-foreground md:text-4xl">Upload video</h1>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+            Add a source file, set visibility, and choose the playback qualities Stream Forge should prepare.
           </p>
         </div>
 
         {uploadComplete ? (
           /* Success State */
-          <Card className="border-green-500/50 bg-green-500/5">
+          <Card className="border-chart-3/30 bg-chart-3/10">
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
-                <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+                <CheckCircle className="mx-auto h-14 w-14 text-chart-3" />
                 <div>
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Upload Complete!</h3>
+                  <h3 className="mb-2 text-2xl font-semibold tracking-[-0.025em] text-foreground">Upload received</h3>
                   <p className="text-muted-foreground">
                     Your video has been uploaded successfully and is being processed.
                   </p>
@@ -300,10 +300,10 @@ export default function UploadVideoPage() {
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
                     onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+                    className={`rounded-lg border border-dashed p-12 text-center transition-colors ${
                       dragActive
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
+                        ? 'border-primary bg-accent/70'
+                        : 'border-border bg-background/50 hover:border-primary/50'
                     }`}
                   >
                     <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />

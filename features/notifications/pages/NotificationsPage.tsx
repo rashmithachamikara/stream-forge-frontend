@@ -58,16 +58,16 @@ const getNotificationIcon = (type: Notification['notificationType']) => {
 
   switch (type) {
     case 'Comment':
-      return <MessageSquare {...iconProps} className="text-blue-600" />;
+      return <MessageSquare {...iconProps} className="text-primary" />;
     case 'Reply':
-      return <Reply {...iconProps} className="text-blue-600" />;
+      return <Reply {...iconProps} className="text-primary" />;
     case 'Like':
-      return <ThumbsUp {...iconProps} className="text-green-600" />;
+      return <ThumbsUp {...iconProps} className="text-chart-3" />;
     case 'ProcessingComplete':
-      return <CheckCircle {...iconProps} className="text-green-600" />;
+      return <CheckCircle {...iconProps} className="text-chart-3" />;
     case 'Upload':
     default:
-      return <Upload {...iconProps} className="text-blue-600" />;
+      return <Upload {...iconProps} className="text-primary" />;
   }
 };
 
@@ -75,12 +75,12 @@ const getBadgeColor = (type: Notification['notificationType']) => {
   switch (type) {
     case 'Like':
     case 'ProcessingComplete':
-      return 'bg-green-100 text-green-800';
+      return 'bg-chart-3/10 text-chart-3';
     case 'Comment':
     case 'Reply':
     case 'Upload':
     default:
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-accent text-accent-foreground';
   }
 };
 
@@ -195,8 +195,8 @@ export default function NotificationsPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground md:text-4xl">Notifications</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
               {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
             </p>
           </div>
@@ -240,7 +240,7 @@ export default function NotificationsPage() {
         ) : notifications.length > 0 ? (
           <div className="space-y-3">
             {notifications.map((notification) => (
-              <Card key={notification.id} className={!notification.isRead ? 'border-primary/20 bg-primary/5' : ''}>
+              <Card key={notification.id} className={!notification.isRead ? 'border-primary/20 bg-accent/45' : ''}>
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     <div className="mt-1 flex-shrink-0">{getNotificationIcon(notification.notificationType)}</div>
@@ -328,25 +328,25 @@ export default function NotificationsPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-chart-3" />
               <span>
                 <strong>Upload and processing:</strong> Upload updates and completed processing
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-blue-600" />
+              <MessageSquare className="h-4 w-4 text-primary" />
               <span>
                 <strong>Comments:</strong> New comments and replies on your videos
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <ThumbsUp className="h-4 w-4 text-green-600" />
+              <ThumbsUp className="h-4 w-4 text-chart-3" />
               <span>
                 <strong>Reactions:</strong> Likes on your content
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-blue-600" />
+              <Info className="h-4 w-4 text-primary" />
               <span>
                 <strong>Status:</strong> Read and unread items can be filtered and managed here
               </span>

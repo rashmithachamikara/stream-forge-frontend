@@ -261,12 +261,12 @@ export default function EditorDashboard() {
   const getStatusIcon = (status?: string) => {
     switch (status) {
       case 'Ready':
-        return <CheckCircle className="w-3 h-3 text-green-600" />;
+        return <CheckCircle className="w-3 h-3 text-chart-3" />;
       case 'Failed':
         return <AlertCircle className="w-3 h-3 text-red-600" />;
       case 'Processing':
       case 'Uploading':
-        return <Loader className="w-3 h-3 text-blue-600 animate-spin" />;
+        return <Loader className="w-3 h-3 text-primary animate-spin" />;
       default:
         return null;
     }
@@ -275,12 +275,12 @@ export default function EditorDashboard() {
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'Ready':
-        return 'bg-green-100 text-green-800';
+        return 'bg-chart-3/10 text-chart-3';
       case 'Failed':
         return 'bg-red-100 text-red-800';
       case 'Processing':
       case 'Uploading':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-accent text-accent-foreground';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -289,17 +289,30 @@ export default function EditorDashboard() {
   return (
     <DashboardLayout title="Editor Dashboard" requiredRoles={['admin', 'editor']}>
       <div className="space-y-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground md:text-4xl">Editor workspace</h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Review your uploads, update metadata, and prepare videos for secure playback.
+            </p>
+          </div>
+          <Button className="gap-2" onClick={() => (window.location.href = '/videos/upload')}>
+            <Upload className="h-4 w-4" />
+            Upload video
+          </Button>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {stats.map((stat, index) => (
-            <Card key={index}>
+            <Card key={index} className="transition-transform duration-300 hover:-translate-y-0.5">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.label}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-3xl font-semibold tracking-[-0.03em]">{stat.value}</div>
               </CardContent>
             </Card>
           ))}
@@ -312,12 +325,9 @@ export default function EditorDashboard() {
               <CardTitle>Your Videos</CardTitle>
               <CardDescription>Manage and organize your uploaded videos</CardDescription>
             </div>
-            <Button
-              className="gap-2 gradient-primary text-white font-medium"
-              onClick={() => (window.location.href = '/videos/upload')}
-            >
+            <Button variant="outline" className="gap-2 bg-background/70" onClick={() => (window.location.href = '/videos/upload')}>
               <Upload className="w-4 h-4" />
-              Upload Video
+              Upload video
             </Button>
           </CardHeader>
           <CardContent>
@@ -397,7 +407,7 @@ export default function EditorDashboard() {
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">No videos found</p>
                   <Button
-                    className="gap-2 gradient-primary text-white font-medium"
+                    className="gap-2"
                     onClick={() => (window.location.href = '/videos/upload')}
                   >
                     <Plus className="w-4 h-4" />
@@ -412,13 +422,13 @@ export default function EditorDashboard() {
                     {videos.map((video) => (
                       <Card
                         key={video.id}
-                        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+                        className="group cursor-pointer overflow-hidden py-0 transition-transform duration-300 hover:-translate-y-0.5"
                       >
                         <div className="relative aspect-video bg-muted">
                           <img
                             src={video.thumbnail}
                             alt={video.title}
-                            className="w-full h-full object-cover"
+                            className="media-hover w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                             <Play className="w-8 h-8 text-white opacity-0 group-hover:opacity-90 transition-opacity drop-shadow-lg" />

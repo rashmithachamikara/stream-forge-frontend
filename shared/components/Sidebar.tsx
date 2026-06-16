@@ -107,7 +107,7 @@ export const Sidebar: React.FC = () => {
 
   const NavContent = () => (
     <>
-      <nav className="flex-1 space-y-1 px-3 py-6">
+      <nav className="flex-1 space-y-1.5 px-3 py-5">
         {filteredItems.map((item) => {
           const Icon = item.icon;
           const href = item.href === '/dashboard' && activeView ? VIEW_DASHBOARD_PATHS[activeView] : item.href;
@@ -121,10 +121,10 @@ export const Sidebar: React.FC = () => {
               <Button
                 variant={isActive ? 'default' : 'ghost'}
                 className={cn(
-                  'w-full justify-start gap-3 h-10 rounded-lg font-medium transition-all',
+                  'h-10 w-full justify-start gap-3 rounded-md font-semibold transition-all duration-200',
                   isActive
-                    ? 'gradient-primary text-white shadow-md'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50 dark:hover:bg-secondary'
+                    ? 'bg-primary text-primary-foreground shadow-[0_10px_24px_hsl(var(--primary)/0.16)]'
+                    : 'text-muted-foreground hover:bg-secondary/70 hover:text-foreground'
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -143,25 +143,23 @@ export const Sidebar: React.FC = () => {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-4 left-4 lg:hidden z-40 hover:bg-secondary rounded-lg"
+        className="fixed left-4 top-4 z-40 rounded-lg bg-background/80 shadow-sm hover:bg-secondary lg:hidden"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? 'Close navigation' : 'Open navigation'}
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </Button>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-card dark:bg-card/50 border-r border-border/50 h-[calc(100vh-64px)] sticky top-16 shadow-sm">
+      <aside className="sticky top-16 hidden h-[calc(100dvh-64px)] w-64 flex-col border-r border-border/70 bg-background/60 lg:flex">
         <NavContent />
       </aside>
 
       {/* Mobile Sidebar */}
       {isOpen && (
         <>
-          <div
-            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-          <aside className="fixed top-16 left-0 w-64 bg-card dark:bg-card/50 border-r border-border/50 h-[calc(100vh-64px)] z-40 lg:hidden overflow-y-auto shadow-lg">
+          <div className="fixed inset-0 z-30 bg-foreground/30 lg:hidden" onClick={() => setIsOpen(false)} />
+          <aside className="fixed left-0 top-16 z-40 h-[calc(100dvh-64px)] w-72 overflow-y-auto border-r border-border/70 bg-background shadow-[0_24px_60px_hsl(213_28%_28%/0.2)] lg:hidden">
             <NavContent />
           </aside>
         </>

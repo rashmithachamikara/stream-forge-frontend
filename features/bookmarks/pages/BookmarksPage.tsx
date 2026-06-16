@@ -92,8 +92,8 @@ export default function BookmarksPage() {
     <DashboardLayout title="My Bookmarks">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">My Bookmarks</h1>
-          <p className="text-muted-foreground">Saved timestamps from videos you're watching ({bookmarks.length})</p>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground md:text-4xl">Bookmarks</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Saved timestamps from videos you are watching ({bookmarks.length}).</p>
         </div>
 
         <Input
@@ -179,7 +179,7 @@ export default function BookmarksPage() {
           </Card>
         )}
 
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="border-primary/20 bg-accent/40">
           <CardHeader>
             <CardTitle className="text-base">About Bookmarks</CardTitle>
           </CardHeader>

@@ -458,7 +458,7 @@ export default function PlaylistsPage() {
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 gradient-primary text-white font-medium">
+              <Button className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Playlist
               </Button>
@@ -506,7 +506,7 @@ export default function PlaylistsPage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/10 to-primary/5">
+                  <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-t-lg bg-muted">
                     {renderPlaylistPreview(playlist)}
                     <Badge variant="outline" className="absolute bottom-3 right-3 z-10">
                       {playlist.visibility === 'Public' ? 'Public' : 'Private'}

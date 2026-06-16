@@ -10,7 +10,7 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'Stream Forge',
-  description: 'Self-hosted Video-on-Demand Streaming Platform',
+  description: 'Secure enterprise video delivery, analytics, and content management for modern teams.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${_geist.className} ${_geistMono.variable} antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>

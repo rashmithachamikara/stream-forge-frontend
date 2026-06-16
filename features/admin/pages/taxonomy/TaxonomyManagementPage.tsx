@@ -120,7 +120,7 @@ const renderNotice = (notice: NoticeState) => {
   const tone =
     notice.type === 'error'
       ? 'border-destructive/30 bg-destructive/5 text-destructive'
-      : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300';
+      : 'border-chart-3/25 bg-chart-3/10 text-chart-3';
 
   return (
     <Card className={tone}>
@@ -526,12 +526,12 @@ export default function TaxonomyManagementPage() {
   return (
     <DashboardLayout title="Taxonomy" requiredRoles={['admin']}>
       <div className="space-y-6">
-        <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle>Taxonomy</CardTitle>
-            <CardDescription>Manage shared categories and tags used across the video library.</CardDescription>
-          </CardHeader>
-        </Card>
+        <div>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground md:text-4xl">Taxonomy</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Manage shared categories and tags used across the video library.
+          </p>
+        </div>
 
         <Tabs defaultValue="categories" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:w-auto">

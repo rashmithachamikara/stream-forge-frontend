@@ -1,13 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+
+const trustPoints = [
+  'Private video delivery with role-aware access',
+  'Operational analytics for content and engagement',
+  'Admin controls for teams, taxonomy, and retention',
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,192 +22,120 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Redirect based on role if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      const dashboardPath = `/dashboard/${user.role}`;
-      router.push(dashboardPath);
+      router.push(`/dashboard/${user.role}`);
     }
   }, [isAuthenticated, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const success = await login(email, password);
-    if (success) {
-      // Redirect will happen automatically via useEffect
-    }
+    await login(email, password);
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row items-center justify-center bg-background dark:bg-gradient-to-br dark:from-background dark:to-secondary p-4">
-      {/* Left side - Branding (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center text-center px-8">
-        <div className="max-w-md">
-          <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
-            <span className="text-2xl font-bold text-white">SF</span>
-          </div>
-          <h1 className="text-4xl font-bold text-foreground mb-4">Stream Forge</h1>
-          <p className="text-lg text-muted-foreground mb-8">
-            Self-hosted video streaming platform built for teams that demand control, flexibility, and enterprise-grade reliability.
-          </p>
-          <div className="space-y-4 text-left">
-            <div className="flex gap-3">
-              <div className="text-accent text-xl flex-shrink-0">✓</div>
-              <div>
-                <p className="font-semibold text-foreground">Full Control</p>
-                <p className="text-sm text-muted-foreground">Host videos on your own infrastructure</p>
-              </div>
+    <main className="flex min-h-dvh w-full max-w-full items-center justify-center overflow-x-hidden px-4 py-8 sm:px-6 lg:px-8">
+      <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+        <section className="space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-base font-bold tracking-[-0.04em] text-primary-foreground shadow-[0_14px_32px_hsl(var(--primary)/0.18)]">
+              SF
             </div>
-            <div className="flex gap-3">
-              <div className="text-accent text-xl flex-shrink-0">✓</div>
-              <div>
-                <p className="font-semibold text-foreground">Advanced Analytics</p>
-                <p className="text-sm text-muted-foreground">Track viewer engagement in real-time</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="text-accent text-xl flex-shrink-0">✓</div>
-              <div>
-                <p className="font-semibold text-foreground">Role-Based Access</p>
-                <p className="text-sm text-muted-foreground">Manage permissions for admins, editors, and viewers</p>
-              </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Stream Forge</p>
+              <p className="text-xs text-muted-foreground">Enterprise video operations</p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Right side - Login Form */}
-      <div className="w-full lg:w-1/2 max-w-sm lg:flex lg:justify-center">
-        {/* Mobile Logo */}
-        <div className="lg:hidden text-center mb-8 w-full">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-10 h-10 gradient-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">SF</span>
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">Stream Forge</h1>
+          <div className="max-w-5xl space-y-5">
+            <h1 className="text-balance text-4xl font-semibold tracking-[-0.035em] text-foreground sm:text-5xl lg:text-6xl">
+              Secure video workflows for teams that need control.
+            </h1>
+            <p className="max-w-2xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
+              Manage playback, access, uploads, and analytics from one calm workspace built for administrators,
+              editors, and viewers.
+            </p>
           </div>
-        </div>
 
-        {/* Login Card */}
-        <Card className="w-full border-border/50 shadow-xl dark:shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
-            <CardDescription>Sign in to your account to continue</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <Alert variant="destructive" className="bg-destructive/10 border-destructive/30">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2.5">
-                <label htmlFor="email" className="text-sm font-semibold text-foreground">
-                  Email Address
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@streamforge.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="h-11 bg-secondary dark:bg-background/50 border-border/50 focus-visible:border-primary transition-colors"
-                />
+          <div className="grid max-w-3xl gap-3 sm:grid-cols-3">
+            {trustPoints.map((point) => (
+              <div key={point} className="rounded-lg border border-border/70 bg-card/72 p-4">
+                <CheckCircle2 className="mb-3 h-4 w-4 text-primary" />
+                <p className="text-sm font-medium leading-5 text-foreground">{point}</p>
               </div>
+            ))}
+          </div>
+        </section>
 
-              <div className="space-y-2.5">
-                <label htmlFor="password" className="text-sm font-semibold text-foreground">
-                  Password
-                </label>
-                <div className="relative">
+        <section className="flex justify-center lg:justify-end">
+          <Card className="w-full max-w-md">
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-2xl">Sign in</CardTitle>
+              <CardDescription>Use the credentials provisioned by your Stream Forge administrator.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
+                  <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2.5">
+                  <label htmlFor="email" className="text-sm font-semibold text-foreground">
+                    Email address
+                  </label>
                   <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="admin@streamforge.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
-                    className="h-11 bg-secondary dark:bg-background/50 border-border/50 focus-visible:border-primary pr-10 transition-colors"
+                    className="h-11"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon className="w-4 h-4" />
-                    ) : (
-                      <EyeIcon className="w-4 h-4" />
-                    )}
-                  </button>
                 </div>
-              </div>
 
-              <Button type="submit" size="lg" className="w-full h-11 text-base gradient-primary font-semibold text-white cursor-pointer" disabled={isLoading}>
-                {isLoading ? 'Signing in...' : 'Sign In'}
-              </Button>
+                <div className="space-y-2.5">
+                  <label htmlFor="password" className="text-sm font-semibold text-foreground">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      className="h-11 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
 
-              <p className="text-xs text-muted-foreground text-center">
-                Use the credentials provisioned by your Stream Forge administrator.
-              </p>
-            </form>
-          </CardContent>
-        </Card>
-
+                <Button type="submit" size="lg" className="h-11 w-full text-base" disabled={isLoading}>
+                  {isLoading ? 'Signing in...' : 'Sign in'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </section>
       </div>
 
-      {/* Footer */}
-      <p className="text-center text-xs text-muted-foreground mt-8 lg:absolute lg:bottom-8 w-full px-4">
-        &copy; 2026 Stream Forge. Enterprise-grade video streaming platform.
+      <p className="absolute bottom-5 left-0 w-full px-4 text-center text-xs text-muted-foreground">
+        &copy; 2026 Stream Forge. Secure video delivery for modern organizations.
       </p>
-    </div>
-  );
-}
-
-// Icon components
-function EyeIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
+    </main>
   );
 }

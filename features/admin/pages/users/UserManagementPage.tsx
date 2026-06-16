@@ -125,6 +125,13 @@ export default function UserManagementPage() {
   return (
     <DashboardLayout title="User Management" requiredRoles={['admin']}>
       <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground md:text-4xl">User management</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Search users, review access, and confirm account status across the platform.
+          </p>
+        </div>
+
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div className="space-y-1">
@@ -179,7 +186,7 @@ export default function UserManagementPage() {
               </Card>
             )}
 
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-hidden rounded-lg border border-border/70 bg-background/45">
               <Table>
                 <TableHeader>
                   <TableRow>

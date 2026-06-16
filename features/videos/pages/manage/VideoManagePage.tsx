@@ -469,9 +469,9 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                   <Badge
                     className={`gap-1.5 ${
                       video.status === 'Ready'
-                        ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                        ? 'bg-chart-3/10 text-chart-3 hover:bg-chart-3/10'
                         : video.status === 'Processing' || video.status === 'Uploading'
-                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+                          ? 'bg-accent text-accent-foreground hover:bg-accent'
                           : 'bg-red-100 text-red-800 hover:bg-red-100'
                     }`}
                   >

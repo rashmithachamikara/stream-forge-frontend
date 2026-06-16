@@ -212,15 +212,15 @@ export default function AdminSettingsPage() {
 
   return (
     <DashboardLayout title="Admin Settings" requiredRoles={['admin']}>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <Settings className="w-8 h-8" />
-              System Settings
+            <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-[-0.035em] text-foreground md:text-4xl">
+              <Settings className="h-7 w-7 text-primary" />
+              System settings
             </h1>
-            <p className="text-muted-foreground">
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Configure AI models, API keys, and system preferences
             </p>
           </div>
@@ -1026,10 +1026,10 @@ export default function AdminSettingsPage() {
         </Tabs>
 
         {/* Info Banner */}
-        <Card className="border-blue-500/50 bg-blue-500/5">
+        <Card className="border-primary/25 bg-accent/45">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-primary mt-0.5" />
               <div>
                 <h4 className="font-semibold text-foreground mb-1">
                   Changes require review

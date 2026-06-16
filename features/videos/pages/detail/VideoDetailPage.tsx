@@ -514,9 +514,9 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   <Badge
                     className={`flex items-center gap-1.5 ${
                       video.status === 'Ready'
-                        ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                        ? 'bg-chart-3/10 text-chart-3 hover:bg-chart-3/10'
                         : video.status === 'Processing' || video.status === 'Uploading'
-                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
+                          ? 'bg-accent text-accent-foreground hover:bg-accent'
                           : 'bg-red-100 text-red-800 hover:bg-red-100'
                     }`}
                   >
@@ -614,7 +614,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   className="group cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
                   onClick={() => router.push(`/videos/${relatedVideo.id}`)}
                 >
-                  <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
+                  <div className="relative aspect-video overflow-hidden bg-muted">
                     <img src={relatedVideo.thumbnail} alt={relatedVideo.title} className="h-full w-full object-cover" />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
                       <Play className="h-10 w-10 text-white opacity-0 drop-shadow-lg transition-opacity group-hover:opacity-90" />

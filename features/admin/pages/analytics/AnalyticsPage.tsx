@@ -252,13 +252,20 @@ export default function AnalyticsDashboard() {
   return (
     <DashboardLayout title="Analytics Dashboard" requiredRoles={['admin']}>
       <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground md:text-4xl">Analytics</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Track playback, watch time, engagement, and audience patterns across your video platform.
+          </p>
+        </div>
+
         <Card>
           <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <CardTitle>Analytics</CardTitle>
               <CardDescription>Platform playback and engagement metrics.</CardDescription>
             </div>
-            <Button variant="outline" className="gap-2" onClick={() => void handleExport()} disabled={isExporting}>
+            <Button variant="outline" className="gap-2 bg-background/70" onClick={() => void handleExport()} disabled={isExporting}>
               {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               Export CSV
             </Button>
@@ -293,13 +300,13 @@ export default function AnalyticsDashboard() {
             const Icon = stat.icon;
 
             return (
-              <Card key={stat.label}>
+              <Card key={stat.label} className="transition-transform duration-300 hover:-translate-y-0.5">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+                  <Icon className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{isLoading ? '-' : stat.value}</div>
+                  <div className="text-3xl font-semibold tracking-[-0.03em]">{isLoading ? '-' : stat.value}</div>
                 </CardContent>
               </Card>
             );
