@@ -19,8 +19,8 @@ const getInitials = (name?: string | null) => {
 };
 
 export const InitialsAvatar = ({ name, className, fallbackClassName }: InitialsAvatarProps) => (
-  <Avatar className={cn('h-9 w-9 border border-border/50', className)}>
-    <AvatarFallback className={cn('gradient-primary text-white font-bold text-xs', fallbackClassName)}>
+  <Avatar className={cn('h-8 w-8', className)}>
+    <AvatarFallback className={cn('bg-muted text-foreground font-semibold text-[11px]', fallbackClassName)}>
       {getInitials(name)}
     </AvatarFallback>
   </Avatar>

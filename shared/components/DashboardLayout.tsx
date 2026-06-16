@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Header } from './Header';
-import { Sidebar } from './Sidebar';
 import { ProtectedRoute } from './ProtectedRoute';
 import { UserRole } from '@/features/auth/types';
 
@@ -19,14 +18,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   return (
     <ProtectedRoute requiredRoles={requiredRoles}>
-      <div className="flex h-screen flex-col bg-background">
+      <div className="min-h-screen bg-background text-foreground">
         <Header title={title} />
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto">
-            <div className="p-6 lg:p-8">{children}</div>
-          </main>
-        </div>
+        <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6">{children}</main>
       </div>
     </ProtectedRoute>
   );

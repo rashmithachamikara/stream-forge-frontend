@@ -22,7 +22,7 @@ export const USER_ROLE_LABEL_MAP: Record<UserRole, string> = USER_ROLE_OPTIONS.r
 );
 
 export const USER_ROLE_CHIP_CLASS_MAP: Record<UserRole, string> = {
-  admin: 'gradient-primary text-white border-0',
-  editor: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/30',
-  viewer: 'bg-muted text-muted-foreground border border-border/30',
+  admin: 'border-primary/20 bg-primary/10 text-primary',
+  editor: 'border-warning/20 bg-warning/10 text-warning-foreground',
+  viewer: 'border-border bg-muted text-muted-foreground',
 };

@@ -8,17 +8,13 @@ function Input({ className, type, style, ...props }: React.ComponentProps<'input
       type={type}
       data-slot="input"
       className={cn(
-        'file:text-foreground placeholder:italic selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-        'shadow-[0_0_0_0px_transparent] transition-[border-color,box-shadow] duration-200 ease-in-out',
-        'focus:border-primary! focus:shadow-[0_0_0_3px_hsl(var(--primary)/0.2)]!',
-        'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+        'file:text-foreground selection:bg-primary selection:text-primary-foreground bg-muted h-9 w-full min-w-0 rounded-md border border-transparent px-3 py-2 text-sm outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50',
+        'transition-[background-color,box-shadow] duration-150 ease-in-out',
+        'focus:bg-background focus:ring-1 focus:ring-ring',
+        'aria-invalid:ring-1 aria-invalid:ring-destructive',
         className,
       )}
-      style={{
-        ...style,
-        // @ts-ignore - CSS variables work fine
-        '--placeholder-color': 'hsl(var(--placeholder))',
-      } as React.CSSProperties}
+      style={style}
       {...props}
     />
   )
