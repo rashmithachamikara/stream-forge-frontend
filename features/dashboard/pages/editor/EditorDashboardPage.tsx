@@ -28,28 +28,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Plus,
   Upload,
-  Play,
-  Eye,
   Edit2,
   Trash2,
   Archive,
   Code,
   Copy,
   Check,
-  CheckCircle,
-  AlertCircle,
   Loader,
-  Globe,
-  Lock,
-  Users,
 } from 'lucide-react';
 import { apiClient } from '@/shared/lib/api';
 import { Video, VideoListFilters, VideoStatus, VideoVisibility } from '@/features/videos/types';
 import { formatDuration } from '@/features/videos/utils';
 import { capitalize } from '@/shared/lib/utils';
+import { VideoCard } from '@/features/videos/components/VideoCard';
 
 export default function EditorDashboard() {
   // State for videos and loading
@@ -258,34 +253,6 @@ export default function EditorDashboard() {
     { label: 'Total Duration', value: formatDuration(videos.reduce((sum, v) => sum + v.duration, 0)) },
   ];
 
-  const getStatusIcon = (status?: string) => {
-    switch (status) {
-      case 'Ready':
-        return <CheckCircle className="w-3 h-3 text-green-600" />;
-      case 'Failed':
-        return <AlertCircle className="w-3 h-3 text-red-600" />;
-      case 'Processing':
-      case 'Uploading':
-        return <Loader className="w-3 h-3 text-blue-600 animate-spin" />;
-      default:
-        return null;
-    }
-  };
-
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'Ready':
-        return 'bg-green-100 text-green-800';
-      case 'Failed':
-        return 'bg-red-100 text-red-800';
-      case 'Processing':
-      case 'Uploading':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   return (
     <DashboardLayout title="Editor Dashboard" requiredRoles={['admin', 'editor']}>
       <div className="space-y-8">
@@ -299,7 +266,7 @@ export default function EditorDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-2xl font-bold font-mono">{stat.value}</div>
               </CardContent>
             </Card>
           ))}
@@ -313,7 +280,7 @@ export default function EditorDashboard() {
               <CardDescription>Manage and organize your uploaded videos</CardDescription>
             </div>
             <Button
-              className="gap-2 gradient-primary text-white font-medium"
+              className="gap-2"
               onClick={() => (window.location.href = '/videos/upload')}
             >
               <Upload className="w-4 h-4" />
@@ -381,9 +348,9 @@ export default function EditorDashboard() {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
-                  {error}
-                </div>
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
 
               {isLoading && (
@@ -397,7 +364,7 @@ export default function EditorDashboard() {
                 <div className="text-center py-12">
                   <p className="text-muted-foreground mb-4">No videos found</p>
                   <Button
-                    className="gap-2 gradient-primary text-white font-medium"
+                    className="gap-2"
                     onClick={() => (window.location.href = '/videos/upload')}
                   >
                     <Plus className="w-4 h-4" />
@@ -410,93 +377,37 @@ export default function EditorDashboard() {
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {videos.map((video) => (
-                      <Card
-                        key={video.id}
-                        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
-                      >
-                        <div className="relative aspect-video bg-muted">
-                          <img
-                            src={video.thumbnail}
-                            alt={video.title}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                            <Play className="w-8 h-8 text-white opacity-0 group-hover:opacity-90 transition-opacity drop-shadow-lg" />
-                          </div>
-                          <Badge className="absolute top-2 right-2 bg-black/80 text-white">
-                            {formatDuration(video.duration)}
-                          </Badge>
-
-                          {/* Status and Visibility badges */}
-                          <div className="absolute top-2 left-2 flex gap-1 flex-wrap">
-                            {/* Visibility */}
-                            <Badge
-                              variant="secondary"
-                              className="flex items-center gap-1"
-                            >
-                              {video.visibility === 'public' ? (
-                                <Globe className="w-3 h-3" />
-                              ) : video.visibility === 'private' ? (
-                                <Lock className="w-3 h-3" />
-                              ) : (
-                                <Users className="w-3 h-3" />
-                              )}
-                            </Badge>
-
-                            {/* Status */}
-                            {video.status && (
-                              <Badge
-                                className={`flex items-center gap-1 ${getStatusColor(
-                                  video.status
-                                )}`}
-                              >
-                                {getStatusIcon(video.status)}
-                              </Badge>
-                            )}
-                          </div>
+                      <div key={video.id} className="space-y-3">
+                        <VideoCard video={video} onClick={() => handleEditClick(video)} />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleEditClick(video)}
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleEmbed(video)}
+                          >
+                            <Code className="w-3 h-3" />
+                            Embed
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteClick(video)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
-                        <CardContent className="p-4">
-                          <h3 className="font-semibold line-clamp-2 mb-2">{video.title}</h3>
-                          <p className="text-xs text-muted-foreground mb-3 line-clamp-1">
-                            {video.description}
-                          </p>
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Eye className="w-3 h-3" />
-                              {video.views} views
-                            </span>
-                            <span>{video.uploadedAt.toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex gap-2 mt-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => handleEditClick(video)}
-                            >
-                              <Edit2 className="w-3 h-3" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => handleEmbed(video)}
-                            >
-                              <Code className="w-3 h-3" />
-                              Embed
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteClick(video)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      </div>
                     ))}
                   </div>
 
@@ -546,7 +457,7 @@ export default function EditorDashboard() {
               </div>
 
               <Tabs defaultValue="code" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-2 !border-0 !bg-muted !p-[3px]">
                   <TabsTrigger value="code">Code</TabsTrigger>
                   <TabsTrigger value="configure">Configure</TabsTrigger>
                 </TabsList>
@@ -555,7 +466,7 @@ export default function EditorDashboard() {
                   <div>
                     <label className="text-sm font-medium mb-2 block">Embed Code</label>
                     <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-64 whitespace-pre-wrap break-all">
+                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-64 whitespace-pre-wrap break-all font-mono">
                         <code>{getEmbedCode(selectedVideo)}</code>
                       </pre>
                     </div>
@@ -665,7 +576,7 @@ export default function EditorDashboard() {
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                   placeholder="Enter video description"
-                  className="w-full min-h-24 px-3 py-2 border border-input rounded-md bg-background text-foreground placeholder-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="min-h-24"
                 />
               </div>
 
@@ -792,7 +703,7 @@ export default function EditorDashboard() {
             <AlertDialogAction
               onClick={handleArchive}
               disabled={isSubmitting}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="bg-foreground text-background hover:opacity-90"
             >
               {isSubmitting && <Loader className="w-4 h-4 animate-spin mr-2" />}
               Archive
