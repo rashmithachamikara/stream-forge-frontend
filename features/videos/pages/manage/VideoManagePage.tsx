@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -42,12 +43,9 @@ import {
   Eye,
   Clock,
   Calendar,
-  Globe,
-  Lock,
-  Users,
-  CheckCircle,
-  AlertCircle,
 } from 'lucide-react';
+import { VideoVisibilityBadge } from '@/features/videos/components/VideoVisibilityBadge';
+import { VideoStatusBadge } from '@/features/videos/components/VideoStatusBadge';
 
 const EDITABLE_VISIBILITY_OPTIONS = ['public', 'private', 'internal', 'restricted'] as const;
 
@@ -165,7 +163,6 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     };
   }, []);
 
-  const visibilityLabel = useMemo(() => capitalize(form.visibility), [form.visibility]);
   const savedForm = useMemo(() => (video ? getManageFormState(video) : null), [video]);
   const hasChanges = Boolean(
     savedForm &&
@@ -179,12 +176,6 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
         form.allowLikes !== savedForm.allowLikes ||
         form.allowBookmarks !== savedForm.allowBookmarks)
   );
-
-  const getVisibilityIcon = (value: Video['visibility']) => {
-    if (value === 'public') return <Globe className="h-4 w-4" />;
-    if (value === 'private') return <Lock className="h-4 w-4" />;
-    return <Users className="h-4 w-4" />;
-  };
 
   const toggleTag = (tagId: string) => {
     setForm((current) => ({
@@ -312,7 +303,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
               <ArrowLeft className="h-4 w-4" />
               Back to video
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">Manage Video</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Manage Video</h1>
             <p className="text-muted-foreground">Edit details and review operational status for this video.</p>
           </div>
           <div className="flex gap-2">
@@ -328,9 +319,9 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
         </div>
 
         {error && (
-          <Card className="border-destructive/30 bg-destructive/5">
-            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
-          </Card>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
@@ -462,40 +453,26 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                   <img src={video.thumbnail} alt={video.title} className="h-full w-full object-cover" />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="gap-1.5">
-                    {video.visibility === 'public' ? <Globe className="h-3 w-3" /> : video.visibility === 'private' ? <Lock className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-                    {visibilityLabel}
-                  </Badge>
-                  <Badge
-                    className={`gap-1.5 ${
-                      video.status === 'Ready'
-                        ? 'bg-green-100 text-green-800 hover:bg-green-100'
-                        : video.status === 'Processing' || video.status === 'Uploading'
-                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
-                          : 'bg-red-100 text-red-800 hover:bg-red-100'
-                    }`}
-                  >
-                    {video.status === 'Ready' ? <CheckCircle className="h-3 w-3" /> : video.status === 'Failed' ? <AlertCircle className="h-3 w-3" /> : <Loader2 className="h-3 w-3 animate-spin" />}
-                    {capitalize(video.status ?? 'unknown')}
-                  </Badge>
+                  <VideoVisibilityBadge visibility={video.visibility} />
+                  {video.status ? <VideoStatusBadge status={video.status} /> : null}
                 </div>
                 <div className="grid gap-3 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4" />
-                    <span>Video ID {video.id}</span>
+                    <span>Video ID <span className="font-mono">{video.id}</span></span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Eye className="h-4 w-4" />
-                    <span>{video.views} views</span>
+                    <span><span className="font-mono">{video.views}</span> views</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    <span>Uploaded {video.uploadedAt.toLocaleDateString()}</span>
+                    <span>Uploaded <span className="font-mono">{video.uploadedAt.toLocaleDateString()}</span></span>
                   </div>
                   {video.updatedAt && (
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      <span>Updated {video.updatedAt.toLocaleDateString()}</span>
+                      <span>Updated <span className="font-mono">{video.updatedAt.toLocaleDateString()}</span></span>
                     </div>
                   )}
                   <div className="flex items-center gap-2">
@@ -531,7 +508,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                         <span>{processingStatus.jobType || 'Video processing'}</span>
                         <span>{processingStatus.progress !== null ? `${processingStatus.progress}%` : 'Pending'}</span>
                       </div>
-                      <Progress value={processingProgress} className="h-3 border border-border bg-muted" />
+                      <Progress value={processingProgress} className="h-3" />
                     </div>
                     <div className="text-sm text-muted-foreground">
                       <p>Status: {processingStatus.jobStatus || processingStatus.videoStatus}</p>

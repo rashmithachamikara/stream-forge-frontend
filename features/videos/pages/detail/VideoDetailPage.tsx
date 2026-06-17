@@ -42,6 +42,9 @@ import { ReactionSummary, ReactionType, Video, VideoProcessingStatus } from '@/f
 import { useAuth } from '@/features/auth/AuthContext';
 import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 import { Playlist } from '@/features/playlists/types';
+import { VideoVisibilityBadge } from '@/features/videos/components/VideoVisibilityBadge';
+import { VideoStatusBadge } from '@/features/videos/components/VideoStatusBadge';
+import { VideoCard } from '@/features/videos/components/VideoCard';
 
 const ACTIVE_PROCESSING_STATUSES = new Set(['Uploading', 'Processing']);
 const PROCESSING_POLL_INTERVAL_MS = 4000;
@@ -365,7 +368,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                         : 'Pending'}
                     </span>
                   </div>
-                  <Progress value={processingProgress} className="h-3 border border-border bg-muted" />
+                    <Progress value={processingProgress} className="h-3" />
                 </div>
               )}
             </CardContent>
@@ -378,16 +381,16 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
             <div className="flex flex-wrap items-center justify-between gap-4 border-y border-border py-4">
               <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 font-mono">
                   <Eye className="h-4 w-4" />
                   {video.views} views
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 font-mono">
                   <Calendar className="h-4 w-4" />
                   {video.uploadedAt.toLocaleDateString()}
                 </span>
                 {video.updatedAt && (
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 font-mono">
                     <Clock className="h-4 w-4" />
                     Updated {video.updatedAt.toLocaleDateString()}
                   </span>
@@ -499,37 +502,9 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               <h2 className="mb-2 font-semibold text-foreground">About this video</h2>
               <p className="text-muted-foreground">{video.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Badge variant="outline" className="flex items-center gap-1.5">
-                  {video.visibility === 'public' ? (
-                    <Globe className="h-3 w-3" />
-                  ) : video.visibility === 'private' ? (
-                    <Lock className="h-3 w-3" />
-                  ) : (
-                    <Users className="h-3 w-3" />
-                  )}
-                  {capitalize(video.visibility)}
-                </Badge>
+                <VideoVisibilityBadge visibility={video.visibility} />
 
-                {video.status && (
-                  <Badge
-                    className={`flex items-center gap-1.5 ${
-                      video.status === 'Ready'
-                        ? 'bg-green-100 text-green-800 hover:bg-green-100'
-                        : video.status === 'Processing' || video.status === 'Uploading'
-                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-100'
-                          : 'bg-red-100 text-red-800 hover:bg-red-100'
-                    }`}
-                  >
-                    {video.status === 'Ready' ? (
-                      <CheckCircle className="h-3 w-3" />
-                    ) : video.status === 'Failed' ? (
-                      <AlertCircle className="h-3 w-3" />
-                    ) : (
-                      <Loader className="h-3 w-3 animate-spin" />
-                    )}
-                    {capitalize(video.status)}
-                  </Badge>
-                )}
+                {video.status && <VideoStatusBadge status={video.status} />}
 
                 {video.categories.map((category) => (
                   <Badge key={category} variant="secondary">
@@ -591,7 +566,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                       <span>{processingStatus.jobType || 'Video processing'}</span>
                       <span>{processingStatus.progress}%</span>
                     </div>
-                    <Progress value={processingStatus.progress} className="h-3 border border-border bg-muted" />
+                    <Progress value={processingStatus.progress} className="h-3" />
                   </div>
                 )}
                 {processingStatus.errorMessage && (
@@ -609,23 +584,11 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
             <h2 className="mb-4 text-2xl font-bold text-foreground">Related Videos</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {relatedVideos.map((relatedVideo) => (
-                <Card
+                <VideoCard
                   key={relatedVideo.id}
-                  className="group cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+                  video={relatedVideo}
                   onClick={() => router.push(`/videos/${relatedVideo.id}`)}
-                >
-                  <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
-                    <img src={relatedVideo.thumbnail} alt={relatedVideo.title} className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
-                      <Play className="h-10 w-10 text-white opacity-0 drop-shadow-lg transition-opacity group-hover:opacity-90" />
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="mb-2 line-clamp-2 font-semibold">{relatedVideo.title}</h3>
-                    <p className="line-clamp-1 text-xs text-muted-foreground">{relatedVideo.description}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">{relatedVideo.views} views</p>
-                  </CardContent>
-                </Card>
+                />
               ))}
             </div>
           </div>

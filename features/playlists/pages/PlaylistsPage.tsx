@@ -427,7 +427,7 @@ export default function PlaylistsPage() {
             return (
               <div
                 key={video.id}
-                className={`absolute overflow-hidden rounded-xl border border-white/15 bg-black/70 shadow-[0_18px_38px_rgba(0,0,0,0.38)] ring-1 ring-white/10 ${layouts[index]}`}
+                className={`absolute overflow-hidden rounded-xl ring-1 ring-border ${layouts[index]}`}
                 style={{ zIndex: reverseIndex + 1 }}
               >
                 <img src={video.thumbnail} alt={video.title} className="h-full w-full object-cover" />
@@ -453,12 +453,13 @@ export default function PlaylistsPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Playlists</h1>
-            <p className="text-muted-foreground">Create and manage your saved video collections.</p>
+            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Collections</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Playlists</h1>
+            <p className="text-sm text-muted-foreground">Create and manage your saved video collections.</p>
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 gradient-primary text-white font-medium">
+              <Button className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Playlist
               </Button>
@@ -495,7 +496,7 @@ export default function PlaylistsPage() {
               {filteredPlaylists.map((playlist) => (
                 <Card
                   key={playlist.id}
-                  className="flex flex-col gap-0 overflow-hidden border-t-0 pt-0 pb-6 transition-shadow hover:shadow-lg cursor-pointer"
+                  className="flex flex-col gap-0 overflow-hidden border-t-0 pt-0 pb-6 cursor-pointer hover:border-foreground/20"
                   onClick={() => openPlaylistVideos(playlist)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -506,7 +507,7 @@ export default function PlaylistsPage() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/10 to-primary/5">
+                  <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-t-lg bg-muted">
                     {renderPlaylistPreview(playlist)}
                     <Badge variant="outline" className="absolute bottom-3 right-3 z-10">
                       {playlist.visibility === 'Public' ? 'Public' : 'Private'}
@@ -521,11 +522,11 @@ export default function PlaylistsPage() {
                     <div className="mb-4 flex items-center justify-between border-b border-border pb-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Play className="h-3 w-3" />
-                        {playlist.videoCount} videos
+                        <span className="font-mono">{playlist.videoCount}</span> videos
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {playlist.updatedAt.toLocaleDateString()}
+                        <span className="font-mono">{playlist.updatedAt.toLocaleDateString()}</span>
                       </span>
                     </div>
 
