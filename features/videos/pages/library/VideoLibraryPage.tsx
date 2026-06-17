@@ -2,14 +2,36 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Play, Eye, Filter, Grid, List, Plus } from 'lucide-react';
+import { Grid3x3, List, Search, X, Plus } from 'lucide-react';
 import { apiClient } from '@/shared/lib/api';
 import { Category, TagSummary, Video } from '@/features/videos/types';
 import { VideoCard } from '@/features/videos/components/VideoCard';
+import { cn } from '@/shared/lib/utils';
+
+const formatPlaybackDuration = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
+};
+
+function Chip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 bg-accent rounded-full px-2 py-0.5 text-[11px] text-accent-foreground">
+      {label}
+      <button onClick={onClear} className="hover:text-foreground">
+        <X className="size-3" />
+      </button>
+    </span>
+  );
+}
 
 export default function VideoLibrary() {
   const router = useRouter();
@@ -133,207 +155,234 @@ export default function VideoLibrary() {
   return (
     <DashboardLayout title="Video Library">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-end justify-between flex-wrap gap-4 text-left">
           <div>
             <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Library</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Video Library</h1>
-            <p className="text-sm text-muted-foreground">Browse and watch videos</p>
+            <h1 className="text-2xl font-bold tracking-tight mt-1">All videos</h1>
           </div>
-          <Button 
-            className="gap-2"
-            onClick={() => window.location.href = '/videos/upload'}
-          >
-            <Plus className="w-4 h-4" />
-            New Video
-          </Button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/videos/upload')}
+              className="inline-flex items-center gap-1.5 bg-foreground text-background px-3 py-1.5 rounded-md text-xs font-semibold hover:opacity-90 transition-opacity"
+            >
+              <Plus className="size-3.5" /> New video
+            </button>
+            <div className="flex items-center bg-muted rounded-md p-0.5">
+              <button
+                onClick={() => {
+                  setViewMode('grid');
+                  setCurrentPage(1);
+                }}
+                className={cn("p-1.5 rounded", viewMode === 'grid' && "bg-background shadow-sm")}
+              >
+                <Grid3x3 className="size-3.5" />
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode('list');
+                  setCurrentPage(1);
+                }}
+                className={cn("p-1.5 rounded", viewMode === 'list' && "bg-background shadow-sm")}
+              >
+                <List className="size-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Search and Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="w-5 h-5" />
-              Search & Filter
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              placeholder="Search videos by title or description..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
+          <aside className="space-y-6 text-left">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
+              <input
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search title or description"
+                className="w-full bg-card border border-border rounded-md pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="mb-2 block text-xs font-medium text-muted-foreground">
-                  Categories
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedCategoryId === null ? 'default' : 'outline'}
-                    size="sm"
-                    disabled={isFilterLoading}
-                    onClick={() => setSelectedCategoryId(null)}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Categories</p>
+              <div className="space-y-0.5">
+                <button
+                  disabled={isFilterLoading}
+                  onClick={() => {
+                    setSelectedCategoryId(null);
+                    setCurrentPage(1);
+                  }}
+                  className={cn(
+                    "block w-full text-left text-xs px-2 py-1 rounded transition-colors",
+                    selectedCategoryId === null
+                      ? "bg-accent font-semibold text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  All categories
+                </button>
+                {categories.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setSelectedCategoryId(c.id);
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "block w-full text-left text-xs px-2 py-1 rounded transition-colors",
+                      selectedCategoryId === c.id
+                        ? "bg-accent font-semibold text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    )}
                   >
-                    All
-                  </Button>
-                  {categories.map((category) => (
-                    <Button
-                      key={category.id}
-                      variant={selectedCategoryId === category.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setSelectedCategoryId(category.id);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {category.name}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-medium text-muted-foreground">
-                  Tags
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedTagId === null ? 'default' : 'outline'}
-                    size="sm"
-                    disabled={isFilterLoading}
-                    onClick={() => setSelectedTagId(null)}
-                  >
-                    All
-                  </Button>
-                  {tags.map((tag) => (
-                    <Button
-                      key={tag.id}
-                      variant={selectedTagId === tag.id ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        setSelectedTagId(tag.id);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {tag.name}
-                    </Button>
-                  ))}
-                </div>
+                    {c.name}
+                  </button>
+                ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Showing {videos.length} of {totalCount} videos
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => {
-                setViewMode('grid');
-                setCurrentPage(1);
-              }}
-            >
-              <Grid className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => {
-                setViewMode('list');
-                setCurrentPage(1);
-              }}
-            >
-              <List className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Tags</p>
+              <div className="flex flex-wrap gap-1.5">
+                {tags.slice(0, 18).map((t) => (
+                  <button
+                    key={t.id}
+                    disabled={isFilterLoading}
+                    onClick={() => {
+                      setSelectedTagId(selectedTagId === t.id ? null : t.id);
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
+                      selectedTagId === t.id
+                        ? "bg-foreground text-background border-foreground"
+                        : "border-border text-muted-foreground hover:border-foreground/40"
+                    )}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </aside>
 
-        {/* Videos */}
-        {error && (
-          <Card className="border-destructive/40 bg-destructive/5">
-            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
-          </Card>
-        )}
-
-        {isLoading ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <p className="text-muted-foreground">Loading videos...</p>
-            </CardContent>
-          </Card>
-        ) : videos.length > 0 ? (
-          <>
-            <div
-              className={
-                viewMode === 'grid'
-                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                  : 'space-y-4'
-              }
-            >
-              {videos.map((video) =>
-                viewMode === 'grid' ? (
-                  <VideoCard key={video.id} video={video} onClick={() => goToVideo(video.id)} />
-                ) : (
-                  <VideoCard
-                    key={video.id}
-                    video={video}
-                    variant="compact"
-                    className="flex items-center py-0"
-                    onClick={() => goToVideo(video.id)}
+          <div className="space-y-6 text-left">
+            {(selectedCategoryId || selectedTagId || debouncedSearchTerm) && (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Filters:</span>
+                {debouncedSearchTerm && (
+                  <Chip
+                    label={`“${debouncedSearchTerm}”`}
+                    onClear={() => {
+                      setSearchTerm('');
+                      setDebouncedSearchTerm('');
+                    }}
                   />
-                )
-              )}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={!hasPreviousPage}
-                >
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={!hasNextPage}
-                >
-                  Next
-                </Button>
+                )}
+                {selectedCategoryId && (
+                  <Chip
+                    label={categories.find((c) => c.id === selectedCategoryId)?.name || ''}
+                    onClear={() => setSelectedCategoryId(null)}
+                  />
+                )}
+                {selectedTagId && (
+                  <Chip
+                    label={`#${tags.find((t) => t.id === selectedTagId)?.name || ''}`}
+                    onClear={() => setSelectedTagId(null)}
+                  />
+                )}
               </div>
             )}
-          </>
-        ) : (
-          <Card className="text-center py-12">
-            <CardContent>
-              <p className="text-muted-foreground mb-4">No videos found matching your criteria</p>
-              <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
-            </CardContent>
-          </Card>
-        )}
+
+            <p className="text-xs text-muted-foreground">
+              {totalCount} {totalCount === 1 ? "result" : "results"}
+            </p>
+
+            {error && (
+              <div className="border border-destructive/20 bg-destructive/5 rounded-md p-4 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="text-center py-20 text-sm text-muted-foreground">
+                Loading videos...
+              </div>
+            ) : videos.length > 0 ? (
+              <>
+                {viewMode === "grid" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {videos.map((video) => (
+                      <VideoCard key={video.id} video={video} onClick={() => goToVideo(video.id)} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border border-border rounded-lg overflow-hidden divide-y divide-border bg-card">
+                    {videos.map((video) => (
+                      <Link
+                        key={video.id}
+                        href={`/videos/${video.id}`}
+                        className="flex items-center gap-4 p-3 hover:bg-accent transition-colors"
+                      >
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-28 aspect-video object-cover rounded ring-1 ring-border"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold truncate text-foreground hover:text-primary transition-colors">
+                            {video.title}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            {video.uploadedBy} · {video.categories[0] || 'Uncategorized'}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-mono text-muted-foreground">
+                          {formatPlaybackDuration(video.duration)}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground">Page {currentPage} of {totalPages}</p>
+                    <div className="flex gap-1">
+                      <button
+                        disabled={!hasPreviousPage}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        className="px-3 py-1.5 text-xs border border-border rounded-md disabled:opacity-40 hover:bg-accent transition-colors"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        disabled={!hasNextPage}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        className="px-3 py-1.5 text-xs border border-border rounded-md disabled:opacity-40 hover:bg-accent transition-colors"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-20 bg-card border border-border rounded-xl">
+                <p className="text-muted-foreground text-sm mb-4">No videos found matching your criteria</p>
+                <button
+                  onClick={clearFilters}
+                  className="text-xs border border-border px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

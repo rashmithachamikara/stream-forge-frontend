@@ -21,21 +21,13 @@ import {
 } from '@/components/ui/dialog';
 import {
   Share2,
-  Bookmark,
   ListPlus,
   ThumbsUp,
   ThumbsDown,
   Eye,
   Calendar,
-  Play,
   Shield,
   Clock,
-  Globe,
-  Lock,
-  Users,
-  CheckCircle,
-  AlertCircle,
-  Loader,
 } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { ReactionSummary, ReactionType, Video, VideoProcessingStatus } from '@/features/videos/types';
@@ -60,8 +52,6 @@ const formatTime = (seconds: number) => {
 
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 };
-
-const getBookmarkTitle = (bookmark: BookmarkType) => bookmark.note || `Bookmark at ${formatTime(bookmark.timestampSeconds)}`;
 
 export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const router = useRouter();
@@ -290,18 +280,18 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     setIsReactionSaving(false);
   };
 
+  const isLiked = reactionSummary?.currentUserReaction === 'Like';
+  const isDisliked = reactionSummary?.currentUserReaction === 'Dislike';
   const canManageVideo = user?.role === 'admin' || user?.role === 'editor';
 
   if (isLoading) {
     return (
       <DashboardLayout title="Watch Video">
-        <div className="mx-auto max-w-6xl">
-          <Card className="overflow-hidden py-0">
-            <CardContent className="flex aspect-video items-center justify-center p-0 text-center">
-              <p className="text-muted-foreground">Loading video...</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="overflow-hidden py-0">
+          <CardContent className="flex aspect-video items-center justify-center p-0 text-center">
+            <p className="text-muted-foreground">Loading video...</p>
+          </CardContent>
+        </Card>
       </DashboardLayout>
     );
   }
@@ -309,16 +299,14 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   if (error || !video) {
     return (
       <DashboardLayout title="Watch Video">
-        <div className="mx-auto max-w-6xl">
-          <Card className="border-destructive/40 bg-destructive/5 py-16 text-center">
-            <CardContent className="space-y-4">
-              <p className="font-medium text-destructive">{error ?? 'Video not found'}</p>
-              <Button variant="outline" onClick={() => router.push('/videos')}>
-                Back to Library
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="border-destructive/40 bg-destructive/5 py-16 text-center">
+          <CardContent className="space-y-4">
+            <p className="font-medium text-destructive">{error ?? 'Video not found'}</p>
+            <Button variant="outline" onClick={() => router.push('/videos')}>
+              Back to Library
+            </Button>
+          </CardContent>
+        </Card>
       </DashboardLayout>
     );
   }
@@ -329,271 +317,266 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   return (
     <DashboardLayout title="Watch Video">
-      <div className="mx-auto max-w-6xl space-y-8">
-        {isVideoReady ? (
-          <VideoPlayer
-            videoId={video.id}
-            hlsUrl={video.hlsUrl}
-            title={video.title}
-            duration={video.duration}
-            bookmarks={bookmarks}
-            onBookmarkAdd={handleBookmarkAdd}
-            isBookmarkSaving={isBookmarkSaving}
-          />
-        ) : (
-          <Card className={isVideoFailed ? 'border-destructive/30 bg-destructive/5' : 'border-primary/30 bg-primary/5'}>
-            <CardContent className="flex aspect-video flex-col items-center justify-center gap-3 text-center">
-              <Clock className={isVideoFailed ? 'h-10 w-10 text-destructive' : 'h-10 w-10 text-primary'} />
-              <div>
-                <h2 className="text-xl font-semibold text-foreground">
-                  {isVideoFailed ? 'Video processing failed' : 'Video is still being processed'}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {isVideoFailed
-                    ? 'Playback is unavailable because this video could not be processed.'
-                    : 'Playback will be available once processing finishes.'}
-                </p>
-              </div>
-              {isVideoFailed ? (
-                <p className="max-w-md text-sm text-destructive">
-                  {processingStatus?.errorMessage || 'No processing error details are available.'}
-                </p>
-              ) : (
-                <div className="w-full max-w-md space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>{processingStatus?.jobType || 'Video processing'}</span>
-                    <span>
-                      {processingStatus?.progress !== null && processingStatus?.progress !== undefined
-                        ? `${processingStatus.progress}%`
-                        : 'Pending'}
-                    </span>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+          <div className="space-y-6">
+            {isVideoReady ? (
+              <VideoPlayer
+                videoId={video.id}
+                hlsUrl={video.hlsUrl}
+                title={video.title}
+                duration={video.duration}
+                bookmarks={bookmarks}
+                onBookmarkAdd={handleBookmarkAdd}
+                isBookmarkSaving={isBookmarkSaving}
+              />
+            ) : (
+              <Card className={isVideoFailed ? 'border-destructive/30 bg-destructive/5' : 'border-primary/30 bg-primary/5'}>
+                <CardContent className="flex aspect-video flex-col items-center justify-center gap-3 text-center">
+                  <Clock className={isVideoFailed ? 'h-10 w-10 text-destructive' : 'h-10 w-10 text-primary'} />
+                  <div>
+                    <h2 className="text-xl font-semibold text-foreground">
+                      {isVideoFailed ? 'Video processing failed' : 'Video is still being processed'}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {isVideoFailed
+                        ? 'Playback is unavailable because this video could not be processed.'
+                        : 'Playback will be available once processing finishes.'}
+                    </p>
                   </div>
-                    <Progress value={processingProgress} className="h-3" />
+                  {isVideoFailed ? (
+                    <p className="max-w-md text-sm text-destructive">
+                      {processingStatus?.errorMessage || 'No processing error details are available.'}
+                    </p>
+                  ) : (
+                    <div className="w-full max-w-md space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>{processingStatus?.jobType || 'Video processing'}</span>
+                        <span>
+                          {processingStatus?.progress !== null && processingStatus?.progress !== undefined
+                            ? `${processingStatus.progress}%`
+                            : 'Pending'}
+                        </span>
+                      </div>
+                      <Progress value={processingProgress} className="h-3" />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-foreground">{video.title}</h1>
+
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <InitialsAvatar name={video.uploadedBy} />
+                  <div>
+                    <p className="text-sm font-semibold leading-tight text-foreground">{video.uploadedBy}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Uploaded {video.uploadedAt.toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
-        <div className="space-y-6">
-          <div>
-            <h1 className="mb-4 text-3xl font-bold text-foreground">{video.title}</h1>
+                <div className="ml-auto flex flex-wrap items-center gap-1 text-xs">
+                  {video.allowLikes !== false && (
+                    <>
+                      <button
+                        onClick={() => void handleReaction('Like')}
+                        disabled={isReactionSaving}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 cursor-pointer ${
+                          isLiked ? 'bg-accent font-semibold' : 'bg-transparent'
+                        }`}
+                      >
+                        <ThumbsUp className={`size-3.5 ${isLiked ? 'fill-current' : ''}`} />
+                        <span className="font-mono">{reactionSummary?.likeCount ?? 0}</span>
+                      </button>
+                      <button
+                        onClick={() => void handleReaction('Dislike')}
+                        disabled={isReactionSaving}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 cursor-pointer ${
+                          isDisliked ? 'bg-accent font-semibold' : 'bg-transparent'
+                        }`}
+                      >
+                        <ThumbsDown className={`size-3.5 ${isDisliked ? 'fill-current' : ''}`} />
+                        <span className="font-mono">{reactionSummary?.dislikeCount ?? 0}</span>
+                      </button>
+                    </>
+                  )}
+                  {video.allowBookmarks !== false && (
+                    <Dialog open={isPlaylistDialogOpen} onOpenChange={(open) => void handlePlaylistDialogChange(open)}>
+                      <DialogTrigger asChild>
+                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer">
+                          <ListPlus className="size-3.5" />
+                          Save
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="border border-border bg-background sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Save to Playlist</DialogTitle>
+                          <DialogDescription>
+                            Choose a playlist to save this video for later.
+                          </DialogDescription>
+                        </DialogHeader>
 
-            <div className="flex flex-wrap items-center justify-between gap-4 border-y border-border py-4">
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1 font-mono">
-                  <Eye className="h-4 w-4" />
-                  {video.views} views
-                </span>
-                <span className="flex items-center gap-1 font-mono">
-                  <Calendar className="h-4 w-4" />
-                  {video.uploadedAt.toLocaleDateString()}
-                </span>
-                {video.updatedAt && (
-                  <span className="flex items-center gap-1 font-mono">
-                    <Clock className="h-4 w-4" />
-                    Updated {video.updatedAt.toLocaleDateString()}
-                  </span>
-                )}
+                        {isPlaylistsLoading ? (
+                          <div className="py-6 text-sm text-muted-foreground">Loading playlists...</div>
+                        ) : playlists.length > 0 ? (
+                          <div className="space-y-3">
+                            {playlists.map((playlist) => (
+                              <button
+                                key={playlist.id}
+                                type="button"
+                                className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition hover:bg-muted animate-none duration-0 cursor-pointer"
+                                onClick={() => void handleAddToPlaylist(playlist.id)}
+                                disabled={isPlaylistSaving}
+                              >
+                                <div>
+                                  <p className="font-medium text-foreground">{playlist.name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {playlist.videoCount} videos, {playlist.visibility.toLowerCase()}
+                                  </p>
+                                </div>
+                                <span className="text-sm text-primary">
+                                  {isPlaylistSaving ? 'Saving...' : 'Add'}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-3 py-2">
+                            <p className="text-sm text-muted-foreground">
+                              You do not have any playlists yet.
+                            </p>
+                            <Button onClick={() => router.push('/playlists')}>Go to Playlists</Button>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer">
+                    <Share2 className="size-3.5" />
+                    Share
+                  </button>
+                  {canManageVideo && (
+                    <button
+                      onClick={() => router.push(`/videos/${video.id}/manage`)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer"
+                    >
+                      <Shield className="size-3.5" />
+                      Manage
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                {video.allowLikes !== false && (
-                  <>
-                    <Button
-                      variant={reactionSummary?.currentUserReaction === 'Like' ? 'default' : 'outline'}
-                      className="gap-2"
-                      onClick={() => void handleReaction('Like')}
-                      disabled={isReactionSaving}
-                    >
-                      <ThumbsUp className="h-4 w-4" />
-                      Like {reactionSummary ? `(${reactionSummary.likeCount})` : ''}
-                    </Button>
-                    <Button
-                      variant={reactionSummary?.currentUserReaction === 'Dislike' ? 'default' : 'outline'}
-                      className="gap-2"
-                      onClick={() => void handleReaction('Dislike')}
-                      disabled={isReactionSaving}
-                    >
-                      <ThumbsDown className="h-4 w-4" />
-                      Dislike {reactionSummary ? `(${reactionSummary.dislikeCount})` : ''}
-                    </Button>
-                  </>
-                )}
-                {video.allowBookmarks !== false && (
-                  <Dialog open={isPlaylistDialogOpen} onOpenChange={(open) => void handlePlaylistDialogChange(open)}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="gap-2 bg-transparent">
-                        <ListPlus className="h-4 w-4" />
-                        Save
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="border border-border bg-background sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Save to Playlist</DialogTitle>
-                        <DialogDescription>
-                          Choose a playlist to save this video for later.
-                        </DialogDescription>
-                      </DialogHeader>
-
-                      {isPlaylistsLoading ? (
-                        <div className="py-6 text-sm text-muted-foreground">Loading playlists...</div>
-                      ) : playlists.length > 0 ? (
-                        <div className="space-y-3">
-                          {playlists.map((playlist) => (
-                            <button
-                              key={playlist.id}
-                              type="button"
-                              className="flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition hover:bg-muted"
-                              onClick={() => void handleAddToPlaylist(playlist.id)}
-                              disabled={isPlaylistSaving}
-                            >
-                              <div>
-                                <p className="font-medium text-foreground">{playlist.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {playlist.videoCount} videos, {playlist.visibility.toLowerCase()}
-                                </p>
-                              </div>
-                              <span className="text-sm text-primary">
-                                {isPlaylistSaving ? 'Saving...' : 'Add'}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="space-y-3 py-2">
-                          <p className="text-sm text-muted-foreground">
-                            You do not have any playlists yet.
-                          </p>
-                          <Button onClick={() => router.push('/playlists')}>Go to Playlists</Button>
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                )}
-                <Button variant="outline" className="gap-2 bg-transparent">
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
-                {canManageVideo && (
-                  <Button
-                    variant="outline"
-                    className="gap-2 bg-transparent"
-                    onClick={() => router.push(`/videos/${video.id}/manage`)}
-                  >
-                    <Shield className="h-4 w-4" />
-                    Manage
-                  </Button>
-                )}
-              </div>
+              <p className="text-[11px] text-muted-foreground mt-3 font-mono">
+                {video.views} views · {video.categories[0] ? capitalize(video.categories[0]) : 'Uncategorized'} · {video.tags.map((tag) => `#${tag}`).join(' ')}
+              </p>
             </div>
 
-            <div className="mt-6 flex items-center gap-3 rounded-lg bg-muted p-4">
-              <InitialsAvatar name={video.uploadedBy} />
-              <div className="flex-1">
-                <p className="font-medium text-foreground">{video.uploadedBy}</p>
-                <p className="text-xs text-muted-foreground">
-                  Video uploaded on {video.uploadedAt.toLocaleDateString()}
-                </p>
-              </div>
-            </div>
+            {bookmarkMessage && (
+              <Card className="border-chart-5/30 bg-chart-5/10">
+                <CardContent className="py-3 text-sm text-foreground">{bookmarkMessage}</CardContent>
+              </Card>
+            )}
 
-            <div className="mt-6">
-              <h2 className="mb-2 font-semibold text-foreground">About this video</h2>
-              <p className="text-muted-foreground">{video.description}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
+            {playlistMessage && (
+              <Card className="border-chart-5/30 bg-chart-5/10">
+                <CardContent className="py-3 text-sm text-foreground">{playlistMessage}</CardContent>
+              </Card>
+            )}
+
+            <div className="space-y-4 text-foreground">
+              <p className="text-sm leading-relaxed">{video.description}</p>
+              <div className="flex flex-wrap gap-2">
                 <VideoVisibilityBadge visibility={video.visibility} />
-
-                {video.status && <VideoStatusBadge status={video.status} />}
-
-                {video.categories.map((category) => (
+                {video.status ? <VideoStatusBadge status={video.status} /> : null}
+                {video.categories.slice(1).map((category) => (
                   <Badge key={category} variant="secondary">
                     {capitalize(category)}
                   </Badge>
                 ))}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {video.tags.map((tag) => (
+                {video.tags.slice(3).map((tag) => (
                   <Badge key={tag} variant="outline">
                     #{capitalize(tag)}
                   </Badge>
                 ))}
               </div>
             </div>
+
+            {processingStatus && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle>Processing Status</CardTitle>
+                  <CardDescription>{processingStatus.jobStatus || processingStatus.videoStatus}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {processingStatus.progress !== null && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>{processingStatus.jobType || 'Video processing'}</span>
+                        <span className="font-mono">{processingStatus.progress}%</span>
+                      </div>
+                      <Progress value={processingStatus.progress} className="h-3" />
+                    </div>
+                  )}
+                  {processingStatus.errorMessage && (
+                    <p className="text-sm text-destructive">{processingStatus.errorMessage}</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {video.allowComments !== false && (
+              <CommentsSection
+                videoId={video.id}
+                currentUserId={user?.id}
+                showCard={false}
+                showDescription={false}
+              />
+            )}
           </div>
 
-          {bookmarkMessage && (
-            <Card className="border-chart-5/30 bg-chart-5/10">
-              <CardContent className="py-3 text-sm text-foreground">{bookmarkMessage}</CardContent>
-            </Card>
-          )}
-
-          {playlistMessage && (
-            <Card className="border-chart-5/30 bg-chart-5/10">
-              <CardContent className="py-3 text-sm text-foreground">{playlistMessage}</CardContent>
-            </Card>
-          )}
-
-          {bookmarks.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Bookmarks</CardTitle>
-                <CardDescription>Saved timestamps for this video.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {bookmarks.map((bookmark) => (
-                  <div key={bookmark.id} className="flex items-center justify-between rounded-lg border bg-muted/40 p-3">
-                    <div>
-                      <p className="font-medium text-foreground">{getBookmarkTitle(bookmark)}</p>
-                      <p className="text-xs text-muted-foreground">{formatTime(bookmark.timestampSeconds)}</p>
+          <aside className="space-y-6">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-widest mb-3 text-muted-foreground">Related Videos</h3>
+              <div className="space-y-4">
+                {relatedVideos.map((relatedVideo) => (
+                  <button
+                    key={relatedVideo.id}
+                    onClick={() => router.push(`/videos/${relatedVideo.id}`)}
+                    className="flex gap-3 text-left w-full group cursor-pointer"
+                  >
+                    <div className="relative w-32 aspect-video shrink-0 rounded ring-1 ring-border overflow-hidden bg-black">
+                      <img
+                        src={relatedVideo.thumbnail || '/placeholder.png'}
+                        alt={relatedVideo.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {relatedVideo.duration !== undefined && (
+                        <div className="absolute bottom-1 right-1 bg-black/80 px-1 py-0.5 text-[9px] font-mono text-white rounded">
+                          {formatTime(relatedVideo.duration)}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                        {relatedVideo.title}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                        {relatedVideo.uploadedBy} · {relatedVideo.views} views
+                      </p>
+                    </div>
+                  </button>
                 ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {processingStatus && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="text-lg">Processing Status</CardTitle>
-                <CardDescription>{processingStatus.jobStatus || processingStatus.videoStatus}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {processingStatus.progress !== null && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>{processingStatus.jobType || 'Video processing'}</span>
-                      <span>{processingStatus.progress}%</span>
-                    </div>
-                    <Progress value={processingStatus.progress} className="h-3" />
-                  </div>
+                {relatedVideos.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No related videos found.</p>
                 )}
-                {processingStatus.errorMessage && (
-                  <p className="text-sm text-destructive">{processingStatus.errorMessage}</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {video.allowComments !== false && (
-            <CommentsSection videoId={video.id} currentUserId={user?.id} />
-          )}
-
-          <div>
-            <h2 className="mb-4 text-2xl font-bold text-foreground">Related Videos</h2>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {relatedVideos.map((relatedVideo) => (
-                <VideoCard
-                  key={relatedVideo.id}
-                  video={relatedVideo}
-                  onClick={() => router.push(`/videos/${relatedVideo.id}`)}
-                />
-              ))}
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
-      </div>
-    </DashboardLayout>
-  );
+      </DashboardLayout>
+    );
 }
