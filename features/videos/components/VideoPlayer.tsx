@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Hls from 'hls.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { AnalyticsEventType } from '@/features/admin/types';
 import { apiClient } from '@/shared/lib/api';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Kbd } from '@/components/ui/kbd';
 import {
   Play,
   Pause,
@@ -93,6 +95,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [showSettings, setShowSettings] = useState(false);
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [seekIndicator, setSeekIndicator] = useState<string | null>(null);
+  const [showSeekIndicator, setShowSeekIndicator] = useState(false);
+  const seekIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const accumulatedSeekRef = useRef<number>(0);
+
+  const [volumeIndicator, setVolumeIndicator] = useState<string | null>(null);
+  const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
+  const volumeIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const volumeIndicatorRef = useRef<string | null>(null);
+
+  const setVolumeIndicatorWithRef = (val: string | null) => {
+    volumeIndicatorRef.current = val;
+    setVolumeIndicator(val);
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -203,9 +219,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     hlsRef.current.nextLevel = Number(value);
   };
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (videoRef.current) {
-      if (isPlaying) {
+      if (!videoRef.current.paused) {
         videoRef.current.pause();
       } else {
         videoRef.current.play().catch(() => {
@@ -213,21 +229,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         });
       }
     }
-  };
+  }, []);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
     }
-  };
+  }, []);
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) {
       return;
     }
 
-    if (!isFullscreen) {
+    const isCurrentlyFullscreen = document.fullscreenElement === containerRef.current;
+    if (!isCurrentlyFullscreen) {
       if (containerRef.current.requestFullscreen) {
         void containerRef.current.requestFullscreen();
         setIsFullscreen(true);
@@ -236,17 +253,90 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       void document.exitFullscreen();
       setIsFullscreen(false);
     }
-  };
+  }, []);
 
-  const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const startSeekIndicator = useCallback((seconds: number) => {
+    if (seekIndicatorTimeoutRef.current) {
+      clearTimeout(seekIndicatorTimeoutRef.current);
+      seekIndicatorTimeoutRef.current = null;
+    }
+    
+    const isNewSeek = accumulatedSeekRef.current === 0;
+    accumulatedSeekRef.current += seconds;
+    const sign = accumulatedSeekRef.current > 0 ? '+' : '';
+    const text = `${sign}${accumulatedSeekRef.current}s`;
+    
+    setSeekIndicator(text);
+    
+    if (isNewSeek) {
+      setShowSeekIndicator(false);
+      // Brief timeout to trigger the entry transition
+      setTimeout(() => {
+        setShowSeekIndicator(true);
+      }, 10);
+    } else {
+      setShowSeekIndicator(true);
+    }
+  }, []);
+
+  const releaseSeekIndicator = useCallback(() => {
+    if (seekIndicatorTimeoutRef.current) {
+      clearTimeout(seekIndicatorTimeoutRef.current);
+    }
+    
+    seekIndicatorTimeoutRef.current = setTimeout(() => {
+      setShowSeekIndicator(false);
+      seekIndicatorTimeoutRef.current = setTimeout(() => {
+        setSeekIndicator(null);
+        accumulatedSeekRef.current = 0;
+        seekIndicatorTimeoutRef.current = null;
+      }, 150); // Matches transition duration
+    }, 350); // Visible time before fade out begins
+  }, []);
+
+  const startVolumeIndicator = useCallback((vol: number, muted: boolean) => {
+    if (volumeIndicatorTimeoutRef.current) {
+      clearTimeout(volumeIndicatorTimeoutRef.current);
+      volumeIndicatorTimeoutRef.current = null;
+    }
+    
+    const displayVol = (muted || vol === 0) ? 'Muted' : `Volume: ${Math.round(vol * 100)}%`;
+    const isNew = volumeIndicatorRef.current === null;
+    setVolumeIndicatorWithRef(displayVol);
+    
+    if (isNew) {
+      setShowVolumeIndicator(false);
+      setTimeout(() => {
+        setShowVolumeIndicator(true);
+      }, 10);
+    } else {
+      setShowVolumeIndicator(true);
+    }
+  }, []);
+
+  const releaseVolumeIndicator = useCallback(() => {
+    if (volumeIndicatorTimeoutRef.current) {
+      clearTimeout(volumeIndicatorTimeoutRef.current);
+    }
+    
+    volumeIndicatorTimeoutRef.current = setTimeout(() => {
+      setShowVolumeIndicator(false);
+      volumeIndicatorTimeoutRef.current = setTimeout(() => {
+        setVolumeIndicatorWithRef(null);
+        volumeIndicatorTimeoutRef.current = null;
+      }, 150); // Matches transition duration
+    }, 350); // Visible time before fade out begins
+  }, []);
+
+  const handleVolumeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(event.target.value);
     setVolume(newVolume);
     if (videoRef.current) {
       videoRef.current.volume = newVolume;
     }
-  };
+  }, []);
 
-  const handleTimeUpdate = () => {
+  const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) {
       const nextTime = videoRef.current.currentTime;
       const delta = nextTime - lastPlaybackPositionRef.current;
@@ -258,28 +348,29 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       lastPlaybackPositionRef.current = nextTime;
       setCurrentTime(nextTime);
     }
-  };
+  }, [isPlaying]);
 
-  const handleProgressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProgressChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(event.target.value);
     if (videoRef.current) {
       videoRef.current.currentTime = newTime;
       setCurrentTime(newTime);
       lastPlaybackPositionRef.current = newTime;
     }
-  };
+  }, []);
 
-  const handleMouseMove = () => {
+  const handleMouseMove = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
-    if (isPlaying) {
+    const isCurrentlyPlaying = videoRef.current ? !videoRef.current.paused : false;
+    if (isCurrentlyPlaying) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false);
       }, 3000);
     }
-  };
+  }, []);
 
   const handleAddBookmark = () => {
     if (onBookmarkAdd) {
@@ -355,6 +446,141 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, [videoId]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const active = document.activeElement;
+      if (
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.hasAttribute('contenteditable'))
+      ) {
+        return;
+      }
+
+      const video = videoRef.current;
+      if (!video) return;
+
+      switch (event.key) {
+        case ' ':
+        case 'k':
+        case 'K':
+          event.preventDefault();
+          togglePlay();
+          handleMouseMove();
+          break;
+        case 'm':
+        case 'M':
+          event.preventDefault();
+          toggleMute();
+          startVolumeIndicator(video.volume, video.muted);
+          handleMouseMove();
+          break;
+        case 'f':
+        case 'F':
+          event.preventDefault();
+          toggleFullscreen();
+          handleMouseMove();
+          break;
+        case 'b':
+        case 'B':
+          event.preventDefault();
+          setShowBookmarksPanel((prev) => !prev);
+          handleMouseMove();
+          break;
+        case 'ArrowLeft':
+        case 'j':
+        case 'J':
+          event.preventDefault();
+          const seekBackTime = Math.max(0, video.currentTime - 5);
+          video.currentTime = seekBackTime;
+          setCurrentTime(seekBackTime);
+          lastPlaybackPositionRef.current = seekBackTime;
+          startSeekIndicator(-5);
+          handleMouseMove();
+          break;
+        case 'ArrowRight':
+        case 'l':
+        case 'L':
+          event.preventDefault();
+          const seekForwardTime = Math.min(video.duration || duration, video.currentTime + 5);
+          video.currentTime = seekForwardTime;
+          setCurrentTime(seekForwardTime);
+          lastPlaybackPositionRef.current = seekForwardTime;
+          startSeekIndicator(5);
+          handleMouseMove();
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          if (video.muted) {
+            video.muted = false;
+            setIsMuted(false);
+          }
+          const volumeUp = Math.min(1, video.volume + 0.1);
+          video.volume = volumeUp;
+          setVolume(volumeUp);
+          startVolumeIndicator(volumeUp, false);
+          handleMouseMove();
+          break;
+        case 'ArrowDown':
+          event.preventDefault();
+          if (video.muted) {
+            video.muted = false;
+            setIsMuted(false);
+          }
+          const volumeDown = Math.max(0, video.volume - 0.1);
+          video.volume = volumeDown;
+          setVolume(volumeDown);
+          startVolumeIndicator(volumeDown, false);
+          handleMouseMove();
+          break;
+        default:
+          break;
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const active = document.activeElement;
+      if (
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.hasAttribute('contenteditable'))
+      ) {
+        return;
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+        case 'ArrowRight':
+        case 'j':
+        case 'J':
+        case 'l':
+        case 'L':
+          event.preventDefault();
+          releaseSeekIndicator();
+          break;
+        case 'ArrowUp':
+        case 'ArrowDown':
+        case 'm':
+        case 'M':
+          event.preventDefault();
+          releaseVolumeIndicator();
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [duration, togglePlay, toggleMute, toggleFullscreen, handleMouseMove, startSeekIndicator, releaseSeekIndicator, startVolumeIndicator, releaseVolumeIndicator]);
+
   const displayDuration = mediaDuration > 0 ? mediaDuration : duration;
   const progressPercent = displayDuration > 0 ? (currentTime / displayDuration) * 100 : 0;
 
@@ -388,6 +614,31 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onSeeked={handleSeeked}
         onEnded={handleEnded}
       />
+
+      {seekIndicator && (
+        <div className={`absolute inset-0 flex items-center pointer-events-none z-20 transition-all duration-150 ease-out ${
+          seekIndicator.startsWith('-') ? 'justify-start pl-[20%]' : 'justify-end pr-[20%]'
+        } ${showSeekIndicator ? 'opacity-100 scale-100' : 'opacity-0 scale-98'}`}>
+          <div className="px-4 py-2 rounded-full bg-zinc-950/75 border border-white/10 text-xs font-mono font-bold text-white backdrop-blur-sm shadow-md">
+            {seekIndicator}
+          </div>
+        </div>
+      )}
+
+      {volumeIndicator && (
+        <div className={`absolute inset-x-0 top-12 flex justify-center pointer-events-none z-20 transition-all duration-150 ease-out ${
+          showVolumeIndicator ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-98 -translate-y-1'
+        }`}>
+          <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-zinc-950/75 border border-white/10 text-xs font-mono font-bold text-white backdrop-blur-sm shadow-md">
+            {volumeIndicator === 'Muted' ? (
+              <VolumeX className="h-3.5 w-3.5 text-red-400" />
+            ) : (
+              <Volume2 className="h-3.5 w-3.5 text-primary" />
+            )}
+            <span>{volumeIndicator}</span>
+          </div>
+        </div>
+      )}
 
       {showBookmarksPanel && (
         <div className="absolute top-3 right-3 bottom-3 z-30 flex w-full max-w-sm flex-col border border-border bg-card/75 backdrop-blur-md text-foreground shadow-2xl sm:w-80 rounded-lg">
@@ -504,20 +755,36 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         {/* Buttons Row */}
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
-            <button
-              className="h-8 w-8 text-white hover:text-white/80 rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
-              onClick={togglePlay}
-            >
-              {isPlaying ? <Pause className="h-4 w-4 fill-white" /> : <Play className="h-4 w-4 fill-white ml-0.5" />}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="h-8 w-8 text-white hover:text-white/80 rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
+                  onClick={togglePlay}
+                >
+                  {isPlaying ? <Pause className="h-4 w-4 fill-white" /> : <Play className="h-4 w-4 fill-white ml-0.5" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center" className="flex items-center gap-1.5 font-sans">
+                <span>{isPlaying ? "Pause" : "Play"}</span>
+                <Kbd>K</Kbd>
+              </TooltipContent>
+            </Tooltip>
 
             <div className="group flex items-center gap-1.5">
-              <button
-                className="h-8 w-8 text-white hover:text-white/80 rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
-                onClick={toggleMute}
-              >
-                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="h-8 w-8 text-white hover:text-white/80 rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
+                    onClick={toggleMute}
+                  >
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="center" className="flex items-center gap-1.5 font-sans">
+                  <span>{isMuted ? "Unmute" : "Mute"}</span>
+                  <Kbd>M</Kbd>
+                </TooltipContent>
+              </Tooltip>
               <input
                 type="range"
                 min="0"
@@ -540,34 +807,55 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-white/90 hover:text-white rounded border border-white/20 hover:bg-white/5 transition-colors cursor-pointer bg-transparent"
-              onClick={() => {
-                setShowBookmarksPanel((isOpen) => !isOpen);
-                setShowControls(true);
-              }}
-            >
-              <Bookmark className="h-3.5 w-3.5" />
-              <span className="font-mono text-[10px] tracking-tight">{bookmarks.length} Bookmarks</span>
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-white/90 hover:text-white rounded border border-white/20 hover:bg-white/5 transition-colors cursor-pointer bg-transparent"
+                  onClick={() => {
+                    setShowBookmarksPanel((isOpen) => !isOpen);
+                    setShowControls(true);
+                  }}
+                >
+                  <Bookmark className="h-3.5 w-3.5" />
+                  <span className="font-mono text-[10px] tracking-tight">{bookmarks.length} Bookmarks</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center" className="flex items-center gap-1.5 font-sans">
+                <span>Bookmarks</span>
+                <Kbd>B</Kbd>
+              </TooltipContent>
+            </Tooltip>
 
-            <button
-              className="h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
-              title="Share video"
-            >
-              <Share2 className="h-4 w-4" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center" className="font-sans">
+                <span>Share Video</span>
+              </TooltipContent>
+            </Tooltip>
 
             <div className="relative">
-              <button
-                className={`h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0 ${showSettings ? 'text-white bg-white/10' : ''}`}
-                onClick={() => {
-                  setShowSettings((isOpen) => !isOpen);
-                  setShowControls(true);
-                }}
-              >
-                <Settings className="h-4 w-4" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className={`h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0 ${showSettings ? 'text-white bg-white/10' : ''}`}
+                    onClick={() => {
+                      setShowSettings((isOpen) => !isOpen);
+                      setShowControls(true);
+                    }}
+                  >
+                    <Settings className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="center" className="font-sans">
+                  <span>Settings</span>
+                </TooltipContent>
+              </Tooltip>
 
               {showSettings && (
                 <div
@@ -614,12 +902,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
             </div>
 
-            <button
-              className="h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
-              onClick={toggleFullscreen}
-            >
-              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
+                  onClick={toggleFullscreen}
+                >
+                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center" className="flex items-center gap-1.5 font-sans">
+                <span>{isFullscreen ? "Exit Fullscreen" : "Fullscreen"}</span>
+                <Kbd>F</Kbd>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
