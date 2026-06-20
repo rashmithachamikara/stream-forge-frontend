@@ -29,6 +29,8 @@ interface VideoPlayerProps {
   bookmarks?: BookmarkType[];
   onBookmarkAdd?: (timestamp: number, note?: string) => void;
   isBookmarkSaving?: boolean;
+  onEnded?: () => void;
+  autoPlay?: boolean;
 }
 
 type QualityOption = {
@@ -69,6 +71,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   bookmarks = [],
   onBookmarkAdd,
   isBookmarkSaving = false,
+  onEnded,
+  autoPlay,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -172,6 +176,32 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeAttribute('src');
       video.load();
     };
+  }, [hlsUrl]);
+
+  const autoPlayRef = useRef(autoPlay);
+  useEffect(() => {
+    autoPlayRef.current = autoPlay;
+  }, [autoPlay]);
+
+  useEffect(() => {
+    if (autoPlayRef.current && videoRef.current) {
+      const handleCanPlay = () => {
+        videoRef.current?.play().catch((err) => {
+          console.warn('Autoplay failed:', err);
+        });
+      };
+
+      const videoElement = videoRef.current;
+      videoElement.addEventListener('canplay', handleCanPlay);
+
+      if (videoElement.readyState >= 2) {
+        handleCanPlay();
+      }
+
+      return () => {
+        videoElement.removeEventListener('canplay', handleCanPlay);
+      };
+    }
   }, [hlsUrl]);
 
   const sendAnalyticsEvent = (eventType: AnalyticsEventType) => {
@@ -418,6 +448,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const handleEnded = () => {
     setIsPlaying(false);
     sendAnalyticsEvent('Complete');
+    if (onEnded) {
+      onEnded();
+    }
   };
 
   useEffect(() => {

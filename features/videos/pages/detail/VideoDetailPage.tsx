@@ -1,16 +1,17 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
 import { CommentsSection } from '@/features/videos/components/CommentsSection';
 import { apiClient } from '@/shared/lib/api';
-import { capitalize } from '@/shared/lib/utils';
+import { capitalize, cn } from '@/shared/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,25 @@ const formatTime = (seconds: number) => {
 
 export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const playlistId = searchParams.get('playlistId');
+  const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
+  const [autoplay, setAutoplay] = useState(true);
+  const [isAutoplayLoaded, setIsAutoplayLoaded] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('streamforge_playlist_autoplay');
+    if (stored !== null) {
+      setAutoplay(stored === 'true');
+    }
+    setIsAutoplayLoaded(true);
+  }, []);
+
+  const handleAutoplayChange = (value: boolean) => {
+    setAutoplay(value);
+    localStorage.setItem('streamforge_playlist_autoplay', String(value));
+  };
   const { user } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
@@ -115,6 +135,38 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
     return videoResponse.data ?? null;
   }, [videoId]);
+
+  useEffect(() => {
+    if (!playlistId) {
+      setPlaylist(null);
+      setPlaylistVideos([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadPlaylistQueue = async () => {
+      const [playlistRes, videosRes] = await Promise.all([
+        apiClient.getPlaylistById(playlistId),
+        apiClient.getPlaylistVideos(playlistId, { page: 1, pageSize: 100 }),
+      ]);
+
+      if (!isMounted) return;
+
+      if (playlistRes.success && playlistRes.data) {
+        setPlaylist(playlistRes.data);
+      }
+      if (videosRes.success && videosRes.data) {
+        setPlaylistVideos(videosRes.data.videos.items);
+      }
+    };
+
+    void loadPlaylistQueue();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [playlistId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -280,6 +332,16 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     setIsReactionSaving(false);
   };
 
+  const handlePlaylistVideoEnded = useCallback(() => {
+    if (!autoplay || !playlistId || playlistVideos.length === 0) return;
+
+    const currentIndex = playlistVideos.findIndex((v) => v.id === videoId);
+    if (currentIndex !== -1 && currentIndex + 1 < playlistVideos.length) {
+      const nextVideo = playlistVideos[currentIndex + 1];
+      router.push(`/videos/${nextVideo.id}?playlistId=${playlistId}`);
+    }
+  }, [autoplay, playlistId, playlistVideos, videoId, router]);
+
   const isLiked = reactionSummary?.currentUserReaction === 'Like';
   const isDisliked = reactionSummary?.currentUserReaction === 'Dislike';
   const canManageVideo = user?.role === 'admin' || user?.role === 'editor';
@@ -328,6 +390,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 bookmarks={bookmarks}
                 onBookmarkAdd={handleBookmarkAdd}
                 isBookmarkSaving={isBookmarkSaving}
+                onEnded={handlePlaylistVideoEnded}
+                autoPlay={isAutoplayLoaded && autoplay && !!playlistId}
               />
             ) : (
               <Card className={isVideoFailed ? 'border-destructive/30 bg-destructive/5' : 'border-primary/30 bg-primary/5'}>
@@ -539,6 +603,75 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
           </div>
 
           <aside className="space-y-6">
+            {playlistId && playlist && (
+              <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                <div className="border-b border-border pb-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Playlist Queue</h3>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-mono">Autoplay</span>
+                        <Switch
+                          checked={isAutoplayLoaded ? autoplay : true}
+                          onCheckedChange={handleAutoplayChange}
+                          className="scale-75 origin-left"
+                        />
+                      </div>
+                      <span className="text-[10px] font-mono text-foreground/80 bg-muted px-1.5 py-0.5 rounded shrink-0">
+                        {playlistVideos.length} videos
+                      </span>
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate text-foreground">{playlist.name}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                  {playlistVideos.map((pv, idx) => {
+                    const isActive = pv.id === videoId;
+                    return (
+                      <button
+                        key={pv.id}
+                        onClick={() => router.push(`/videos/${pv.id}?playlistId=${playlistId}`)}
+                        className={cn(
+                          'w-full text-left flex items-center gap-3 p-2 rounded transition-colors group cursor-pointer',
+                          isActive ? 'bg-accent/80' : 'hover:bg-accent/45'
+                        )}
+                      >
+                        <span className="text-[10px] font-mono text-muted-foreground w-4 text-right shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="relative w-16 aspect-video shrink-0 rounded ring-1 ring-border overflow-hidden bg-black">
+                          <img
+                            src={pv.thumbnail || '/placeholder.png'}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={cn(
+                              'text-xs leading-snug line-clamp-1 font-semibold truncate',
+                              isActive ? 'text-primary' : 'text-foreground group-hover:text-primary transition-colors'
+                            )}
+                          >
+                            {pv.title}
+                          </p>
+                          <p className={cn(
+                            'text-[9px] truncate mt-0.5',
+                            isActive ? 'text-foreground/75' : 'text-muted-foreground'
+                          )}>
+                            {pv.uploadedBy}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div>
               <h3 className="text-xs font-bold uppercase tracking-widest mb-3 text-muted-foreground">Related Videos</h3>
               <div className="space-y-4">

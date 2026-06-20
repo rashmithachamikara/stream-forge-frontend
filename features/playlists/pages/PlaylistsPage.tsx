@@ -481,12 +481,15 @@ export default function PlaylistsPage() {
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold truncate pr-2">{playlist.name}</p>
                       {playlist.visibility === 'Public' ? (
-                        <Globe className="size-3.5 text-muted-foreground shrink-0" />
+                        <Globe className={cn('size-3.5 shrink-0', selectedPlaylist?.id === playlist.id ? 'text-foreground/70' : 'text-muted-foreground')} />
                       ) : (
-                        <Lock className="size-3.5 text-muted-foreground shrink-0" />
+                        <Lock className={cn('size-3.5 shrink-0', selectedPlaylist?.id === playlist.id ? 'text-foreground/70' : 'text-muted-foreground')} />
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                    <p className={cn(
+                      'text-[11px] mt-0.5 font-mono',
+                      selectedPlaylist?.id === playlist.id ? 'text-foreground/70' : 'text-muted-foreground'
+                    )}>
                       {playlist.videoCount} videos · {formatRelativeDate(playlist.updatedAt)}
                     </p>
                   </button>
@@ -530,7 +533,7 @@ export default function PlaylistsPage() {
             {selectedPlaylist ? (
               <>
                 {/* Playlist Info Box */}
-                <div className="bg-card border border-border rounded-xl p-6">
+                <div className="bg-card border border-border rounded-lg p-6">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Playlist</p>
@@ -568,7 +571,7 @@ export default function PlaylistsPage() {
                       onClick={() => {
                         const firstVideo = playlistVideosPage?.videos.items[0];
                         if (firstVideo) {
-                          router.push(`/videos/${firstVideo.id}`);
+                          router.push(`/videos/${firstVideo.id}?playlistId=${selectedPlaylist.id}`);
                         }
                       }}
                       disabled={!playlistVideosPage || playlistVideosPage.videos.items.length === 0}
@@ -576,7 +579,7 @@ export default function PlaylistsPage() {
                     >
                       <Play className="size-3.5 fill-current" /> Play all
                     </Button>
-                    <span className="text-[11px] text-muted-foreground font-mono">
+                    <span className="text-[11px] text-foreground/85 font-mono">
                       {selectedPlaylist.videoCount} videos
                     </span>
                   </div>
@@ -600,7 +603,7 @@ export default function PlaylistsPage() {
                             </span>
 
                             <div
-                              onClick={() => router.push(`/videos/${video.id}`)}
+                              onClick={() => router.push(`/videos/${video.id}?playlistId=${selectedPlaylist.id}`)}
                               className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                             >
                               <img
