@@ -4,11 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
-import { Grid3x3, List, Search, X, Plus } from 'lucide-react';
+import { Grid3x3, List, Search, X, Plus, VideoOff, SearchSlash } from 'lucide-react';
 import { apiClient } from '@/shared/lib/api';
 import { Category, TagSummary, Video } from '@/features/videos/types';
 import { VideoCard } from '@/features/videos/components/VideoCard';
 import { cn } from '@/shared/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
 
 const formatPlaybackDuration = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -35,11 +36,14 @@ function Chip({ label, onClear }: { label: string; onClear: () => void }) {
 
 export default function VideoLibrary() {
   const router = useRouter();
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+  const [uploaderFilter, setUploaderFilter] = useState<'all' | 'me' | 'others'>('all');
+  const [selectedVisibility, setSelectedVisibility] = useState<'All' | 'Public' | 'Private' | 'Internal'>('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [videos, setVideos] = useState<Video[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -106,7 +110,9 @@ export default function VideoLibrary() {
         categoryId: selectedCategoryId ?? undefined,
         tagId: selectedTagId ?? undefined,
         status: 'Ready',
-        visibility: 'Public',
+        visibility: selectedVisibility !== 'All' ? selectedVisibility : undefined,
+        uploaderId: uploaderFilter === 'me' && user ? user.id : undefined,
+        excludeUploaderId: uploaderFilter === 'others' && user ? user.id : undefined,
         page: currentPage,
         pageSize,
       });
@@ -138,7 +144,7 @@ export default function VideoLibrary() {
     return () => {
       isMounted = false;
     };
-  }, [debouncedSearchTerm, selectedCategoryId, selectedTagId, currentPage, pageSize]);
+  }, [debouncedSearchTerm, selectedCategoryId, selectedTagId, uploaderFilter, selectedVisibility, user, currentPage, pageSize]);
 
   const goToVideo = (videoId: string) => {
     router.push(`/videos/${videoId}`);
@@ -149,6 +155,8 @@ export default function VideoLibrary() {
     setDebouncedSearchTerm('');
     setSelectedCategoryId(null);
     setSelectedTagId(null);
+    setUploaderFilter('all');
+    setSelectedVisibility('All');
     setCurrentPage(1);
   };
 
@@ -204,6 +212,120 @@ export default function VideoLibrary() {
                 className="w-full bg-card border border-border rounded-md pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
+
+            {user && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Source</p>
+                <div className="flex bg-muted rounded-md p-0.5 w-full">
+                  <button
+                    onClick={() => {
+                      setUploaderFilter('all');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "flex-1 text-center text-[11px] py-1 rounded transition-colors font-medium cursor-pointer",
+                      uploaderFilter === 'all'
+                        ? "bg-background text-foreground shadow-sm font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUploaderFilter('me');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "flex-1 text-center text-[11px] py-1 rounded transition-colors font-medium cursor-pointer",
+                      uploaderFilter === 'me'
+                        ? "bg-background text-foreground shadow-sm font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Me
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUploaderFilter('others');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "flex-1 text-center text-[11px] py-1 rounded transition-colors font-medium cursor-pointer",
+                      uploaderFilter === 'others'
+                        ? "bg-background text-foreground shadow-sm font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Others
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {user && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Visibility</p>
+                <div className="flex bg-muted rounded-md p-0.5 w-full">
+                  <button
+                    onClick={() => {
+                      setSelectedVisibility('All');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "flex-1 text-center text-[10px] py-1 rounded transition-colors font-medium cursor-pointer",
+                      selectedVisibility === 'All'
+                        ? "bg-background text-foreground shadow-sm font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedVisibility('Public');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "flex-1 text-center text-[10px] py-1 rounded transition-colors font-medium cursor-pointer",
+                      selectedVisibility === 'Public'
+                        ? "bg-background text-foreground shadow-sm font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Public
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedVisibility('Internal');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "flex-1 text-center text-[10px] py-1 rounded transition-colors font-medium cursor-pointer",
+                      selectedVisibility === 'Internal'
+                        ? "bg-background text-foreground shadow-sm font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Internal
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedVisibility('Private');
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "flex-1 text-center text-[10px] py-1 rounded transition-colors font-medium cursor-pointer",
+                      selectedVisibility === 'Private'
+                        ? "bg-background text-foreground shadow-sm font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Private
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Categories</p>
@@ -269,7 +391,7 @@ export default function VideoLibrary() {
           </aside>
 
           <div className="space-y-6 text-left">
-            {(selectedCategoryId || selectedTagId || debouncedSearchTerm) && (
+            {(selectedCategoryId || selectedTagId || debouncedSearchTerm || uploaderFilter !== 'all' || selectedVisibility !== 'All') && (
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-muted-foreground">Filters:</span>
                 {debouncedSearchTerm && (
@@ -291,6 +413,24 @@ export default function VideoLibrary() {
                   <Chip
                     label={`#${tags.find((t) => t.id === selectedTagId)?.name || ''}`}
                     onClear={() => setSelectedTagId(null)}
+                  />
+                )}
+                {uploaderFilter === 'me' && (
+                  <Chip
+                    label="My videos"
+                    onClear={() => setUploaderFilter('all')}
+                  />
+                )}
+                {uploaderFilter === 'others' && (
+                  <Chip
+                    label="Other creators"
+                    onClear={() => setUploaderFilter('all')}
+                  />
+                )}
+                {selectedVisibility !== 'All' && (
+                  <Chip
+                    label={`Visibility: ${selectedVisibility}`}
+                    onClear={() => setSelectedVisibility('All')}
                   />
                 )}
               </div>
@@ -371,13 +511,19 @@ export default function VideoLibrary() {
                 )}
               </>
             ) : (
-              <div className="text-center py-20 bg-card border border-border rounded-xl">
-                <p className="text-muted-foreground text-sm mb-4">No videos found matching your criteria</p>
+              <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                <div className="mb-4 text-muted-foreground/60">
+                  <SearchSlash className="size-8 stroke-[1.5]" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground tracking-tight">No videos found</h3>
+                <p className="mt-1.5 text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                  We couldn't find any results matching your search terms or filters. Try adjusting your criteria.
+                </p>
                 <button
                   onClick={clearFilters}
-                  className="text-xs border border-border px-3 py-1.5 rounded-md hover:bg-accent transition-colors"
+                  className="mt-6 text-xs font-semibold px-4 py-2 rounded-lg border border-border bg-card hover:bg-accent text-foreground transition-colors cursor-pointer"
                 >
-                  Clear Filters
+                  Clear all filters
                 </button>
               </div>
             )}

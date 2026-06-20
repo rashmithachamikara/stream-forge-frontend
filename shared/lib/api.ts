@@ -691,6 +691,7 @@ class ApiClient {
       appendQueryParam(params, 'categoryId', filters.categoryId);
       appendQueryParam(params, 'tagId', filters.tagId);
       appendQueryParam(params, 'uploaderId', filters.uploaderId);
+      appendQueryParam(params, 'excludeUploaderId', filters.excludeUploaderId);
       appendQueryParam(params, 'status', filters.status);
       appendQueryParam(params, 'visibility', filters.visibility);
       appendQueryParam(params, 'sort', filters.sort);

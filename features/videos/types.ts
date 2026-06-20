@@ -108,6 +108,7 @@ export interface VideoListFilters {
   categoryId?: string;
   tagId?: string;
   uploaderId?: string;
+  excludeUploaderId?: string;
   status?: VideoStatus;
   visibility?: 'Public' | 'Private' | 'Internal';
   sort?: string;
