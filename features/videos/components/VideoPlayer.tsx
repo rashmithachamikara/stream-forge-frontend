@@ -361,13 +361,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative aspect-video w-full flex items-center justify-center overflow-hidden rounded-lg bg-black fullscreen:rounded-none"
+      className="relative aspect-video w-full flex items-center justify-center overflow-hidden rounded-lg bg-black fullscreen:rounded-none group"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && !showSettings && !showBookmarksPanel && setShowControls(false)}
     >
       <video
         ref={videoRef}
-        className="w-full max-h-full bg-black object-contain fullscreen:h-full"
+        className="w-full max-h-full bg-black object-contain fullscreen:h-full cursor-pointer"
+        onClick={togglePlay}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={() => {
           if (videoRef.current && Number.isFinite(videoRef.current.duration)) {
@@ -389,60 +390,62 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       />
 
       {showBookmarksPanel && (
-        <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/95 text-white shadow-2xl backdrop-blur sm:w-80">
+        <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/90 backdrop-blur-md text-white shadow-2xl sm:w-80">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <div>
-              <h3 className="font-semibold">Bookmarks</h3>
-              <p className="text-xs text-white/60">{title}</p>
+              <h3 className="font-semibold text-sm">Bookmarks</h3>
+              <p className="text-[10px] text-white/50 truncate max-w-[200px]">{title}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-white/10 hover:text-white"
+            <button
               onClick={() => setShowBookmarksPanel(false)}
+              className="text-xs text-white/60 hover:text-white hover:bg-white/10 px-2 py-1 rounded bg-transparent border-0 cursor-pointer transition-colors"
             >
               Close
-            </Button>
+            </button>
           </div>
 
-          <div className="space-y-4 border-b border-white/10 px-4 py-4">
+          <div className="space-y-3 border-b border-white/10 px-4 py-4">
             <div className="space-y-1">
-              <p className="text-sm font-medium">Add bookmark at {formatTime(currentTime)}</p>
-              <p className="text-xs text-white/60">Save the current playback position with an optional note.</p>
+              <p className="text-xs font-semibold">Add bookmark at {formatTime(currentTime)}</p>
+              <p className="text-[10px] text-white/50">Save the current position with a note.</p>
             </div>
-            <Input
+            <input
               placeholder="Bookmark note (optional)"
               value={bookmarkTitle}
               onChange={(event) => setBookmarkTitle(event.target.value)}
-              className="border-white/15 bg-white/5 text-white placeholder:text-white/45"
+              className="w-full border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-primary rounded px-3 py-1.5 text-xs"
             />
-            <Button className="w-full" onClick={handleAddBookmark} disabled={isBookmarkSaving}>
+            <button
+              onClick={handleAddBookmark}
+              disabled={isBookmarkSaving}
+              className="w-full text-xs font-semibold px-3 py-1.5 rounded bg-white text-black hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+            >
               {isBookmarkSaving ? 'Saving...' : 'Add bookmark'}
-            </Button>
+            </button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             {bookmarks.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {bookmarks.map((bookmark) => (
                   <button
                     key={bookmark.id}
                     type="button"
-                    className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-left transition hover:bg-white/10"
+                    className="flex w-full items-center justify-between rounded border border-white/5 bg-white/5 px-2.5 py-2 text-left hover:bg-white/10 transition-colors cursor-pointer"
                     onClick={() => handleBookmarkSeek(bookmark.timestampSeconds)}
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-white">
+                    <div className="min-w-0 pr-2">
+                      <p className="truncate text-xs font-medium text-white">
                         {bookmark.note || `Bookmark at ${formatTime(bookmark.timestampSeconds)}`}
                       </p>
-                      <p className="text-xs text-white/60">{formatTime(bookmark.timestampSeconds)}</p>
+                      <p className="text-[10px] text-white/40 font-mono mt-0.5">{formatTime(bookmark.timestampSeconds)}</p>
                     </div>
-                    <span className="text-xs text-white/50">Jump</span>
+                    <span className="text-[10px] text-primary shrink-0 font-medium">Jump</span>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-center text-sm text-white/60">
+              <div className="flex h-full items-center justify-center text-center text-xs text-white/45">
                 No bookmarks yet for this video.
               </div>
             )}
@@ -450,200 +453,173 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {(isLoading || playbackError) && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 text-sm text-white">
-          {playbackError || 'Loading video...'}
+      {isLoading && !playbackError && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div className="flex items-center justify-center p-3 rounded-full bg-zinc-950/60 border border-white/10 backdrop-blur-sm shadow-lg">
+            <span className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        </div>
+      )}
+
+      {playbackError && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/85 text-xs text-white/90 p-4 text-center backdrop-blur-sm">
+          <p className="max-w-xs leading-relaxed font-mono">{playbackError}</p>
+        </div>
+      )}
+
+      {/* Play/Pause center overlay */}
+      {!isPlaying && !isLoading && !playbackError && (
+        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <button
+            className="h-14 w-14 rounded-full bg-zinc-950/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-zinc-950/60 hover:scale-105 transition-all cursor-pointer pointer-events-auto shadow-lg"
+            onClick={togglePlay}
+          >
+            <Play className="h-6 w-6 fill-white text-white ml-0.5" />
+          </button>
         </div>
       )}
 
       <div
-        className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${
+        className={`absolute inset-x-0 bottom-0 p-4 pb-3 flex flex-col gap-2 transition-opacity duration-300 bg-gradient-to-t from-black/90 via-black/30 to-transparent ${
           showControls ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       >
-        <div className="absolute left-0 right-0 top-0 p-4">
-          <h3 className="font-semibold text-white">{title}</h3>
+
+        {/* Progress Slider */}
+        <div className="flex items-center px-0.5">
+          <input
+            type="range"
+            min="0"
+            max={displayDuration}
+            step="any"
+            value={currentTime}
+            onChange={handleProgressChange}
+            className="h-[3px] hover:h-[5px] transition-all w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform"
+            style={{
+              background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${progressPercent}%, rgba(255,255,255,0.25) ${progressPercent}%, rgba(255,255,255,0.25) 100%)`,
+            }}
+          />
         </div>
 
-        <div className="absolute inset-0 flex items-center justify-center">
-          {!isPlaying && (
-            <Button
-              size="icon"
-              className="h-16 w-16 rounded-full bg-white/30 hover:bg-white/50"
+        {/* Buttons Row */}
+        <div className="flex items-center justify-between text-white">
+          <div className="flex items-center gap-2">
+            <button
+              className="h-8 w-8 text-white hover:text-white/80 rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
               onClick={togglePlay}
             >
-              <Play className="h-8 w-8 fill-white text-white" />
-            </Button>
-          )}
-        </div>
+              {isPlaying ? <Pause className="h-4 w-4 fill-white" /> : <Play className="h-4 w-4 fill-white ml-0.5" />}
+            </button>
 
-        <div className="absolute bottom-0 left-0 right-0 space-y-3 p-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="range"
-              min="0"
-              max={displayDuration}
-              value={currentTime}
-              onChange={handleProgressChange}
-              className="h-1 flex-1 cursor-pointer appearance-none rounded-lg bg-white/30 accent-red-500"
-              style={{
-                background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${progressPercent}%, rgba(255,255,255,0.3) ${progressPercent}%, rgba(255,255,255,0.3) 100%)`,
-              }}
-            />
+            <div className="group flex items-center gap-1.5">
+              <button
+                className="h-8 w-8 text-white hover:text-white/80 rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
+                onClick={toggleMute}
+              >
+                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="h-1 w-0 cursor-pointer appearance-none rounded-full bg-white/20 accent-primary transition-all group-hover:w-16 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                style={{
+                  background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${volume * 100}%, rgba(255,255,255,0.25) ${volume * 100}%, rgba(255,255,255,0.25) 100%)`,
+                }}
+              />
+            </div>
+
+            <span className="w-px h-3 bg-white/20 mx-1 shrink-0" />
+
+            <span className="font-mono text-xs text-white/90 tracking-tight tabular-nums select-none">
+              {formatTime(currentTime)} / {formatTime(displayDuration)}
+            </span>
           </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <div className="relative flex items-center gap-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-white hover:bg-white/20"
-                onClick={togglePlay}
-              >
-                {isPlaying ? (
-                  <Pause className="h-5 w-5 fill-white" />
-                ) : (
-                  <Play className="h-5 w-5 fill-white" />
-                )}
-              </Button>
+          <div className="flex items-center gap-2">
+            <button
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-white/90 hover:text-white rounded border border-white/20 hover:bg-white/5 transition-colors cursor-pointer bg-transparent"
+              onClick={() => {
+                setShowBookmarksPanel((isOpen) => !isOpen);
+                setShowControls(true);
+              }}
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+              <span className="font-mono text-[10px] tracking-tight">{bookmarks.length} Bookmarks</span>
+            </button>
 
-              <div className="group flex items-center gap-2">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-white hover:bg-white/20"
-                  onClick={toggleMute}
-                >
-                  {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                </Button>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={volume}
-                  onChange={handleVolumeChange}
-                  className="h-1 w-0 cursor-pointer appearance-none rounded-lg bg-white/30 accent-red-500 transition-all group-hover:w-24"
-                />
-              </div>
+            <button
+              className="h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
+              title="Share video"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
 
-              <span className="ml-2 font-mono text-sm text-white">
-                {formatTime(currentTime)} / {formatTime(displayDuration)}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="gap-2 px-3 text-white hover:bg-white/20"
+            <div className="relative">
+              <button
+                className={`h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0 ${showSettings ? 'text-white bg-white/10' : ''}`}
                 onClick={() => {
-                  setShowBookmarksPanel((isOpen) => !isOpen);
+                  setShowSettings((isOpen) => !isOpen);
                   setShowControls(true);
                 }}
-                title="Open bookmarks"
               >
-                <Bookmark className="h-5 w-5" />
-                Bookmarks
-              </Button>
+                <Settings className="h-4 w-4" />
+              </button>
 
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-white hover:bg-white/20"
-                title="Share video"
-              >
-                <Share2 className="h-5 w-5" />
-              </Button>
-
-              <div className="relative">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-white hover:bg-white/20"
-                  title="Video settings"
-                  aria-expanded={showSettings}
-                  aria-haspopup="menu"
-                  onClick={() => {
-                    setShowSettings((isOpen) => !isOpen);
-                    setShowControls(true);
-                  }}
+              {showSettings && (
+                <div
+                  role="menu"
+                  className="absolute bottom-9 right-0 z-30 w-40 overflow-hidden rounded border border-white/10 bg-zinc-950/95 backdrop-blur-md text-white shadow-xl p-1"
                 >
-                  <Settings className="h-5 w-5" />
-                </Button>
-
-                {showSettings && (
-                  <div
-                    role="menu"
-                    className="absolute bottom-11 right-0 z-30 w-52 overflow-hidden rounded-md border border-white/15 bg-zinc-950 text-white shadow-xl"
-                  >
-                    <div className="px-3 py-2 text-sm font-medium">Quality</div>
-                    <div className="h-px bg-white/15" />
-                    <div className="p-1">
-                      {usesNativeHls ? (
+                  <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white/40 font-mono">Quality</div>
+                  <div className="h-px bg-white/10 my-1" />
+                  <div className="space-y-0.5">
+                    {usesNativeHls ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="flex w-full cursor-default items-center gap-2 rounded px-2 py-1 text-left text-xs text-white/50 font-mono"
+                      >
+                        <span className="size-1.5 rounded-full bg-white/50" />
+                        Native HLS
+                      </button>
+                    ) : (
+                      <>
                         <button
                           type="button"
-                          disabled
-                          role="menuitemradio"
-                          aria-checked="true"
-                          className="flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-white/70"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-white hover:bg-white/10 focus:bg-white/10 focus:outline-none cursor-pointer font-mono bg-transparent border-0"
+                          onClick={() => handleQualityChange('auto')}
                         >
-                          <span className="size-2 rounded-full bg-white/70" />
-                          Native HLS
+                          <span className={`size-1.5 rounded-full ${quality === 'auto' ? 'bg-primary' : 'bg-transparent'}`} />
+                          Auto
                         </button>
-                      ) : (
-                        <>
+                        {qualityOptions.map((option) => (
                           <button
+                            key={option.value}
                             type="button"
-                            role="menuitemradio"
-                            aria-checked={quality === 'auto'}
-                            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-white hover:bg-white/10 focus:bg-white/10 focus:outline-none"
-                            onClick={() => handleQualityChange('auto')}
+                            className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-white hover:bg-white/10 focus:bg-white/10 focus:outline-none cursor-pointer font-mono bg-transparent border-0"
+                            onClick={() => handleQualityChange(option.value)}
                           >
-                            <span className={`size-2 rounded-full ${quality === 'auto' ? 'bg-white' : 'bg-transparent'}`} />
-                            Auto
+                            <span className={`size-1.5 rounded-full ${quality === option.value ? 'bg-primary' : 'bg-transparent'}`} />
+                            {option.label.split(' ')[0]}
                           </button>
-                          {qualityOptions.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              role="menuitemradio"
-                              aria-checked={quality === option.value}
-                              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-white hover:bg-white/10 focus:bg-white/10 focus:outline-none"
-                              onClick={() => handleQualityChange(option.value)}
-                            >
-                              <span className={`size-2 rounded-full ${quality === option.value ? 'bg-white' : 'bg-transparent'}`} />
-                              {option.label}
-                            </button>
-                          ))}
-                          {qualityOptions.length === 0 && (
-                            <button
-                              type="button"
-                              disabled
-                              role="menuitemradio"
-                              aria-checked="false"
-                              className="flex w-full cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-white/70"
-                            >
-                              <span className="size-2 rounded-full bg-transparent" />
-                              Loading qualities...
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
+                        ))}
+                      </>
+                    )}
                   </div>
-                )}
-              </div>
-
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-white hover:bg-white/20"
-                onClick={toggleFullscreen}
-              >
-                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-              </Button>
+                </div>
+              )}
             </div>
+
+            <button
+              className="h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
+              onClick={toggleFullscreen}
+            >
+              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            </button>
           </div>
         </div>
       </div>
