@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,7 +53,7 @@ export default function ViewerDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {recentVideos.slice(0, 4).map((video) => (
-              <VideoCard key={video.id} video={video} onClick={() => router.push(`/videos/${video.id}`)} />
+              <VideoCard key={video.id} video={video} href={`/videos/${video.id}`} />
             ))}
           </div>
         </div>
@@ -70,14 +71,16 @@ export default function ViewerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {recentVideos.slice(0, 2).map((video) => (
               <div key={video.id} className="space-y-3">
-                <VideoCard video={video} variant="feature" onClick={() => router.push(`/videos/${video.id}`)} />
+                <VideoCard video={video} variant="feature" href={`/videos/${video.id}`} />
                 <div className="flex gap-2">
                   <Button
                     className="flex-1 gap-2 h-10"
-                    onClick={() => router.push(`/videos/${video.id}`)}
+                    asChild
                   >
-                    <Play className="w-4 h-4" />
-                    Play Now
+                    <Link href={`/videos/${video.id}`}>
+                      <Play className="w-4 h-4" />
+                      Play Now
+                    </Link>
                   </Button>
                   <Button variant="outline" size="icon" className="h-10 w-10">
                     <Bookmark className="w-4 h-4" />

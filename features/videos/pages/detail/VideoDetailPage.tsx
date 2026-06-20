@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
 import { CommentsSection } from '@/features/videos/components/CommentsSection';
@@ -623,7 +624,12 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     </div>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold truncate text-foreground">{playlist.name}</p>
+                    <Link
+                      href={`/playlists?playlistId=${playlist.id}`}
+                      className="text-xs font-semibold truncate text-foreground hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {playlist.name}
+                    </Link>
                   </div>
                 </div>
 
@@ -631,9 +637,9 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   {playlistVideos.map((pv, idx) => {
                     const isActive = pv.id === videoId;
                     return (
-                      <button
+                      <Link
                         key={pv.id}
-                        onClick={() => router.push(`/videos/${pv.id}?playlistId=${playlistId}`)}
+                        href={`/videos/${pv.id}?playlistId=${playlistId}`}
                         className={cn(
                           'w-full text-left flex items-center gap-3 p-2 rounded transition-colors group cursor-pointer',
                           isActive ? 'bg-accent/80' : 'hover:bg-accent/45'
@@ -665,7 +671,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                             {pv.uploadedBy}
                           </p>
                         </div>
-                      </button>
+                      </Link>
                     );
                   })}
                 </div>
@@ -676,9 +682,9 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               <h3 className="text-xs font-bold uppercase tracking-widest mb-3 text-muted-foreground">Related Videos</h3>
               <div className="space-y-4">
                 {relatedVideos.map((relatedVideo) => (
-                  <button
+                  <Link
                     key={relatedVideo.id}
-                    onClick={() => router.push(`/videos/${relatedVideo.id}`)}
+                    href={`/videos/${relatedVideo.id}`}
                     className="flex gap-3 text-left w-full group cursor-pointer"
                   >
                     <div className="relative w-32 aspect-video shrink-0 rounded ring-1 ring-border overflow-hidden bg-black">
@@ -701,7 +707,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                         {relatedVideo.uploadedBy} · {relatedVideo.views} views
                       </p>
                     </div>
-                  </button>
+                  </Link>
                 ))}
                 {relatedVideos.length === 0 && (
                   <p className="text-xs text-muted-foreground">No related videos found.</p>

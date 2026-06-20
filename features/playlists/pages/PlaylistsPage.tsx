@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import { cn } from '@/shared/lib/utils';
@@ -37,6 +38,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   Clock,
   Edit2,
@@ -95,6 +101,8 @@ const formatTime = (seconds: number) => {
 
 export default function PlaylistsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const playlistIdParam = searchParams.get('playlistId');
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -138,19 +146,9 @@ export default function PlaylistsPage() {
         setPlaylists(items);
         setTotalPages(response.data.totalPages || 1);
 
-        // Auto-select first playlist on initial load or if the currently selected one is not in the list
-        if (items.length > 0) {
-          const stillExists = selectedPlaylist && items.some(item => item.id === selectedPlaylist.id);
-          if (!stillExists) {
-            setSelectedPlaylist(items[0]);
-          }
-        } else {
-          setSelectedPlaylist(null);
-        }
       } else {
         setPlaylists([]);
         setTotalPages(1);
-        setSelectedPlaylist(null);
         setError(response.error ?? 'Failed to load playlists');
       }
 
@@ -159,10 +157,23 @@ export default function PlaylistsPage() {
 
     void loadPlaylists();
 
-    return () => {
-      isMounted = false;
-    };
   }, [currentPage]);
+
+  useEffect(() => {
+    if (playlists.length > 0) {
+      const target = playlistIdParam ? playlists.find(p => p.id === playlistIdParam) : playlists[0];
+      if (target) {
+        if (selectedPlaylist?.id !== target.id) {
+          setSelectedPlaylist(target);
+          setPlaylistVideosPageNumber(1);
+        }
+      } else {
+        setSelectedPlaylist(playlists[0]);
+      }
+    } else {
+      setSelectedPlaylist(null);
+    }
+  }, [playlistIdParam, playlists, selectedPlaylist?.id]);
 
   useEffect(() => {
     if (!selectedPlaylist) {
@@ -240,6 +251,9 @@ export default function PlaylistsPage() {
       setIsCreateOpen(false);
       setSelectedPlaylist(created);
       setPlaylistVideosPageNumber(1);
+      React.startTransition(() => {
+        router.replace(`/playlists?playlistId=${created.id}`);
+      });
     } else {
       setError(response.error ?? 'Failed to create playlist');
     }
@@ -309,9 +323,15 @@ export default function PlaylistsPage() {
       if (selectedPlaylist?.id === playlist.id) {
         if (remainingPlaylists.length > 0) {
           setSelectedPlaylist(remainingPlaylists[0]);
+          React.startTransition(() => {
+            router.replace(`/playlists?playlistId=${remainingPlaylists[0].id}`);
+          });
         } else {
           setSelectedPlaylist(null);
           setPlaylistVideosPage(null);
+          React.startTransition(() => {
+            router.replace('/playlists');
+          });
         }
       }
       setIsDeleteOpen(false);
@@ -407,10 +427,10 @@ export default function PlaylistsPage() {
           </SelectContent>
         </Select>
       </div>
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button type="submit" size="sm" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
             Saving...
           </>
         ) : (
@@ -431,9 +451,9 @@ export default function PlaylistsPage() {
 
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-foreground text-background hover:opacity-90 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5">
+              <button className="inline-flex items-center gap-1.5 bg-foreground text-background px-3 py-1.5 rounded-md text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer">
                 <Plus className="size-3.5" /> New playlist
-              </Button>
+              </button>
             </DialogTrigger>
             <DialogContent className="border border-border bg-background">
               <DialogHeader>
@@ -465,14 +485,11 @@ export default function PlaylistsPage() {
             ) : filteredPlaylists.length > 0 ? (
               <div className="space-y-1">
                 {filteredPlaylists.map((playlist) => (
-                  <button
+                  <Link
                     key={playlist.id}
-                    onClick={() => {
-                      setSelectedPlaylist(playlist);
-                      setPlaylistVideosPageNumber(1);
-                    }}
+                    href={`/playlists?playlistId=${playlist.id}`}
                     className={cn(
-                      'w-full text-left px-3 py-2.5 rounded-md transition-colors',
+                      'w-full text-left px-3 py-1.5 rounded-md transition-colors cursor-pointer block',
                       selectedPlaylist?.id === playlist.id
                         ? 'bg-accent text-foreground'
                         : 'hover:bg-accent/50 text-foreground/80'
@@ -480,11 +497,20 @@ export default function PlaylistsPage() {
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold truncate pr-2">{playlist.name}</p>
-                      {playlist.visibility === 'Public' ? (
-                        <Globe className={cn('size-3.5 shrink-0', selectedPlaylist?.id === playlist.id ? 'text-foreground/70' : 'text-muted-foreground')} />
-                      ) : (
-                        <Lock className={cn('size-3.5 shrink-0', selectedPlaylist?.id === playlist.id ? 'text-foreground/70' : 'text-muted-foreground')} />
-                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex shrink-0 cursor-pointer">
+                            {playlist.visibility === 'Public' ? (
+                              <Globe className={cn('size-3.5', selectedPlaylist?.id === playlist.id ? 'text-foreground/70' : 'text-muted-foreground')} />
+                            ) : (
+                              <Lock className={cn('size-3.5', selectedPlaylist?.id === playlist.id ? 'text-foreground/70' : 'text-muted-foreground')} />
+                            )}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="center">
+                          This playlist is {playlist.visibility.toLowerCase()}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <p className={cn(
                       'text-[11px] mt-0.5 font-mono',
@@ -492,7 +518,7 @@ export default function PlaylistsPage() {
                     )}>
                       {playlist.videoCount} videos · {formatRelativeDate(playlist.updatedAt)}
                     </p>
-                  </button>
+                  </Link>
                 ))}
 
                 {totalPages > 1 && (
@@ -567,18 +593,18 @@ export default function PlaylistsPage() {
                   </div>
 
                   <div className="mt-4 flex items-center gap-3">
-                    <Button
+                    <Link
+                      href={playlistVideosPage?.videos.items[0] ? `/videos/${playlistVideosPage.videos.items[0].id}?playlistId=${selectedPlaylist.id}` : '#'}
                       onClick={() => {
-                        const firstVideo = playlistVideosPage?.videos.items[0];
-                        if (firstVideo) {
-                          router.push(`/videos/${firstVideo.id}?playlistId=${selectedPlaylist.id}`);
-                        }
+                        localStorage.setItem('streamforge_playlist_autoplay', 'true');
                       }}
-                      disabled={!playlistVideosPage || playlistVideosPage.videos.items.length === 0}
-                      className="bg-foreground text-background hover:opacity-90 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5"
+                      className={cn(
+                        "inline-flex items-center gap-1.5 bg-foreground text-background px-3 py-1.5 rounded-md text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer",
+                        (!playlistVideosPage || playlistVideosPage.videos.items.length === 0) && "opacity-50 pointer-events-none"
+                      )}
                     >
                       <Play className="size-3.5 fill-current" /> Play all
-                    </Button>
+                    </Link>
                     <span className="text-[11px] text-foreground/85 font-mono">
                       {selectedPlaylist.videoCount} videos
                     </span>
@@ -602,8 +628,8 @@ export default function PlaylistsPage() {
                               {indexNumber}
                             </span>
 
-                            <div
-                              onClick={() => router.push(`/videos/${video.id}?playlistId=${selectedPlaylist.id}`)}
+                            <Link
+                              href={`/videos/${video.id}?playlistId=${selectedPlaylist.id}`}
                               className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                             >
                               <img
@@ -619,7 +645,7 @@ export default function PlaylistsPage() {
                                   {video.uploadedBy} · {video.categories[0] || 'Uncategorized'}
                                 </p>
                               </div>
-                            </div>
+                            </Link>
 
                             <span className="text-[11px] font-mono text-muted-foreground shrink-0">
                               {formatTime(video.duration)}
@@ -647,17 +673,19 @@ export default function PlaylistsPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-7 text-[10px] px-2"
                           onClick={() => setPlaylistVideosPageNumber((page) => Math.max(1, page - 1))}
                           disabled={playlistVideosPage.videos.page <= 1}
                         >
                           Previous
                         </Button>
-                        <span className="text-sm text-muted-foreground font-mono">
-                          Page {playlistVideosPage.videos.page} of {playlistVideosPage.videos.totalPages}
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {playlistVideosPage.videos.page} / {playlistVideosPage.videos.totalPages}
                         </span>
                         <Button
                           variant="outline"
                           size="sm"
+                          className="h-7 text-[10px] px-2"
                           onClick={() =>
                             setPlaylistVideosPageNumber((page) =>
                               Math.min(playlistVideosPage.videos.totalPages, page + 1)
@@ -734,20 +762,21 @@ export default function PlaylistsPage() {
           <div className="flex justify-end gap-3 mt-4">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setIsDeleteOpen(false)}
-              className="text-xs"
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
+              size="sm"
               onClick={() => {
                 if (playlistToDelete) {
                   void handleDeletePlaylist(playlistToDelete);
                 }
               }}
               disabled={isSubmitting}
-              className="text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isSubmitting ? (
                 <>

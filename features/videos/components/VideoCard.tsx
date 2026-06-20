@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Play } from 'lucide-react';
 import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 import { cn } from '@/shared/lib/utils';
@@ -13,6 +14,7 @@ type VideoCardProps = {
   variant?: 'grid' | 'feature' | 'compact';
   className?: string;
   onClick?: () => void;
+  href?: string;
 };
 
 const formatRelativeDate = (date: Date) => {
@@ -49,15 +51,18 @@ const formatPlaybackDuration = (seconds: number) => {
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 };
 
-export function VideoCard({ video, variant = 'grid', className, onClick }: VideoCardProps) {
+export function VideoCard({ video, variant = 'grid', className, onClick, href }: VideoCardProps) {
   const isFeature = variant === 'feature';
   const isCompact = variant === 'compact';
 
+  const Comp = href ? Link : 'article';
+
   return (
-    <article
+    <Comp
+      href={href as any}
       className={cn(
-        'group',
-        onClick && 'cursor-pointer',
+        'group text-left block',
+        (onClick || href) && 'cursor-pointer',
         isCompact && 'flex items-start gap-3',
         className
       )}
@@ -119,6 +124,6 @@ export function VideoCard({ video, variant = 'grid', className, onClick }: Video
           </div>
         </div>
       </div>
-    </article>
+    </Comp>
   );
 }
