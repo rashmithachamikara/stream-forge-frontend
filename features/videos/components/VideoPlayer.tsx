@@ -390,62 +390,62 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       />
 
       {showBookmarksPanel && (
-        <div className="absolute inset-y-0 right-0 z-30 flex w-full max-w-sm flex-col border-l border-white/10 bg-zinc-950/90 backdrop-blur-md text-white shadow-2xl sm:w-80">
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="absolute top-3 right-3 bottom-3 z-30 flex w-full max-w-sm flex-col border border-border bg-card/75 backdrop-blur-md text-foreground shadow-2xl sm:w-80 rounded-lg">
+          <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
             <div>
-              <h3 className="font-semibold text-sm">Bookmarks</h3>
-              <p className="text-[10px] text-white/50 truncate max-w-[200px]">{title}</p>
+              <h3 className="font-semibold text-sm text-foreground">Bookmarks</h3>
+              <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{title}</p>
             </div>
             <button
               onClick={() => setShowBookmarksPanel(false)}
-              className="text-xs text-white/60 hover:text-white hover:bg-white/10 px-2 py-1 rounded bg-transparent border-0 cursor-pointer transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground hover:bg-accent px-2 py-1 rounded bg-transparent border-0 cursor-pointer transition-colors"
             >
               Close
             </button>
           </div>
 
-          <div className="space-y-3 border-b border-white/10 px-4 py-4">
+          <div className="space-y-3 border-b border-border/60 px-4 py-4">
             <div className="space-y-1">
-              <p className="text-xs font-semibold">Add bookmark at {formatTime(currentTime)}</p>
-              <p className="text-[10px] text-white/50">Save the current position with a note.</p>
+              <p className="text-xs font-semibold text-foreground">Add bookmark at {formatTime(currentTime)}</p>
+              <p className="text-[10px] text-muted-foreground">Save the current position with a note.</p>
             </div>
             <input
               placeholder="Bookmark note (optional)"
               value={bookmarkTitle}
               onChange={(event) => setBookmarkTitle(event.target.value)}
-              className="w-full border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-primary rounded px-3 py-1.5 text-xs"
+              className="w-full border border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary rounded px-3 py-1.5 text-xs"
             />
             <button
               onClick={handleAddBookmark}
               disabled={isBookmarkSaving}
-              className="w-full text-xs font-semibold px-3 py-1.5 rounded bg-white text-black hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+              className="w-full text-xs font-semibold px-3 py-1.5 rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
             >
               {isBookmarkSaving ? 'Saving...' : 'Add bookmark'}
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 text-foreground">
             {bookmarks.length > 0 ? (
               <div className="space-y-2">
                 {bookmarks.map((bookmark) => (
                   <button
                     key={bookmark.id}
                     type="button"
-                    className="flex w-full items-center justify-between rounded border border-white/5 bg-white/5 px-2.5 py-2 text-left hover:bg-white/10 transition-colors cursor-pointer"
+                    className="flex w-full items-center justify-between rounded border border-border/60 bg-muted/30 px-2.5 py-2 text-left hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
                     onClick={() => handleBookmarkSeek(bookmark.timestampSeconds)}
                   >
                     <div className="min-w-0 pr-2">
-                      <p className="truncate text-xs font-medium text-white">
+                      <p className="truncate text-xs font-medium text-foreground">
                         {bookmark.note || `Bookmark at ${formatTime(bookmark.timestampSeconds)}`}
                       </p>
-                      <p className="text-[10px] text-white/40 font-mono mt-0.5">{formatTime(bookmark.timestampSeconds)}</p>
+                      <p className="text-[10px] text-primary font-mono mt-0.5">{formatTime(bookmark.timestampSeconds)}</p>
                     </div>
-                    <span className="text-[10px] text-primary shrink-0 font-medium">Jump</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0 font-medium">Jump</span>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-center text-xs text-white/45">
+              <div className="flex h-full items-center justify-center text-center text-xs text-muted-foreground/60">
                 No bookmarks yet for this video.
               </div>
             )}
@@ -572,25 +572,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               {showSettings && (
                 <div
                   role="menu"
-                  className="absolute bottom-9 right-0 z-30 w-40 overflow-hidden rounded border border-white/10 bg-zinc-950/95 backdrop-blur-md text-white shadow-xl p-1"
+                  className="absolute bottom-9 right-0 z-30 w-40 overflow-hidden rounded border border-border/60 bg-card/75 backdrop-blur-md text-foreground shadow-xl p-1"
                 >
-                  <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white/40 font-mono">Quality</div>
-                  <div className="h-px bg-white/10 my-1" />
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">Quality</div>
+                  <div className="h-px bg-border/60 my-1" />
                   <div className="space-y-0.5">
                     {usesNativeHls ? (
                       <button
                         type="button"
                         disabled
-                        className="flex w-full cursor-default items-center gap-2 rounded px-2 py-1 text-left text-xs text-white/50 font-mono"
+                        className="flex w-full cursor-default items-center gap-2 rounded px-2 py-1 text-left text-xs text-muted-foreground/60 font-mono"
                       >
-                        <span className="size-1.5 rounded-full bg-white/50" />
+                        <span className="size-1.5 rounded-full bg-muted-foreground/50" />
                         Native HLS
                       </button>
                     ) : (
                       <>
                         <button
                           type="button"
-                          className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-white hover:bg-white/10 focus:bg-white/10 focus:outline-none cursor-pointer font-mono bg-transparent border-0"
+                          className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer font-mono bg-transparent border-0"
                           onClick={() => handleQualityChange('auto')}
                         >
                           <span className={`size-1.5 rounded-full ${quality === 'auto' ? 'bg-primary' : 'bg-transparent'}`} />
@@ -600,7 +600,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                           <button
                             key={option.value}
                             type="button"
-                            className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-white hover:bg-white/10 focus:bg-white/10 focus:outline-none cursor-pointer font-mono bg-transparent border-0"
+                            className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer font-mono bg-transparent border-0"
                             onClick={() => handleQualityChange(option.value)}
                           >
                             <span className={`size-1.5 rounded-full ${quality === option.value ? 'bg-primary' : 'bg-transparent'}`} />
