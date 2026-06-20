@@ -427,6 +427,10 @@ const mapPagedResponse = <TDto, TDomain>(
 
 class ApiClient {
   private token: string | null = null;
+  private refreshToken: string | null = null;
+  private accessTokenExpiresAt: string | null = null;
+  private refreshTokenExpiresAt: string | null = null;
+  private refreshPromise: Promise<ApiResponse<AuthSession>> | null = null;
   private baseUrl = normalizeApiBaseUrl(API_BASE_URL);
   private analyticsBaseUrl = normalizeApiBaseUrl(ANALYTICS_API_BASE_URL);
 
@@ -434,17 +438,50 @@ class ApiClient {
     // Load token from localStorage
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('authToken');
+      this.refreshToken = localStorage.getItem('refreshToken');
+      this.accessTokenExpiresAt = localStorage.getItem('accessTokenExpiresAt');
+      this.refreshTokenExpiresAt = localStorage.getItem('refreshTokenExpiresAt');
     }
   }
 
   setAuthToken(token: string) {
     this.token = token;
+    if (typeof window !== 'undefined') {
+      this.refreshToken = localStorage.getItem('refreshToken');
+      this.accessTokenExpiresAt = localStorage.getItem('accessTokenExpiresAt');
+      this.refreshTokenExpiresAt = localStorage.getItem('refreshTokenExpiresAt');
+    }
+  }
+
+  setAuthSession(session: {
+    token: string;
+    refreshToken: string;
+    accessTokenExpiresAt: string;
+    refreshTokenExpiresAt: string;
+  }) {
+    this.token = session.token;
+    this.refreshToken = session.refreshToken;
+    this.accessTokenExpiresAt = session.accessTokenExpiresAt;
+    this.refreshTokenExpiresAt = session.refreshTokenExpiresAt;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', session.token);
+      localStorage.setItem('refreshToken', session.refreshToken);
+      localStorage.setItem('accessTokenExpiresAt', session.accessTokenExpiresAt);
+      localStorage.setItem('refreshTokenExpiresAt', session.refreshTokenExpiresAt);
+    }
   }
 
   clearAuth() {
     this.token = null;
+    this.refreshToken = null;
+    this.accessTokenExpiresAt = null;
+    this.refreshTokenExpiresAt = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('accessTokenExpiresAt');
+      localStorage.removeItem('refreshTokenExpiresAt');
+      localStorage.removeItem('user');
     }
   }
 
@@ -457,6 +494,48 @@ class ApiClient {
     appendQueryParam(params, 'to', filters.to?.toISOString());
   }
 
+  private async getValidToken(): Promise<string | null> {
+    if (!this.token) {
+      return null;
+    }
+
+    const isTokenExpired = () => {
+      if (!this.accessTokenExpiresAt) return true;
+      const expiryTime = new Date(this.accessTokenExpiresAt).getTime();
+      return Number.isNaN(expiryTime) || expiryTime <= Date.now() + 10000;
+    };
+
+    if (isTokenExpired() && this.refreshToken) {
+      if (this.refreshTokenExpiresAt) {
+        const refreshExpiryTime = new Date(this.refreshTokenExpiresAt).getTime();
+        if (Number.isNaN(refreshExpiryTime) || refreshExpiryTime <= Date.now()) {
+          this.clearAuth();
+          return null;
+        }
+      }
+
+      if (!this.refreshPromise) {
+        this.refreshPromise = this.refreshAuth(this.refreshToken).then((res) => {
+          this.refreshPromise = null;
+          if (res.success && res.data) {
+            this.setAuthSession(res.data);
+          } else {
+            this.clearAuth();
+          }
+          return res;
+        });
+      }
+
+      const res = await this.refreshPromise;
+      if (res.success && res.data) {
+        return res.data.token;
+      }
+      return null;
+    }
+
+    return this.token;
+  }
+
   private async requestRawFromBase<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
     const isFormData = options.body instanceof FormData;
     const headers = new Headers(options.headers);
@@ -465,8 +544,15 @@ class ApiClient {
       headers.set('Content-Type', 'application/json');
     }
 
-    if (this.token) {
-      headers.set('Authorization', `Bearer ${this.token}`);
+    const isRefreshPath = path.endsWith('/auth/refresh');
+    let activeToken = this.token;
+
+    if (!isRefreshPath) {
+      activeToken = await this.getValidToken();
+    }
+
+    if (activeToken) {
+      headers.set('Authorization', `Bearer ${activeToken}`);
     }
 
     const response = await fetch(`${baseUrl}${path}`, {
@@ -491,8 +577,15 @@ class ApiClient {
       headers.set('Content-Type', 'application/json');
     }
 
-    if (this.token) {
-      headers.set('Authorization', `Bearer ${this.token}`);
+    const isRefreshPath = path.endsWith('/auth/refresh');
+    let activeToken = this.token;
+
+    if (!isRefreshPath) {
+      activeToken = await this.getValidToken();
+    }
+
+    if (activeToken) {
+      headers.set('Authorization', `Bearer ${activeToken}`);
     }
 
     const response = await fetch(`${this.baseUrl}${path}`, {
@@ -500,7 +593,7 @@ class ApiClient {
       headers,
     });
 
-    if (response.status === 401) {
+    if (response.status === 401 && !isRefreshPath) {
       this.clearAuth();
     }
 
@@ -557,7 +650,7 @@ class ApiClient {
         body: JSON.stringify({ refreshToken }),
       });
       const session = mapAuthResponse(response);
-      this.setAuthToken(session.token);
+      this.setAuthSession(session);
 
       return {
         success: true,
