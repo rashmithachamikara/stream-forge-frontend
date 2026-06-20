@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
+import { cn } from '@/shared/lib/utils';
 import {
   CreatePlaylistRequest,
   Playlist,
@@ -12,10 +13,8 @@ import {
   UpdatePlaylistRequest,
 } from '@/features/playlists/types';
 import { Video } from '@/features/videos/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -32,11 +31,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Clock, Edit2, Loader2, Play, Plus, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Clock,
+  Edit2,
+  Loader2,
+  Play,
+  Plus,
+  Trash2,
+  Globe,
+  Lock,
+  MoreVertical,
+  SearchSlash,
+} from 'lucide-react';
 
 const PLAYLIST_PAGE_SIZE = 24;
 const PLAYLIST_VIDEO_PAGE_SIZE = 12;
-const PLAYLIST_PREVIEW_SIZE = 3;
 
 type PlaylistFormState = {
   name: string;
@@ -50,10 +65,37 @@ const emptyPlaylistForm = (): PlaylistFormState => ({
   visibility: 'Public',
 });
 
+const formatRelativeDate = (date: Date) => {
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+
+  return date.toLocaleDateString();
+};
+
+const formatTime = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
+};
+
 export default function PlaylistsPage() {
   const router = useRouter();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [playlistPreviews, setPlaylistPreviews] = useState<Record<string, Video[]>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,12 +104,13 @@ export default function PlaylistsPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isVideosOpen, setIsVideosOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [newPlaylist, setNewPlaylist] = useState<PlaylistFormState>(emptyPlaylistForm);
   const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
   const [editPlaylist, setEditPlaylist] = useState<PlaylistFormState>(emptyPlaylistForm);
+  const [playlistToDelete, setPlaylistToDelete] = useState<Playlist | null>(null);
 
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [playlistVideosPage, setPlaylistVideosPage] = useState<PlaylistVideosPage | null>(null);
@@ -91,11 +134,23 @@ export default function PlaylistsPage() {
       }
 
       if (response.success && response.data) {
-        setPlaylists(response.data.items);
+        const items = response.data.items;
+        setPlaylists(items);
         setTotalPages(response.data.totalPages || 1);
+
+        // Auto-select first playlist on initial load or if the currently selected one is not in the list
+        if (items.length > 0) {
+          const stillExists = selectedPlaylist && items.some(item => item.id === selectedPlaylist.id);
+          if (!stillExists) {
+            setSelectedPlaylist(items[0]);
+          }
+        } else {
+          setSelectedPlaylist(null);
+        }
       } else {
         setPlaylists([]);
         setTotalPages(1);
+        setSelectedPlaylist(null);
         setError(response.error ?? 'Failed to load playlists');
       }
 
@@ -110,7 +165,8 @@ export default function PlaylistsPage() {
   }, [currentPage]);
 
   useEffect(() => {
-    if (!isVideosOpen || !selectedPlaylist) {
+    if (!selectedPlaylist) {
+      setPlaylistVideosPage(null);
       return;
     }
 
@@ -143,45 +199,7 @@ export default function PlaylistsPage() {
     return () => {
       isMounted = false;
     };
-  }, [isVideosOpen, playlistVideosPageNumber, selectedPlaylist]);
-
-  useEffect(() => {
-    if (playlists.length === 0) {
-      setPlaylistPreviews({});
-      return;
-    }
-
-    let isMounted = true;
-
-    const loadPlaylistPreviews = async () => {
-      const previewEntries = await Promise.all(
-        playlists.map(async (playlist) => {
-          if (playlist.videoCount <= 0) {
-            return [playlist.id, []] as const;
-          }
-
-          const response = await apiClient.getPlaylistVideos(playlist.id, {
-            page: 1,
-            pageSize: PLAYLIST_PREVIEW_SIZE,
-          });
-
-          return [playlist.id, response.success && response.data ? response.data.videos.items : []] as const;
-        })
-      );
-
-      if (!isMounted) {
-        return;
-      }
-
-      setPlaylistPreviews(Object.fromEntries(previewEntries));
-    };
-
-    void loadPlaylistPreviews();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [playlists]);
+  }, [playlistVideosPageNumber, selectedPlaylist]);
 
   const filteredPlaylists = useMemo(() => {
     const trimmedSearch = searchTerm.trim().toLowerCase();
@@ -216,9 +234,12 @@ export default function PlaylistsPage() {
     const response = await apiClient.createPlaylist(payload);
 
     if (response.success && response.data) {
-      setPlaylists((current) => [response.data!, ...current]);
+      const created = response.data;
+      setPlaylists((current) => [created, ...current]);
       setNewPlaylist(emptyPlaylistForm());
       setIsCreateOpen(false);
+      setSelectedPlaylist(created);
+      setPlaylistVideosPageNumber(1);
     } else {
       setError(response.error ?? 'Failed to create playlist');
     }
@@ -255,11 +276,12 @@ export default function PlaylistsPage() {
     const response = await apiClient.updatePlaylist(editingPlaylist.id, payload);
 
     if (response.success && response.data) {
+      const updated = response.data;
       setPlaylists((current) =>
-        current.map((playlist) => (playlist.id === editingPlaylist.id ? response.data! : playlist))
+        current.map((playlist) => (playlist.id === editingPlaylist.id ? updated : playlist))
       );
       if (selectedPlaylist?.id === editingPlaylist.id) {
-        setSelectedPlaylist(response.data);
+        setSelectedPlaylist(updated);
       }
       setIsEditOpen(false);
       setEditingPlaylist(null);
@@ -270,32 +292,35 @@ export default function PlaylistsPage() {
     setIsSubmitting(false);
   };
 
-  const handleDeletePlaylist = async (playlist: Playlist) => {
-    if (!window.confirm(`Delete "${playlist.name}"?`)) {
-      return;
-    }
+  const triggerDeleteConfirm = (playlist: Playlist) => {
+    setPlaylistToDelete(playlist);
+    setIsDeleteOpen(true);
+  };
 
+  const handleDeletePlaylist = async (playlist: Playlist) => {
     setError(null);
+    setIsSubmitting(true);
 
     const response = await apiClient.deletePlaylist(playlist.id);
 
     if (response.success) {
-      setPlaylists((current) => current.filter((item) => item.id !== playlist.id));
+      const remainingPlaylists = playlists.filter((item) => item.id !== playlist.id);
+      setPlaylists(remainingPlaylists);
       if (selectedPlaylist?.id === playlist.id) {
-        setSelectedPlaylist(null);
-        setPlaylistVideosPage(null);
-        setIsVideosOpen(false);
+        if (remainingPlaylists.length > 0) {
+          setSelectedPlaylist(remainingPlaylists[0]);
+        } else {
+          setSelectedPlaylist(null);
+          setPlaylistVideosPage(null);
+        }
       }
+      setIsDeleteOpen(false);
+      setPlaylistToDelete(null);
     } else {
       setError(response.error ?? 'Failed to delete playlist');
     }
-  };
 
-  const openPlaylistVideos = (playlist: Playlist) => {
-    setSelectedPlaylist(playlist);
-    setPlaylistVideosPage(null);
-    setPlaylistVideosPageNumber(1);
-    setIsVideosOpen(true);
+    setIsSubmitting(false);
   };
 
   const handleRemoveVideo = async (playlistId: string, videoId: string) => {
@@ -350,7 +375,7 @@ export default function PlaylistsPage() {
       className="space-y-4"
     >
       <div className="space-y-2">
-        <label className="text-sm font-medium">Playlist name</label>
+        <label className="text-xs font-medium text-muted-foreground">Playlist name</label>
         <Input
           placeholder="Enter playlist name"
           value={value.name}
@@ -359,7 +384,7 @@ export default function PlaylistsPage() {
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium">Description</label>
+        <label className="text-xs font-medium text-muted-foreground">Description</label>
         <Textarea
           placeholder="Describe what this playlist is about"
           value={value.description}
@@ -368,7 +393,7 @@ export default function PlaylistsPage() {
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium">Visibility</label>
+        <label className="text-xs font-medium text-muted-foreground">Visibility</label>
         <Select
           value={value.visibility}
           onValueChange={(nextValue: PlaylistVisibility) => onChange({ ...value, visibility: nextValue })}
@@ -395,73 +420,19 @@ export default function PlaylistsPage() {
     </form>
   );
 
-  const renderPlaylistPreview = (playlist: Playlist) => {
-    const previews = playlistPreviews[playlist.id] ?? [];
-
-    if (previews.length === 1) {
-      const video = previews[0];
-
-      return (
-        <img
-          src={video.thumbnail}
-          alt={video.title}
-          className="h-full w-full object-cover"
-        />
-      );
-    }
-
-    if (previews.length > 1) {
-      const previewStack = previews.slice(0, PLAYLIST_PREVIEW_SIZE);
-      const layouts = [
-        'left-0 top-[8%] h-[100%] w-[100%]',
-        'left-[1%] top-[4%] h-[99%] w-[98%]',
-        'left-[2%] top-[0%] h-[98%] w-[96%]',
-      ];
-
-      return (
-        <div className="relative h-full w-full">
-          <div className="absolute inset-0 bg-gradient-to-br from-black/15 via-transparent to-black/25" />
-          {[...previewStack].reverse().map((video, reverseIndex) => {
-            const index = previewStack.length - reverseIndex - 1;
-
-            return (
-              <div
-                key={video.id}
-                className={`absolute overflow-hidden rounded-xl ring-1 ring-border ${layouts[index]}`}
-                style={{ zIndex: reverseIndex + 1 }}
-              >
-                <img src={video.thumbnail} alt={video.title} className="h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-white/5" />
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex gap-2 opacity-30 scale-150">
-        {[0, 1, 2].map((index) => (
-          <Play key={index} className="h-8 w-8 fill-primary text-primary" />
-        ))}
-      </div>
-    );
-  };
-
   return (
     <DashboardLayout title="Playlists">
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-end justify-between flex-wrap gap-4">
           <div>
             <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Collections</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Playlists</h1>
-            <p className="text-sm text-muted-foreground">Create and manage your saved video collections.</p>
+            <h1 className="text-2xl font-bold tracking-tight mt-1">Playlists</h1>
           </div>
+
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Playlist
+              <Button className="bg-foreground text-background hover:opacity-90 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5">
+                <Plus className="size-3.5" /> New playlist
               </Button>
             </DialogTrigger>
             <DialogContent className="border border-border bg-background">
@@ -474,246 +445,319 @@ export default function PlaylistsPage() {
           </Dialog>
         </div>
 
-        <Input
-          placeholder="Search playlists..."
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          className="max-w-md"
-        />
-
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        {isLoading ? (
-          <Card>
-            <CardContent className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading playlists...
-            </CardContent>
-          </Card>
-        ) : filteredPlaylists.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredPlaylists.map((playlist) => (
-                <Card
-                  key={playlist.id}
-                  className="flex flex-col gap-0 overflow-hidden border-t-0 pt-0 pb-6 cursor-pointer hover:border-foreground/20"
-                  onClick={() => openPlaylistVideos(playlist)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      openPlaylistVideos(playlist);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-t-lg bg-muted">
-                    {renderPlaylistPreview(playlist)}
-                    <Badge variant="outline" className="absolute bottom-3 right-3 z-10">
-                      {playlist.visibility === 'Public' ? 'Public' : 'Private'}
-                    </Badge>
-                  </div>
-                  <CardContent className="flex flex-1 flex-col p-4">
-                    <h3 className="mb-2 line-clamp-2 text-lg font-semibold">{playlist.name}</h3>
-                    <p className="mb-4 flex-1 line-clamp-3 text-sm text-muted-foreground">
-                      {playlist.description || 'No description provided.'}
-                    </p>
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+          {/* Left Column: Playlist List */}
+          <div className="space-y-3">
+            <Input
+              placeholder="Search playlists..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-card border border-border rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+            />
 
-                    <div className="mb-4 flex items-center justify-between border-b border-border pb-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Play className="h-3 w-3" />
-                        <span className="font-mono">{playlist.videoCount}</span> videos
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span className="font-mono">{playlist.updatedAt.toLocaleDateString()}</span>
-                      </span>
-                    </div>
-
-                    <p className="mb-4 text-xs text-muted-foreground">Created by {playlist.ownerName}</p>
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="h-10 flex-1 bg-transparent"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openPlaylistVideos(playlist);
-                        }}
-                      >
-                        <Play className="mr-1 h-4 w-4" />
-                        View videos
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10 bg-transparent"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openEditDialog(playlist);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-10 w-10 bg-transparent text-destructive hover:text-destructive"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleDeletePlaylist(playlist);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between border-t pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage <= 1}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                disabled={currentPage >= totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </>
-        ) : (
-          <Card className="py-12 text-center">
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">
-                {searchTerm ? 'No playlists match your search.' : 'No playlists yet.'}
-              </p>
-              <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Create your first playlist
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <Dialog
-          open={isEditOpen}
-          onOpenChange={(open) => {
-            setIsEditOpen(open);
-            if (!open) {
-              setEditingPlaylist(null);
-            }
-          }}
-        >
-          <DialogContent className="border border-border bg-background">
-            <DialogHeader>
-              <DialogTitle>Edit Playlist</DialogTitle>
-              <DialogDescription>Update the playlist details shown to viewers.</DialogDescription>
-            </DialogHeader>
-            {renderPlaylistForm(editPlaylist, setEditPlaylist, 'Save Changes')}
-          </DialogContent>
-        </Dialog>
-
-        <Dialog
-          open={isVideosOpen}
-          onOpenChange={(open) => {
-            setIsVideosOpen(open);
-            if (!open) {
-              setSelectedPlaylist(null);
-              setPlaylistVideosPage(null);
-              setPlaylistVideosPageNumber(1);
-            }
-          }}
-        >
-          <DialogContent className="max-h-[85vh] overflow-hidden border border-border bg-background sm:max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>{selectedPlaylist?.name ?? 'Playlist videos'}</DialogTitle>
-              <DialogDescription>
-                {selectedPlaylist?.description || 'Browse the videos saved in this playlist.'}
-              </DialogDescription>
-            </DialogHeader>
-
-            {isVideosLoading ? (
-              <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading playlist videos...
+            {isLoading ? (
+              <div className="flex items-center gap-2 py-8 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading playlists...
               </div>
-            ) : playlistVideosPage && playlistVideosPage.videos.items.length > 0 ? (
-              <div className="space-y-4 overflow-y-auto pr-1">
-                <div className="space-y-3">
-                  {playlistVideosPage.videos.items.map((video) => (
-                    <div
-                      key={video.id}
-                      className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-foreground">{video.title}</p>
-                        <p className="line-clamp-2 text-sm text-muted-foreground">{video.description}</p>
-                      </div>
-                      <div className="flex gap-2 sm:flex-shrink-0">
-                        <Button variant="outline" onClick={() => router.push(`/videos/${video.id}`)}>
-                          Open video
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() =>
-                            selectedPlaylist && void handleRemoveVideo(selectedPlaylist.id, video.id)
-                          }
-                        >
-                          Remove
-                        </Button>
-                      </div>
+            ) : filteredPlaylists.length > 0 ? (
+              <div className="space-y-1">
+                {filteredPlaylists.map((playlist) => (
+                  <button
+                    key={playlist.id}
+                    onClick={() => {
+                      setSelectedPlaylist(playlist);
+                      setPlaylistVideosPageNumber(1);
+                    }}
+                    className={cn(
+                      'w-full text-left px-3 py-2.5 rounded-md transition-colors',
+                      selectedPlaylist?.id === playlist.id
+                        ? 'bg-accent text-foreground'
+                        : 'hover:bg-accent/50 text-foreground/80'
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold truncate pr-2">{playlist.name}</p>
+                      {playlist.visibility === 'Public' ? (
+                        <Globe className="size-3.5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <Lock className="size-3.5 text-muted-foreground shrink-0" />
+                      )}
                     </div>
-                  ))}
-                </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                      {playlist.videoCount} videos · {formatRelativeDate(playlist.updatedAt)}
+                    </p>
+                  </button>
+                ))}
 
-                <div className="flex items-center justify-between border-t pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPlaylistVideosPageNumber((page) => Math.max(1, page - 1))}
-                    disabled={playlistVideosPage.videos.page <= 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {playlistVideosPage.videos.page} of {playlistVideosPage.videos.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setPlaylistVideosPageNumber((page) =>
-                        Math.min(playlistVideosPage.videos.totalPages, page + 1)
-                      )
-                    }
-                    disabled={!playlistVideosPage.videos.hasNextPage}
-                  >
-                    Next
-                  </Button>
-                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-border pt-3 mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] px-2"
+                      onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                      disabled={currentPage <= 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] px-2"
+                      onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                      disabled={currentPage >= totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                This playlist does not have any videos yet.
+              <div className="py-8 text-center text-xs text-muted-foreground">
+                {searchTerm ? 'No playlists match your search.' : 'No playlists yet.'}
               </div>
             )}
-          </DialogContent>
-        </Dialog>
+          </div>
+
+          {/* Right Column: Playlist Details & Video List */}
+          <div className="space-y-6">
+            {selectedPlaylist ? (
+              <>
+                {/* Playlist Info Box */}
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Playlist</p>
+                      <h2 className="text-xl font-bold tracking-tight mt-1">{selectedPlaylist.name}</h2>
+                      <p className="text-sm text-muted-foreground mt-2 max-w-xl leading-relaxed">
+                        {selectedPlaylist.description || 'No description provided.'}
+                      </p>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                          <MoreVertical className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-36 border border-border bg-popover">
+                        <DropdownMenuItem
+                          onClick={() => openEditDialog(selectedPlaylist)}
+                          className="cursor-pointer text-xs"
+                        >
+                          <Edit2 className="mr-2 size-3.5" /> Edit details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => triggerDeleteConfirm(selectedPlaylist)}
+                          className="cursor-pointer text-destructive focus:text-destructive text-xs"
+                        >
+                          <Trash2 className="mr-2 size-3.5" /> Delete playlist
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-3">
+                    <Button
+                      onClick={() => {
+                        const firstVideo = playlistVideosPage?.videos.items[0];
+                        if (firstVideo) {
+                          router.push(`/videos/${firstVideo.id}`);
+                        }
+                      }}
+                      disabled={!playlistVideosPage || playlistVideosPage.videos.items.length === 0}
+                      className="bg-foreground text-background hover:opacity-90 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <Play className="size-3.5 fill-current" /> Play all
+                    </Button>
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      {selectedPlaylist.videoCount} videos
+                    </span>
+                  </div>
+                </div>
+
+                {/* Playlist Video Items */}
+                {isVideosLoading ? (
+                  <div className="flex items-center gap-2 py-12 justify-center text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin animate-spin" />
+                    Loading playlist videos...
+                  </div>
+                ) : playlistVideosPage && playlistVideosPage.videos.items.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="border border-border rounded-lg bg-card overflow-hidden divide-y divide-border">
+                      {playlistVideosPage.videos.items.map((video, idx) => {
+                        const indexNumber = idx + 1 + (playlistVideosPageNumber - 1) * PLAYLIST_VIDEO_PAGE_SIZE;
+                        return (
+                          <div key={video.id} className="flex items-center gap-4 p-3 hover:bg-accent/50 group transition-colors">
+                            <span className="text-xs font-mono text-muted-foreground w-6 text-right shrink-0">
+                              {indexNumber}
+                            </span>
+
+                            <div
+                              onClick={() => router.push(`/videos/${video.id}`)}
+                              className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                            >
+                              <img
+                                src={video.thumbnail}
+                                alt=""
+                                className="w-24 aspect-video object-cover rounded ring-1 ring-border shrink-0 bg-muted"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
+                                  {video.title}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                                  {video.uploadedBy} · {video.categories[0] || 'Uncategorized'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <span className="text-[11px] font-mono text-muted-foreground shrink-0">
+                              {formatTime(video.duration)}
+                            </span>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="opacity-0 group-hover:opacity-100 h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-background rounded transition-all shrink-0"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void handleRemoveVideo(selectedPlaylist.id, video.id);
+                              }}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Pagination */}
+                    {playlistVideosPage.videos.totalPages > 1 && (
+                      <div className="flex items-center justify-between border-t border-border pt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPlaylistVideosPageNumber((page) => Math.max(1, page - 1))}
+                          disabled={playlistVideosPage.videos.page <= 1}
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-sm text-muted-foreground font-mono">
+                          Page {playlistVideosPage.videos.page} of {playlistVideosPage.videos.totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPlaylistVideosPageNumber((page) =>
+                              Math.min(playlistVideosPage.videos.totalPages, page + 1)
+                            )
+                          }
+                          disabled={!playlistVideosPage.videos.hasNextPage}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center px-6 py-20 text-center border border-border rounded-lg bg-card">
+                    <div className="mb-4 text-muted-foreground/60">
+                      <SearchSlash className="size-8 stroke-[1.5]" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground tracking-tight">No videos in playlist</h3>
+                    <p className="mt-1.5 text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                      This playlist doesn't contain any videos yet. Add videos from the Library or Viewer Dashboard.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center px-6 py-24 text-center border border-border rounded-lg bg-card">
+                <div className="mb-4 text-muted-foreground/40">
+                  <Play className="size-8 stroke-[1.5]" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground tracking-tight">No playlist selected</h3>
+                <p className="mt-1.5 text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                  Select a playlist from the sidebar to view details and watch videos, or create a new one.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => {
+          setIsEditOpen(open);
+          if (!open) {
+            setEditingPlaylist(null);
+          }
+        }}
+      >
+        <DialogContent className="border border-border bg-background">
+          <DialogHeader>
+            <DialogTitle>Edit Playlist</DialogTitle>
+            <DialogDescription>Update the playlist details shown to viewers.</DialogDescription>
+          </DialogHeader>
+          {renderPlaylistForm(editPlaylist, setEditPlaylist, 'Save Changes')}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isDeleteOpen}
+        onOpenChange={(open) => {
+          setIsDeleteOpen(open);
+          if (!open) {
+            setPlaylistToDelete(null);
+          }
+        }}
+      >
+        <DialogContent className="border border-border bg-background max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Playlist</DialogTitle>
+            <DialogDescription>
+              {"Are you sure you want to delete \"" + (playlistToDelete?.name || "") + "\"? This action cannot be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteOpen(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (playlistToDelete) {
+                  void handleDeletePlaylist(playlistToDelete);
+                }
+              }}
+              disabled={isSubmitting}
+              className="text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
