@@ -31,6 +31,7 @@ import {
   Shield,
   Clock,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { ReactionSummary, ReactionType, Video, VideoProcessingStatus } from '@/features/videos/types';
@@ -377,6 +378,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   const isVideoReady = video.status === 'Ready' || !video.status;
   const isVideoFailed = video.status === 'Failed';
+  const isVideoDeleted = video.status === 'Deleted';
   const isProcessing = video.status ? ACTIVE_PROCESSING_STATUSES.has(video.status) : false;
   const processingProgress = processingStatus?.progress ?? 0;
 
@@ -398,7 +400,21 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               />
             ) : (
               <div className="relative aspect-video w-full rounded-lg bg-card border border-border text-foreground flex flex-col items-center justify-center gap-4 p-6 text-center overflow-hidden">
-                {isVideoFailed ? (
+                {isVideoDeleted ? (
+                  <>
+                    <div className="relative flex items-center justify-center rounded-full bg-muted border border-border size-12">
+                      <Trash2 className="size-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground">
+                        Video Deleted
+                      </h2>
+                      <p className="text-[11px] text-muted-foreground max-w-[280px] mt-1 leading-normal">
+                        This video has been deleted and is no longer available.
+                      </p>
+                    </div>
+                  </>
+                ) : isVideoFailed ? (
                   <>
                     <div className="relative flex items-center justify-center rounded-full bg-destructive/10 border border-destructive/20 size-12">
                       <AlertCircle className="size-5 text-destructive" />
@@ -447,11 +463,13 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 )}
 
                 {/* Operator Logs Panel */}
-                <div className="font-mono text-[9px] text-muted-foreground bg-muted/30 border border-border rounded p-2.5 max-w-xs w-full text-left space-y-0.5 mt-2">
-                  <div>JOB_ID   : {processingStatus?.processingJobId || 'PENDING'}</div>
-                  <div>STAGE    : {processingStatus?.jobStatus || (isVideoFailed ? 'FAILED' : 'INGESTING')}</div>
-                  <div>START    : {processingStatus?.startedAt ? new Date(processingStatus.startedAt).toLocaleTimeString() : 'N/A'}</div>
-                </div>
+                {!isVideoDeleted && (
+                  <div className="font-mono text-[9px] text-muted-foreground bg-muted/30 border border-border rounded p-2.5 max-w-xs w-full text-left space-y-0.5 mt-2">
+                    <div>JOB_ID   : {processingStatus?.processingJobId || 'PENDING'}</div>
+                    <div>STAGE    : {processingStatus?.jobStatus || (isVideoFailed ? 'FAILED' : 'INGESTING')}</div>
+                    <div>START    : {processingStatus?.startedAt ? new Date(processingStatus.startedAt).toLocaleTimeString() : 'N/A'}</div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -474,7 +492,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     <>
                       <button
                         onClick={() => void handleReaction('Like')}
-                        disabled={isReactionSaving || isProcessing}
+                        disabled={isReactionSaving || isProcessing || isVideoDeleted}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                           isLiked ? 'bg-accent font-semibold' : 'bg-transparent'
                         }`}
@@ -484,7 +502,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                       </button>
                       <button
                         onClick={() => void handleReaction('Dislike')}
-                        disabled={isReactionSaving || isProcessing}
+                        disabled={isReactionSaving || isProcessing || isVideoDeleted}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                           isDisliked ? 'bg-accent font-semibold' : 'bg-transparent'
                         }`}
@@ -498,7 +516,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     <Dialog open={isPlaylistDialogOpen} onOpenChange={(open) => void handlePlaylistDialogChange(open)}>
                       <DialogTrigger asChild>
                         <button
-                          disabled={isProcessing}
+                          disabled={isProcessing || isVideoDeleted}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <ListPlus className="size-3.5" />
@@ -549,7 +567,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     </Dialog>
                   )}
                   <button
-                    disabled={isProcessing}
+                    disabled={isProcessing || isVideoDeleted}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Share2 className="size-3.5" />
@@ -604,7 +622,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
 
 
-            {video.allowComments !== false && !ACTIVE_PROCESSING_STATUSES.has(video.status || 'Ready') && (
+            {video.allowComments !== false && !isProcessing && !isVideoDeleted && (
               <CommentsSection
                 videoId={video.id}
                 currentUserId={user?.id}

@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   Upload,
   Video,
@@ -69,6 +70,8 @@ export default function UploadVideoPage() {
 
   // Transcoding options
   const [qualityOptions, setQualityOptions] = useState<QualityOption[]>([
+    { id: '2160p', label: '2160p 4K UHD', resolution: '3840x2160', bitrate: '20000kbps', enabled: false },
+    { id: '1440p', label: '1440p Quad HD', resolution: '2560x1440', bitrate: '10000kbps', enabled: false },
     { id: '1080p', label: '1080p Full HD', resolution: '1920x1080', bitrate: '5000kbps', enabled: true },
     { id: '720p', label: '720p HD', resolution: '1280x720', bitrate: '2500kbps', enabled: true },
     { id: '480p', label: '480p SD', resolution: '854x480', bitrate: '1200kbps', enabled: true },
@@ -84,6 +87,18 @@ export default function UploadVideoPage() {
   const [videoResolution, setVideoResolution] = useState<string | null>(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState<string | null>(null);
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
+
+  // Helper to extract vertical resolution from a resolution string (e.g., "1920x1080" -> 1080)
+  const getQualityHeight = (resolutionStr: string): number => {
+    const parts = resolutionStr.split('x');
+    return parts.length === 2 ? parseInt(parts[1], 10) || 0 : 0;
+  };
+
+  const parsedVideoHeight = (() => {
+    if (!videoResolution) return null;
+    const parts = videoResolution.split('x');
+    return parts.length === 2 ? parseInt(parts[1], 10) || null : null;
+  })();
 
   useEffect(() => {
     let isMounted = true;
@@ -123,6 +138,7 @@ export default function UploadVideoPage() {
       setThumbnailUrl(null);
       setVideoDuration(null);
       setVideoResolution(null);
+      setVideoAspectRatio(null);
       setIsGeneratingThumbnail(false);
       return;
     }
@@ -156,9 +172,23 @@ export default function UploadVideoPage() {
           '3:2': '3:2',
           '1:1': '1:1',
           '9:16': '9:16 (Vertical)',
+          '3:4': '3:4 (Vertical)',
           '16:10': '16:10',
+          '8:5': '16:10',
+          '5:8': '10:16 (Vertical)',
           '21:9': '21:9 (Ultrawide)',
           '64:27': '21:9 (Ultrawide)',
+          '43:18': '21:9 (Ultrawide)',
+          '12:5': '21:9 (Ultrawide)',
+          '7:3': '21:9 (Ultrawide)',
+          '32:9': '32:9 (Super Ultrawide)',
+          '16:5': '32:10 (Super Ultrawide)',
+          '240:101': '2.39:1 (Cinematic)',
+          '19:10': '1.90:1 (Digital IMAX)',
+          '37:20': '1.85:1 (Theatrical)',
+          '5:3': '1.66:1 (European Cinema)',
+          '3:5': '3:5 (Vertical)',
+          '11:8': '1.37:1 (Academy Ratio)',
         };
         setVideoAspectRatio(commonRatios[ratioStr] || ratioStr);
       }
@@ -358,7 +388,7 @@ export default function UploadVideoPage() {
   };
 
   const resetForm = () => {
-    setSelectedFile(null);
+    removeFile();
     setTitle('');
     setDescription('');
     setSelectedCategoryId(null);
@@ -368,12 +398,6 @@ export default function UploadVideoPage() {
     setUploadComplete(false);
     setUploadError(null);
     setUploadedVideoId(null);
-    setObjectUrl(null);
-    setVideoDuration(null);
-    setVideoResolution(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   return (
@@ -420,7 +444,7 @@ export default function UploadVideoPage() {
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={handleBrowseClick}
-                className={`border-2 border-dashed rounded-xl p-16 text-center cursor-pointer transition-colors ${
+                className={`border-2 border-dashed rounded-xl py-40 px-16 min-h-114 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
                   dragActive
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-foreground/30 bg-card'
@@ -648,20 +672,45 @@ export default function UploadVideoPage() {
                       <div className="flex flex-wrap gap-1.5">
                         {qualityOptions.map((q) => {
                           const isSelected = q.enabled;
-                          return (
+                          const isAppropriate = !parsedVideoHeight || getQualityHeight(q.resolution) <= parsedVideoHeight;
+
+                          const buttonEl = (
                             <button
-                              key={q.id}
                               type="button"
                               onClick={() => toggleQuality(q.id)}
                               className={cn(
-                                "text-xs px-3 py-1 rounded-md border font-mono transition-all duration-150 cursor-pointer",
+                                "text-xs px-3 py-1 rounded-md border font-mono transition-all duration-150 cursor-pointer flex items-center gap-1.5",
                                 isSelected
                                   ? "bg-foreground text-background border-foreground font-semibold"
                                   : "border-border hover:border-foreground/40 text-muted-foreground"
                               )}
                             >
-                              {q.id}
+                              <span>{q.id}</span>
+                              {!isAppropriate && (
+                                <AlertCircle className="size-3.5 shrink-0" />
+                              )}
                             </button>
+                          );
+
+                          if (!isAppropriate) {
+                            return (
+                              <Tooltip key={q.id}>
+                                <TooltipTrigger asChild>
+                                  {buttonEl}
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs max-w-[220px] font-sans">
+                                    Source video height ({parsedVideoHeight}p) is lower than {q.id} ({getQualityHeight(q.resolution)}p). Upscaling is not recommended.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          }
+
+                          return (
+                            <React.Fragment key={q.id}>
+                              {buttonEl}
+                            </React.Fragment>
                           );
                         })}
                       </div>
