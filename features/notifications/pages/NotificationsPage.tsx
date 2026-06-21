@@ -4,39 +4,26 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  AlertCircle,
-  CheckCircle,
-  Info,
-  Trash2,
-  Check,
-  Loader2,
-  X,
-  MessageSquare,
-  ThumbsUp,
-  Upload,
-  Reply,
-} from 'lucide-react';
+import { Bell, MessageSquare, ThumbsUp, Upload, Cog, Trash2 } from 'lucide-react';
 import { Notification, NotificationListFilters } from '@/features/notifications/types';
 import { cn } from '@/shared/lib/utils';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-type ReadFilter = 'all' | 'read' | 'unread';
+type ReadFilter = 'all' | 'unread' | 'read';
 
-const READ_FILTER_OPTIONS: Array<{ label: string; value: ReadFilter }> = [
-  { label: 'All notifications', value: 'all' },
-  { label: 'Unread', value: 'unread' },
-  { label: 'Read', value: 'read' },
-];
+const formatRelative = (date: Date): string => {
+  const d = date.getTime();
+  const diff = Date.now() - d;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const dd = Math.floor(h / 24);
+  if (dd < 30) return `${dd}d ago`;
+  return date.toLocaleDateString();
+};
 
 const getNotificationTitle = (notification: Notification) => {
   switch (notification.notificationType) {
@@ -54,35 +41,12 @@ const getNotificationTitle = (notification: Notification) => {
   }
 };
 
-const getNotificationIcon = (type: Notification['notificationType']) => {
-  const iconProps = { className: 'h-5 w-5' };
-
-  switch (type) {
-    case 'Comment':
-      return <MessageSquare {...iconProps} className="text-primary" />;
-    case 'Reply':
-      return <Reply {...iconProps} className="text-primary" />;
-    case 'Like':
-      return <ThumbsUp {...iconProps} className="text-success" />;
-    case 'ProcessingComplete':
-      return <CheckCircle {...iconProps} className="text-success" />;
-    case 'Upload':
-    default:
-      return <Upload {...iconProps} className="text-primary" />;
-  }
-};
-
-const getBadgeColor = (type: Notification['notificationType']) => {
-  switch (type) {
-    case 'Like':
-    case 'ProcessingComplete':
-      return 'border-success/20 bg-success/10 text-success';
-    case 'Comment':
-    case 'Reply':
-    case 'Upload':
-    default:
-      return 'border-primary/20 bg-primary/10 text-primary';
-  }
+const ICONS = {
+  Comment: MessageSquare,
+  Reply: MessageSquare,
+  Like: ThumbsUp,
+  ProcessingComplete: Cog,
+  Upload: Upload,
 };
 
 export default function NotificationsPage() {
@@ -133,29 +97,19 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleMarkAsRead = async (notification: Notification) => {
-    const response = await apiClient.markNotificationAsRead(notification.id);
+  const handleToggleRead = async (notification: Notification) => {
+    const nextReadState = !notification.isRead;
+    const response = nextReadState
+      ? await apiClient.markNotificationAsRead(notification.id)
+      : await apiClient.markNotificationAsUnread(notification.id);
 
     if (response.success) {
       setNotifications((current) =>
-        current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+        current.map((item) => (item.id === notification.id ? { ...item, isRead: nextReadState } : item))
       );
       await refreshUnreadCount();
     } else {
-      setError(response.error ?? 'Failed to mark notification as read');
-    }
-  };
-
-  const handleMarkAsUnread = async (notification: Notification) => {
-    const response = await apiClient.markNotificationAsUnread(notification.id);
-
-    if (response.success) {
-      setNotifications((current) =>
-        current.map((item) => (item.id === notification.id ? { ...item, isRead: false } : item))
-      );
-      await refreshUnreadCount();
-    } else {
-      setError(response.error ?? 'Failed to mark notification as unread');
+      setError(response.error ?? 'Failed to update notification status');
     }
   };
 
@@ -193,168 +147,147 @@ export default function NotificationsPage() {
 
   return (
     <DashboardLayout title="Notifications">
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-end justify-between">
           <div>
             <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Inbox</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Notifications</h1>
-            <p className="text-sm text-muted-foreground">
-              {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight mt-1 text-foreground">
+              Notifications{' '}
+              {unreadCount > 0 && (
+                <span className="text-sm font-mono text-muted-foreground font-medium">({unreadCount})</span>
+              )}
+            </h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={readFilter} onValueChange={(value) => setReadFilter(value as ReadFilter)}>
-              <SelectTrigger className="w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {READ_FILTER_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex gap-2">
             {unreadCount > 0 && (
-              <Button variant="outline" onClick={() => void handleMarkAllAsRead()}>
-                Mark all as read
-              </Button>
+              <button
+                onClick={() => void handleMarkAllAsRead()}
+                className="text-xs px-3 py-1.5 rounded-md border border-border bg-background hover:bg-accent text-foreground transition-colors cursor-pointer"
+              >
+                Mark all read
+              </button>
             )}
-            <Button variant="outline" onClick={() => void handleClearReadNotifications()}>
+            <button
+              onClick={() => void handleClearReadNotifications()}
+              className="text-xs px-3 py-1.5 rounded-md border border-border bg-background hover:bg-accent text-foreground transition-colors cursor-pointer"
+            >
               Clear read
-            </Button>
+            </button>
           </div>
         </div>
 
+        {/* Filter bar */}
+        <div className="flex bg-muted rounded-md p-0.5 w-fit">
+          {(['all', 'unread', 'read'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setReadFilter(f)}
+              className={cn(
+                'px-3 py-1 text-[11px] rounded capitalize font-semibold transition-all cursor-pointer',
+                readFilter === f ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
         {error && (
-          <Card className="border-destructive/30 bg-destructive/5">
-            <CardContent className="py-4 text-sm text-destructive">{error}</CardContent>
-          </Card>
+          <div className="border border-destructive/20 bg-destructive/5 rounded-lg p-4 text-sm text-destructive">
+            {error}
+          </div>
         )}
 
+        {/* Notification items */}
         {isLoading ? (
-          <Card className="py-12 text-center">
-            <CardContent className="flex items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading notifications...
-            </CardContent>
-          </Card>
-        ) : notifications.length > 0 ? (
-          <div className="space-y-3">
-            {notifications.map((notification) => (
-              <Card key={notification.id} className={cn(!notification.isRead ? 'border-primary/20 bg-primary/5' : '')}>
-                <CardContent className="p-4">
-                  <div className="flex gap-4">
-                    <div className="mt-1 flex-shrink-0">{getNotificationIcon(notification.notificationType)}</div>
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-foreground">{getNotificationTitle(notification)}</h3>
-                        {!notification.isRead && <div className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-primary" />}
-                      </div>
-                      <p className="mb-3 text-sm text-muted-foreground">{notification.message}</p>
-                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge className={getBadgeColor(notification.notificationType)} variant="outline">
-                            {notification.notificationType}
-                          </Badge>
-                          <span className="font-mono text-xs text-muted-foreground">
-                            {notification.createdAt.toLocaleDateString()} at{' '}
-                            {notification.createdAt.toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          {notification.videoId && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-xs"
-                              onClick={() => router.push(`/videos/${notification.videoId}`)}
-                            >
-                              View
-                            </Button>
-                          )}
-                          {!notification.isRead ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => void handleMarkAsRead(notification)}
-                              title="Mark as read"
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => void handleMarkAsUnread(notification)}
-                              title="Mark as unread"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => void handleDeleteNotification(notification.id)}
-                            title="Delete notification"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="text-center py-20 text-sm text-muted-foreground">
+            Loading notifications...
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="size-12 mx-auto bg-muted rounded-full grid place-items-center mb-4">
+              <Bell className="size-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-semibold">You're all caught up</p>
           </div>
         ) : (
-          <Card className="py-12 text-center">
-            <CardContent>
-              <p className="mb-4 text-muted-foreground">No notifications</p>
-              <p className="text-sm text-muted-foreground">You're all caught up.</p>
-            </CardContent>
-          </Card>
+          <div className="border border-border rounded-lg bg-card divide-y divide-border overflow-hidden">
+            {notifications.map((n) => {
+              const Icon = ICONS[n.notificationType] || Bell;
+              const isUnread = !n.isRead;
+              return (
+                <div
+                  key={n.id}
+                  className={cn(
+                    'w-full flex items-start gap-4 p-4 transition-colors',
+                    isUnread ? 'bg-primary/[0.02]' : 'hover:bg-accent/30'
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => void handleToggleRead(n)}
+                    className={cn(
+                      'size-9 rounded-full grid place-items-center shrink-0 transition-colors cursor-pointer',
+                      isUnread
+                        ? 'bg-foreground text-background'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    )}
+                    title={isUnread ? 'Mark as read' : 'Mark as unread'}
+                  >
+                    <Icon className="size-4" />
+                  </button>
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div 
+                          className="cursor-pointer flex-1"
+                          onClick={() => void handleToggleRead(n)}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-foreground">{getNotificationTitle(n)}</p>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[11px] text-muted-foreground font-mono">
+                                {formatRelative(n.createdAt)}
+                              </span>
+                              {isUnread && <span className="size-2 rounded-full bg-foreground shrink-0" />}
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{n.message}</p>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="start">
+                        <p className="text-xs">Click to mark as {isUnread ? 'read' : 'unread'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 mt-3">
+                      {n.videoId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 font-mono py-0 hover:bg-accent"
+                          onClick={() => router.push(`/videos/${n.videoId}`)}
+                        >
+                          View Video
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px] px-2 text-destructive hover:text-destructive hover:bg-destructive/10 font-mono py-0"
+                        onClick={() => void handleDeleteNotification(n.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
-
-        <Card className="bg-muted/50">
-          <CardHeader>
-            <CardTitle className="text-base">Notification Types</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-success" />
-              <span>
-                <strong>Upload and processing:</strong> Upload updates and completed processing
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              <span>
-                <strong>Comments:</strong> New comments and replies on your videos
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThumbsUp className="h-4 w-4 text-success" />
-              <span>
-                <strong>Reactions:</strong> Likes on your content
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-primary" />
-              <span>
-                <strong>Status:</strong> Read and unread items can be filtered and managed here
-              </span>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );

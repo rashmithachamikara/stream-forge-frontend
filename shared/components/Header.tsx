@@ -26,8 +26,13 @@ import {
   Sun,
   Upload,
   X,
+  MessageSquare,
+  ThumbsUp,
+  Cog,
 } from 'lucide-react';
 import { UserRole } from '@/features/auth/types';
+import { apiClient } from '@/shared/lib/api';
+import { Notification } from '@/features/notifications/types';
 import {
   ACTIVE_VIEW_CHANGE_EVENT,
   getAllowedViews,
@@ -69,6 +74,43 @@ const viewOptions: Array<{
   { role: 'viewer', label: 'Viewer' },
 ];
 
+const formatRelative = (date: Date): string => {
+  const d = date.getTime();
+  const diff = Date.now() - d;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const dd = Math.floor(h / 24);
+  if (dd < 30) return `${dd}d ago`;
+  return date.toLocaleDateString();
+};
+
+const ICONS = {
+  Comment: MessageSquare,
+  Reply: MessageSquare,
+  Like: ThumbsUp,
+  ProcessingComplete: Cog,
+  Upload: Upload,
+};
+
+const getNotificationTitle = (notification: Notification) => {
+  switch (notification.notificationType) {
+    case 'Comment':
+      return 'New Comment';
+    case 'Reply':
+      return 'New Reply';
+    case 'Like':
+      return 'New Reaction';
+    case 'ProcessingComplete':
+      return 'Processing Complete';
+    case 'Upload':
+    default:
+      return 'Upload Update';
+  }
+};
+
 export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -77,6 +119,50 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
   const [activeView, setActiveView] = useState<UserRole | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotifLoading, setIsNotifLoading] = useState(false);
+
+  const loadHeaderNotifications = async () => {
+    if (!user) return;
+    setIsNotifLoading(true);
+    const [notificationsResponse, unreadCountResponse] = await Promise.all([
+      apiClient.getNotifications({ page: 1, pageSize: 5 }),
+      apiClient.getUnreadNotificationCount(),
+    ]);
+
+    if (notificationsResponse.success && notificationsResponse.data) {
+      setNotifications(notificationsResponse.data.items);
+    }
+    if (unreadCountResponse.success && unreadCountResponse.data) {
+      setUnreadCount(unreadCountResponse.data.unreadCount);
+    }
+    setIsNotifLoading(false);
+  };
+
+  useEffect(() => {
+    if (user) {
+      void loadHeaderNotifications();
+    } else {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, [user]);
+
+  const handleNotificationClick = async (notification: Notification) => {
+    if (!notification.isRead) {
+      const response = await apiClient.markNotificationAsRead(notification.id);
+      if (response.success) {
+        setNotifications((current) =>
+          current.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    }
+    if (notification.videoId) {
+      router.push(`/videos/${notification.videoId}`);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -214,12 +300,60 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
               {mounted && theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
             </Button>
 
-            <Button variant="ghost" size="icon-sm" className="h-7 w-7" asChild aria-label="Notifications">
-              <Link href="/notifications" className="relative">
-                <Bell className="size-3.5" />
-                <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary" />
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm" className="h-7 w-7 relative cursor-pointer" aria-label="Notifications">
+                  <Bell className="size-3.5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden bg-popover border border-border rounded-md shadow-lg">
+                <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground">Notifications</span>
+                  <Link href="/notifications" className="text-[11px] text-primary hover:underline font-semibold cursor-pointer">
+                    View all
+                  </Link>
+                </div>
+                <div className="max-h-80 overflow-y-auto divide-y divide-border">
+                  {isNotifLoading ? (
+                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                      Loading notifications...
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                      No notifications
+                    </div>
+                  ) : (
+                    notifications.map((n) => {
+                      const Icon = ICONS[n.notificationType] || Bell;
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => void handleNotificationClick(n)}
+                          className={cn(
+                            "px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-pointer text-left flex items-start gap-2",
+                            !n.isRead && "bg-primary/[0.01]"
+                          )}
+                        >
+                          {!n.isRead && (
+                            <span className="mt-1.5 size-1.5 bg-primary rounded-full shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-foreground truncate">{getNotificationTitle(n)}</p>
+                            <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                            <span className="text-[9px] font-mono text-muted-foreground mt-1 block">
+                              {formatRelative(n.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
