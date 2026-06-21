@@ -30,6 +30,7 @@ import {
   Calendar,
   Shield,
   Clock,
+  AlertCircle,
 } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { ReactionSummary, ReactionType, Video, VideoProcessingStatus } from '@/features/videos/types';
@@ -376,6 +377,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   const isVideoReady = video.status === 'Ready' || !video.status;
   const isVideoFailed = video.status === 'Failed';
+  const isProcessing = video.status ? ACTIVE_PROCESSING_STATUSES.has(video.status) : false;
   const processingProgress = processingStatus?.progress ?? 0;
 
   return (
@@ -395,38 +397,62 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 autoPlay={isAutoplayLoaded && autoplay && !!playlistId}
               />
             ) : (
-              <Card className={isVideoFailed ? 'border-destructive/30 bg-destructive/5' : 'border-primary/30 bg-primary/5'}>
-                <CardContent className="flex aspect-video flex-col items-center justify-center gap-3 text-center">
-                  <Clock className={isVideoFailed ? 'h-10 w-10 text-destructive' : 'h-10 w-10 text-primary'} />
-                  <div>
-                    <h2 className="text-xl font-semibold text-foreground">
-                      {isVideoFailed ? 'Video processing failed' : 'Video is still being processed'}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {isVideoFailed
-                        ? 'Playback is unavailable because this video could not be processed.'
-                        : 'Playback will be available once processing finishes.'}
-                    </p>
-                  </div>
-                  {isVideoFailed ? (
-                    <p className="max-w-md text-sm text-destructive">
-                      {processingStatus?.errorMessage || 'No processing error details are available.'}
-                    </p>
-                  ) : (
-                    <div className="w-full max-w-md space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>{processingStatus?.jobType || 'Video processing'}</span>
-                        <span>
+              <div className="relative aspect-video w-full rounded-lg bg-card border border-border text-foreground flex flex-col items-center justify-center gap-4 p-6 text-center overflow-hidden">
+                {isVideoFailed ? (
+                  <>
+                    <div className="relative flex items-center justify-center rounded-full bg-destructive/10 border border-destructive/20 size-12">
+                      <AlertCircle className="size-5 text-destructive" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-mono font-semibold uppercase tracking-widest text-destructive/90">
+                        Processing Error
+                      </h2>
+                      <p className="text-[11px] text-muted-foreground max-w-[280px] mt-1 leading-normal">
+                        Playback is unavailable because this video could not be ingested.
+                      </p>
+                    </div>
+                    {processingStatus?.errorMessage && (
+                      <p className="max-w-md text-[10px] font-mono text-destructive/80 mt-1 border border-destructive/20 bg-destructive/5 rounded px-2 py-1">
+                        {processingStatus.errorMessage}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="relative flex items-center justify-center size-12">
+                      <div className="absolute inset-0 rounded-full border border-muted border-t-primary animate-spin" />
+                      <Clock className="size-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground">
+                        Video is processing
+                      </h2>
+                      <p className="text-[11px] text-muted-foreground max-w-[280px] mt-1 leading-normal">
+                        Playback will be available once transcoding and analysis complete.
+                      </p>
+                    </div>
+                    
+                    <div className="w-full max-w-xs space-y-1.5 mt-2">
+                      <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+                        <span>[TASK: {processingStatus?.jobType || 'Video processing'}]</span>
+                        <span className="font-semibold text-foreground">
                           {processingStatus?.progress !== null && processingStatus?.progress !== undefined
                             ? `${processingStatus.progress}%`
                             : 'Pending'}
                         </span>
                       </div>
-                      <Progress value={processingProgress} className="h-3" />
+                      <Progress value={processingProgress} className="h-1 bg-muted" />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </>
+                )}
+
+                {/* Operator Logs Panel */}
+                <div className="font-mono text-[9px] text-muted-foreground bg-muted/30 border border-border rounded p-2.5 max-w-xs w-full text-left space-y-0.5 mt-2">
+                  <div>JOB_ID   : {processingStatus?.processingJobId || 'PENDING'}</div>
+                  <div>STAGE    : {processingStatus?.jobStatus || (isVideoFailed ? 'FAILED' : 'INGESTING')}</div>
+                  <div>START    : {processingStatus?.startedAt ? new Date(processingStatus.startedAt).toLocaleTimeString() : 'N/A'}</div>
+                </div>
+              </div>
             )}
 
             <div>
@@ -448,8 +474,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     <>
                       <button
                         onClick={() => void handleReaction('Like')}
-                        disabled={isReactionSaving}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 cursor-pointer ${
+                        disabled={isReactionSaving || isProcessing}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                           isLiked ? 'bg-accent font-semibold' : 'bg-transparent'
                         }`}
                       >
@@ -458,8 +484,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                       </button>
                       <button
                         onClick={() => void handleReaction('Dislike')}
-                        disabled={isReactionSaving}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 cursor-pointer ${
+                        disabled={isReactionSaving || isProcessing}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                           isDisliked ? 'bg-accent font-semibold' : 'bg-transparent'
                         }`}
                       >
@@ -471,7 +497,10 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   {video.allowBookmarks !== false && (
                     <Dialog open={isPlaylistDialogOpen} onOpenChange={(open) => void handlePlaylistDialogChange(open)}>
                       <DialogTrigger asChild>
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer">
+                        <button
+                          disabled={isProcessing}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
                           <ListPlus className="size-3.5" />
                           Save
                         </button>
@@ -519,7 +548,10 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                       </DialogContent>
                     </Dialog>
                   )}
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer">
+                  <button
+                    disabled={isProcessing}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <Share2 className="size-3.5" />
                     Share
                   </button>
@@ -570,30 +602,9 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               </div>
             </div>
 
-            {processingStatus && (
-              <Card className="border-primary/20 bg-primary/5">
-                <CardHeader>
-                  <CardTitle>Processing Status</CardTitle>
-                  <CardDescription>{processingStatus.jobStatus || processingStatus.videoStatus}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {processingStatus.progress !== null && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>{processingStatus.jobType || 'Video processing'}</span>
-                        <span className="font-mono">{processingStatus.progress}%</span>
-                      </div>
-                      <Progress value={processingStatus.progress} className="h-3" />
-                    </div>
-                  )}
-                  {processingStatus.errorMessage && (
-                    <p className="text-sm text-destructive">{processingStatus.errorMessage}</p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
-            {video.allowComments !== false && (
+
+            {video.allowComments !== false && !ACTIVE_PROCESSING_STATUSES.has(video.status || 'Ready') && (
               <CommentsSection
                 videoId={video.id}
                 currentUserId={user?.id}
