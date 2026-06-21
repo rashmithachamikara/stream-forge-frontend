@@ -21,3 +21,7 @@
 - [X] Keep route URLs unchanged.
 - [X] Keep role protection intact.
 - [X] Keep mock data only as fallback/dev seed after Phase 1.
+
+## Backlog
+
+- [ ] Replace the interim `hls.js` bearer-header playback workaround with a proper media-auth solution such as signed playback URLs or cookie-backed protected media access.

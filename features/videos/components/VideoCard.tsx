@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Play } from 'lucide-react';
+import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 import { cn } from '@/shared/lib/utils';
 import { Video } from '@/features/videos/types';
@@ -75,7 +76,7 @@ export function VideoCard({ video, variant = 'grid', className, onClick, href }:
           isFeature && 'aspect-[16/9]'
         )}
       >
-        <img
+        <AuthenticatedThumbnail
           src={video.thumbnail}
           alt={video.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"

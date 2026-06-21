@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
 import { capitalize } from '@/shared/lib/utils';
 import { Category, TagSummary, Video, VideoProcessingStatus } from '@/features/videos/types';
@@ -450,7 +451,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="aspect-video overflow-hidden rounded-lg border bg-muted">
-                  <img src={video.thumbnail} alt={video.title} className="h-full w-full object-cover" />
+                  <AuthenticatedThumbnail src={video.thumbnail} alt={video.title} className="h-full w-full object-cover" />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <VideoVisibilityBadge visibility={video.visibility} />

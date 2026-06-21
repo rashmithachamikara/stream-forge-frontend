@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { Grid3x3, List, Search, X, Plus, VideoOff, SearchSlash } from 'lucide-react';
 import { apiClient } from '@/shared/lib/api';
 import { Category, TagSummary, Video } from '@/features/videos/types';
@@ -466,7 +467,7 @@ export default function VideoLibrary() {
                         href={`/videos/${video.id}`}
                         className="flex items-center gap-4 p-3 hover:bg-accent transition-colors"
                       >
-                        <img
+                        <AuthenticatedThumbnail
                           src={video.thumbnail}
                           alt={video.title}
                           className="w-28 aspect-video object-cover rounded ring-1 ring-border"

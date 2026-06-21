@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
 import { CommentsSection } from '@/features/videos/components/CommentsSection';
 import { apiClient } from '@/shared/lib/api';
@@ -78,7 +79,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     setAutoplay(value);
     localStorage.setItem('streamforge_playlist_autoplay', String(value));
   };
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
   const [processingStatus, setProcessingStatus] = useState<VideoProcessingStatus | null>(null);
@@ -392,6 +393,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 hlsUrl={video.hlsUrl}
                 title={video.title}
                 duration={video.duration}
+                authToken={token}
                 bookmarks={bookmarks}
                 onBookmarkAdd={handleBookmarkAdd}
                 isBookmarkSaving={isBookmarkSaving}
@@ -678,7 +680,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                           {idx + 1}
                         </span>
                         <div className="relative w-16 aspect-video shrink-0 rounded ring-1 ring-border overflow-hidden bg-black">
-                          <img
+                          <AuthenticatedThumbnail
                             src={pv.thumbnail || '/placeholder.svg'}
                             alt=""
                             className="w-full h-full object-cover"
@@ -717,7 +719,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     className="flex gap-3 text-left w-full group cursor-pointer"
                   >
                     <div className="relative w-32 aspect-video shrink-0 rounded ring-1 ring-border overflow-hidden bg-black">
-                      <img
+                      <AuthenticatedThumbnail
                         src={relatedVideo.thumbnail || '/placeholder.svg'}
                         alt={relatedVideo.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

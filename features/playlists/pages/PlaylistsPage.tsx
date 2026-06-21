@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
 import { cn } from '@/shared/lib/utils';
 import {
@@ -632,7 +633,7 @@ export default function PlaylistsPage() {
                               href={`/videos/${video.id}?playlistId=${selectedPlaylist.id}`}
                               className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                             >
-                              <img
+                              <AuthenticatedThumbnail
                                 src={video.thumbnail}
                                 alt=""
                                 className="w-24 aspect-video object-cover rounded ring-1 ring-border shrink-0 bg-muted"

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -635,12 +636,12 @@ export default function AnalyticsDashboard() {
                                 e.stopPropagation();
                               }}
                             >
-                              <img
+                              <AuthenticatedThumbnail
                                 src={getVideoThumbnailUrl(video.videoId)}
                                 alt=""
                                 className="w-14 h-8 object-cover rounded ring-1 ring-border bg-muted flex-shrink-0 group-hover:opacity-85 transition-opacity"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                  e.currentTarget.src = '/placeholder.svg';
                                 }}
                               />
                               <span className="font-medium text-foreground truncate block max-w-[10rem] sm:max-w-[16rem]" title={video.title}>

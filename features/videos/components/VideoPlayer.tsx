@@ -26,6 +26,7 @@ interface VideoPlayerProps {
   hlsUrl: string;
   title: string;
   duration: number;
+  authToken?: string | null;
   bookmarks?: BookmarkType[];
   onBookmarkAdd?: (timestamp: number, note?: string) => void;
   isBookmarkSaving?: boolean;
@@ -68,6 +69,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   hlsUrl,
   title,
   duration,
+  authToken,
   bookmarks = [],
   onBookmarkAdd,
   isBookmarkSaving = false,
@@ -138,7 +140,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     isSeekingRef.current = false;
 
     if (Hls.isSupported()) {
-      const hlsInstance = new Hls();
+      const hlsInstance = new Hls({
+        fetchSetup: authToken
+          ? (context, init) => {
+              const headers = new Headers(init?.headers);
+              headers.set('Authorization', `Bearer ${authToken}`);
+
+              return new Request(context.url, {
+                ...init,
+                headers,
+              });
+            }
+          : undefined,
+        xhrSetup: authToken
+          ? (xhr) => {
+              xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+            }
+          : undefined,
+      });
       hls = hlsInstance;
       hlsRef.current = hlsInstance;
       hlsInstance.loadSource(hlsUrl);
@@ -176,7 +195,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeAttribute('src');
       video.load();
     };
-  }, [hlsUrl]);
+  }, [authToken, hlsUrl]);
 
   const autoPlayRef = useRef(autoPlay);
   useEffect(() => {
