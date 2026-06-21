@@ -18,6 +18,7 @@ import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 import {
   Bell,
   Check,
+  ChevronDown,
   LogOut,
   Menu,
   Moon,
@@ -52,7 +53,6 @@ const navItems: NavItem[] = [
   { label: 'Videos', href: '/videos', roles: ['admin', 'editor', 'viewer'], activePatterns: ['/videos'] },
   { label: 'Playlists', href: '/playlists', roles: ['admin', 'editor', 'viewer'], activePatterns: ['/playlists'] },
   { label: 'Bookmarks', href: '/bookmarks', roles: ['viewer'], activePatterns: ['/bookmarks'] },
-  { label: 'Upload', href: '/videos/upload', roles: ['admin', 'editor'], activePatterns: ['/videos/upload'] },
   { label: 'Notifications', href: '/notifications', roles: ['admin', 'editor', 'viewer'], activePatterns: ['/notifications'] },
   { label: 'Analytics', href: '/admin/analytics', roles: ['admin'], activePatterns: ['/admin/analytics'] },
   { label: 'Users', href: '/admin/users', roles: ['admin'], activePatterns: ['/admin/users'] },
@@ -160,14 +160,13 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold uppercase tracking-tight">Stream Forge</p>
-                <p className="truncate text-[11px] text-muted-foreground">{title}</p>
               </div>
             </Link>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             {canUpload && (
-              <Button asChild className="hidden sm:inline-flex">
+              <Button asChild size="sm" className="hidden sm:inline-flex h-7 text-[11px] px-3">
                 <Link href="/videos/upload">
                   <Upload className="size-3.5" />
                   Upload
@@ -178,8 +177,9 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
             {availableViews.length > 1 && currentView && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" className="capitalize">
+                  <Button variant="secondary" size="sm" className="capitalize h-7 text-[11px] px-3 flex items-center gap-1">
                     {currentView.label} view
+                    <ChevronDown className="size-3 text-muted-foreground ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
@@ -206,24 +206,25 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
 
             <Button
               variant="ghost"
-              size="icon"
+              size="icon-sm"
+              className="h-7 w-7"
               aria-label="Toggle theme"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
-              {mounted && theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              {mounted && theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
             </Button>
 
-            <Button variant="ghost" size="icon" asChild aria-label="Notifications">
+            <Button variant="ghost" size="icon-sm" className="h-7 w-7" asChild aria-label="Notifications">
               <Link href="/notifications" className="relative">
-                <Bell className="size-4" />
-                <span className="absolute top-2 right-2 size-1.5 rounded-full bg-primary" />
+                <Bell className="size-3.5" />
+                <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary" />
               </Link>
             </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 rounded-full p-0" aria-label="Account menu">
-                  <InitialsAvatar name={user?.name} />
+                <Button variant="ghost" className="h-7 w-7 rounded-full p-0" aria-label="Account menu">
+                  <InitialsAvatar name={user?.name} className="h-7 w-7" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -268,7 +269,7 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
         <div className="border-t border-border bg-background md:hidden">
           <div className="mx-auto max-w-[1600px] space-y-1 px-4 py-3 sm:px-6">
             {canUpload && (
-              <Button asChild className="mb-2 w-full justify-center">
+              <Button asChild size="sm" className="mb-2 w-full justify-center h-7 text-[11px]">
                 <Link href="/videos/upload">
                   <Upload className="size-3.5" />
                   Upload
