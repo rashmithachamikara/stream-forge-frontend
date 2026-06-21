@@ -640,7 +640,7 @@ export default function AnalyticsDashboard() {
                                 alt=""
                                 className="w-14 h-8 object-cover rounded ring-1 ring-border bg-muted flex-shrink-0 group-hover:opacity-85 transition-opacity"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = '/placeholder.png';
+                                  (e.target as HTMLImageElement).src = '/placeholder.svg';
                                 }}
                               />
                               <span className="font-medium text-foreground truncate block max-w-[10rem] sm:max-w-[16rem]" title={video.title}>

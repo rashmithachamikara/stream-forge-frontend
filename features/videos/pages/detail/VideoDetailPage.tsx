@@ -679,7 +679,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                         </span>
                         <div className="relative w-16 aspect-video shrink-0 rounded ring-1 ring-border overflow-hidden bg-black">
                           <img
-                            src={pv.thumbnail || '/placeholder.png'}
+                            src={pv.thumbnail || '/placeholder.svg'}
                             alt=""
                             className="w-full h-full object-cover"
                           />
@@ -718,7 +718,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   >
                     <div className="relative w-32 aspect-video shrink-0 rounded ring-1 ring-border overflow-hidden bg-black">
                       <img
-                        src={relatedVideo.thumbnail || '/placeholder.png'}
+                        src={relatedVideo.thumbnail || '/placeholder.svg'}
                         alt={relatedVideo.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
