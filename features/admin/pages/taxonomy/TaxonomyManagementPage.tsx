@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import {
@@ -11,7 +12,6 @@ import {
   UpdateCategoryRequest,
   UpdateTagRequest,
 } from '@/features/videos/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,21 +50,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { cn } from '@/shared/lib/utils';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   Loader2,
   Pencil,
   Plus,
   Search,
-  Tags,
+  Tag,
+  Folder,
   Trash2,
-  FolderTree,
-  ChevronLeft,
-  ChevronRight,
   ChevronUp,
   ChevronDown,
-  CornerDownRight,
   ArrowUpDown,
+  Video,
 } from 'lucide-react';
 
 const TAG_PAGE_SIZE = 12;
@@ -119,13 +118,13 @@ const renderNotice = (notice: NoticeState) => {
 
   const tone =
     notice.type === 'error'
-      ? 'border-destructive/30 bg-destructive/5 text-destructive'
-      : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300';
+      ? 'border-destructive/20 bg-destructive/5 text-destructive'
+      : 'border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400';
 
   return (
-    <Card className={tone}>
-      <CardContent className="py-4 text-sm">{notice.message}</CardContent>
-    </Card>
+    <div className={cn('border rounded-md px-3 py-2 text-xs', tone)}>
+      {notice.message}
+    </div>
   );
 };
 
@@ -133,10 +132,13 @@ export default function TaxonomyManagementPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
   const [categoryNotice, setCategoryNotice] = useState<NoticeState>(null);
-  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [categoryForm, setCategoryForm] = useState<CategoryFormState>(createEmptyCategoryForm);
+  const [createCategoryForm, setCreateCategoryForm] = useState<CategoryFormState>(createEmptyCategoryForm);
+  const [editCategoryForm, setEditCategoryForm] = useState<CategoryFormState>(createEmptyCategoryForm);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
@@ -162,14 +164,6 @@ export default function TaxonomyManagementPage() {
     [categories]
   );
 
-  const categoryNameMap = useMemo(
-    () =>
-      categories.reduce<Record<string, string>>((accumulator, category) => {
-        accumulator[category.id] = category.name;
-        return accumulator;
-      }, {}),
-    [categories]
-  );
 
   const availableParentOptions = useMemo(
     () => sortedCategories.filter((category) => category.id !== editingCategory?.id),
@@ -264,16 +258,9 @@ export default function TaxonomyManagementPage() {
     void run();
   }, [loadTags]);
 
-  const openCreateCategoryDialog = () => {
-    setEditingCategory(null);
-    setCategoryForm(createEmptyCategoryForm());
-    setCategoryNotice(null);
-    setIsCategoryDialogOpen(true);
-  };
-
   const openEditCategoryDialog = (category: Category) => {
     setEditingCategory(category);
-    setCategoryForm(createCategoryFormFromItem(category));
+    setEditCategoryForm(createCategoryFormFromItem(category));
     setCategoryNotice(null);
     setIsCategoryDialogOpen(true);
   };
@@ -292,9 +279,10 @@ export default function TaxonomyManagementPage() {
     setIsTagDialogOpen(true);
   };
 
-  const submitCategory = async () => {
-    const trimmedName = categoryForm.name.trim();
-    const trimmedDescription = categoryForm.description.trim();
+  const submitCreateCategory = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmedName = createCategoryForm.name.trim();
+    const trimmedDescription = createCategoryForm.description.trim();
 
     if (!trimmedName) {
       setCategoryNotice({ type: 'error', message: 'Category name is required.' });
@@ -305,55 +293,81 @@ export default function TaxonomyManagementPage() {
     setCategoryNotice(null);
 
     const parentCategoryId =
-      categoryForm.parentCategoryId !== NO_PARENT_VALUE ? categoryForm.parentCategoryId : null;
+      createCategoryForm.parentCategoryId !== NO_PARENT_VALUE ? createCategoryForm.parentCategoryId : null;
 
-    let response;
+    const siblingCategories = categories.filter(
+      (category) => (category.parentCategoryId ?? null) === parentCategoryId
+    );
+    const nextDisplayOrder =
+      siblingCategories.length > 0
+        ? Math.max(...siblingCategories.map((category) => category.displayOrder)) + 1
+        : 0;
 
-    if (editingCategory) {
-      const payload: UpdateCategoryRequest = {
-        name: trimmedName,
-      };
+    const payload: CreateCategoryRequest = {
+      name: trimmedName,
+      description: trimmedDescription || undefined,
+      parentCategoryId: parentCategoryId ?? undefined,
+      displayOrder: nextDisplayOrder,
+    };
 
-      if (trimmedDescription) {
-        payload.description = trimmedDescription;
-      } else if (editingCategory.description) {
-        payload.clearDescription = true;
-      }
+    const response = await apiClient.createCategory(payload);
 
-      if (parentCategoryId) {
-        payload.parentCategoryId = parentCategoryId;
-      } else if (editingCategory.parentCategoryId) {
-        payload.clearParentCategory = true;
-      }
-
-      response = await apiClient.updateCategory(editingCategory.id, payload);
+    if (response.success) {
+      await loadCategories();
+      setCreateCategoryForm(createEmptyCategoryForm());
+      setCategoryNotice({
+        type: 'success',
+        message: 'Category created.',
+      });
     } else {
-      const siblingCategories = categories.filter(
-        (category) => (category.parentCategoryId ?? null) === parentCategoryId
-      );
-      const nextDisplayOrder =
-        siblingCategories.length > 0
-          ? Math.max(...siblingCategories.map((category) => category.displayOrder)) + 1
-          : 0;
-
-      const payload: CreateCategoryRequest = {
-        name: trimmedName,
-        description: trimmedDescription || undefined,
-        parentCategoryId: parentCategoryId ?? undefined,
-        displayOrder: nextDisplayOrder,
-      };
-
-      response = await apiClient.createCategory(payload);
+      setCategoryNotice({ type: 'error', message: response.error ?? 'Failed to create category.' });
     }
+
+    setIsSavingCategory(false);
+  };
+
+  const submitEditCategory = async () => {
+    if (!editingCategory) return;
+    const trimmedName = editCategoryForm.name.trim();
+    const trimmedDescription = editCategoryForm.description.trim();
+
+    if (!trimmedName) {
+      setCategoryNotice({ type: 'error', message: 'Category name is required.' });
+      return;
+    }
+
+    setIsSavingCategory(true);
+    setCategoryNotice(null);
+
+    const parentCategoryId =
+      editCategoryForm.parentCategoryId !== NO_PARENT_VALUE ? editCategoryForm.parentCategoryId : null;
+
+    const payload: UpdateCategoryRequest = {
+      name: trimmedName,
+    };
+
+    if (trimmedDescription) {
+      payload.description = trimmedDescription;
+    } else if (editingCategory.description) {
+      payload.clearDescription = true;
+    }
+
+    if (parentCategoryId) {
+      payload.parentCategoryId = parentCategoryId;
+    } else if (editingCategory.parentCategoryId) {
+      payload.clearParentCategory = true;
+    }
+
+    const response = await apiClient.updateCategory(editingCategory.id, payload);
 
     if (response.success) {
       await loadCategories();
       setIsCategoryDialogOpen(false);
       setEditingCategory(null);
-      setCategoryForm(createEmptyCategoryForm());
+      setEditCategoryForm(createEmptyCategoryForm());
       setCategoryNotice({
         type: 'success',
-        message: editingCategory ? 'Category updated.' : 'Category created.',
+        message: 'Category updated.',
       });
     } else {
       setCategoryNotice({ type: 'error', message: response.error ?? 'Failed to save category.' });
@@ -533,253 +547,386 @@ export default function TaxonomyManagementPage() {
 
   return (
     <DashboardLayout title="Taxonomy" requiredRoles={['admin']}>
-      <div className="space-y-6">
-        <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle>Taxonomy</CardTitle>
-            <CardDescription>Manage shared categories and tags used across the video library.</CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="space-y-8 text-left">
+        {/* Header strip */}
+        <div>
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Admin · Taxonomy</p>
+          <h1 className="text-2xl font-bold tracking-tight mt-1 text-foreground">Categories & tags</h1>
+        </div>
 
         <Tabs defaultValue="categories" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto">
-            <TabsTrigger value="categories" className="gap-2">
-              <FolderTree className="h-4 w-4" />
-              Categories
+          <TabsList className="border-b border-border flex gap-6 w-full justify-start h-auto rounded-none bg-transparent p-0 overflow-y-hidden overflow-x-hidden">
+            <TabsTrigger
+              value="categories"
+              className="h-auto pb-3 px-0 text-xs font-semibold capitalize border-b-2 -mb-px rounded-none bg-transparent hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent flex items-center gap-1.5 cursor-pointer shadow-none"
+            >
+              <Folder className="size-3.5" />
+              Categories <span className="text-muted-foreground ml-0.5 font-mono">({categories.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="tags" className="gap-2">
-              <Tags className="h-4 w-4" />
-              Tags
+            <TabsTrigger
+              value="tags"
+              className="h-auto pb-3 px-0 text-xs font-semibold capitalize border-b-2 -mb-px rounded-none bg-transparent hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent flex items-center gap-1.5 cursor-pointer shadow-none"
+            >
+              <Tag className="size-3.5" />
+              Tags <span className="text-muted-foreground ml-0.5 font-mono">({tagTotalCount})</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="categories">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <CardTitle>Categories</CardTitle>
-                  <CardDescription>Organize videos with reusable parent-child categories.</CardDescription>
+          <TabsContent value="categories" className="outline-none mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              {/* Left Pane (Table) */}
+              <div className="lg:col-span-2 bg-card border border-border rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
+                      <TableHead className="h-9 font-medium px-4">Name</TableHead>
+                      <TableHead className="h-9 font-medium px-4">Description</TableHead>
+                      <TableHead className="h-9 font-medium px-4 text-right">Videos</TableHead>
+                      <th className="px-4 py-2.5 w-16"></th>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isCategoriesLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                          <div className="inline-flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading categories...
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : categoryTreeRows.length > 0 ? (
+                      categoryTreeRows.map((row) => {
+                        const { category, depth } = row;
+                        const hasDesc = !!category.description;
+                        const descText = category.description;
+                        const truncatedDesc = hasDesc
+                          ? descText.length > 40
+                            ? `${descText.substring(0, 40)}...`
+                            : descText
+                          : '—';
+
+                        return (
+                          <TableRow key={category.id} className="border-b border-border last:border-0 hover:bg-accent/40 group">
+                            <TableCell className="px-4 py-3 font-medium">
+                              <div style={{ paddingLeft: `${depth * 20}px` }}>
+                                {category.name}
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-muted-foreground text-xs">
+                              {hasDesc ? (
+                                descText.length > 40 ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="cursor-help border-b border-dashed border-muted-foreground/45 pb-0.5">
+                                        {truncatedDesc}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      {descText}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span>{descText}</span>
+                                )
+                              ) : (
+                                <span className="text-muted-foreground/40">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-right font-mono text-muted-foreground">
+                              —
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Link
+                                      href={`/videos?categoryId=${category.id}`}
+                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                    >
+                                      <Video className="size-3.5" />
+                                    </Link>
+                                  </TooltipTrigger>
+                                  <TooltipContent>View videos</TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => openEditCategoryDialog(category)}
+                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                    >
+                                      <Pencil className="size-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit category</TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => setCategoryToDelete(category)}
+                                      className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Delete category</TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-10 text-center text-muted-foreground">
+                          No categories found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Right Pane (Add Category Panel + Display Order Button) */}
+              <div className="space-y-4">
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <h3 className="text-sm font-semibold mb-1 text-foreground">Add category</h3>
+                  <p className="text-[11px] text-muted-foreground mb-4">
+                    Categories appear in the library filter and on browse pages.
+                  </p>
+                  
+                  <form onSubmit={submitCreateCategory} className="space-y-3.5">
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">
+                        Name
+                      </label>
+                      <Input
+                        value={createCategoryForm.name}
+                        onChange={(e) =>
+                          setCreateCategoryForm((curr) => ({ ...curr, name: e.target.value }))
+                        }
+                        placeholder="e.g. Product Launches"
+                        className="w-full bg-background border border-border rounded-md px-3 py-2 text-xs"
+                        required
+                        disabled={isSavingCategory}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">
+                        Description
+                      </label>
+                      <Textarea
+                        value={createCategoryForm.description}
+                        onChange={(e) =>
+                          setCreateCategoryForm((curr) => ({ ...curr, description: e.target.value }))
+                        }
+                        placeholder="Optional description of the category..."
+                        className="w-full bg-background border border-border rounded-md px-3 py-2 text-xs min-h-20"
+                        disabled={isSavingCategory}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">
+                        Parent category
+                      </label>
+                      <Select
+                        value={createCategoryForm.parentCategoryId}
+                        onValueChange={(val) =>
+                          setCreateCategoryForm((curr) => ({ ...curr, parentCategoryId: val }))
+                        }
+                        disabled={isSavingCategory}
+                      >
+                        <SelectTrigger className="w-full h-8 text-xs bg-background">
+                          <SelectValue placeholder="No parent" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border border-border text-left">
+                          <SelectItem value={NO_PARENT_VALUE}>No parent</SelectItem>
+                          {availableParentOptions.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {renderNotice(categoryNotice)}
+
+                    <Button
+                      type="submit"
+                      disabled={isSavingCategory}
+                      className="w-full inline-flex items-center justify-center gap-1.5 bg-foreground text-background py-2.5 rounded-md text-xs font-semibold hover:opacity-90 cursor-pointer"
+                    >
+                      {isSavingCategory ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="size-3.5" />
+                      )}
+                      Add category
+                    </Button>
+                  </form>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="gap-2" onClick={openDisplayOrderDialog}>
-                    <ArrowUpDown className="h-4 w-4" />
+
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <h3 className="text-sm font-semibold mb-1 text-foreground">Sort order</h3>
+                  <p className="text-[11px] text-muted-foreground mb-4">
+                    Adjust the sequence of categories in navigation lists.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={openDisplayOrderDialog}
+                    className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-md border border-border hover:bg-accent cursor-pointer"
+                  >
+                    <ArrowUpDown className="size-3.5" />
                     Display order
                   </Button>
-                  <Button className="gap-2" onClick={openCreateCategoryDialog}>
-                    <Plus className="h-4 w-4" />
-                    New category
-                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderNotice(categoryNotice)}
-
-                <div className="overflow-hidden rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="w-[140px] text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isCategoriesLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
-                            <div className="inline-flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Loading categories...
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : categoryTreeRows.length > 0 ? (
-                        categoryTreeRows.map((row) => {
-                          const { category, depth } = row;
-
-                          return (
-                          <TableRow key={category.id}>
-                            <TableCell>
-                              <div
-                                className="flex items-start gap-2"
-                                style={{ paddingLeft: `${depth * 20}px` }}
-                              >
-                                {depth > 0 ? (
-                                  <CornerDownRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                  <FolderTree className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                                )}
-                                <div className="space-y-1">
-                                  <div className="font-medium text-foreground">{category.name}</div>
-                                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                    {category.parentCategoryId ? (
-                                      <span>Child of {categoryNameMap[category.parentCategoryId] ?? 'Unknown category'}</span>
-                                    ) : (
-                                      <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
-                                        Root
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="max-w-sm text-muted-foreground">
-                              {category.description || 'No description'}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openEditCategoryDialog(category)}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-1.5 text-destructive hover:text-destructive"
-                                  onClick={() => setCategoryToDelete(category)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  Delete
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )})
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
-                            No categories found
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
-          <TabsContent value="tags">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <CardTitle>Tags</CardTitle>
-                  <CardDescription>Manage searchable tags used for filtering and labeling videos.</CardDescription>
-                </div>
-                <Button className="gap-2" onClick={openCreateTagDialog}>
-                  <Plus className="h-4 w-4" />
-                  New tag
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderNotice(tagNotice)}
+          <TabsContent value="tags" className="outline-none mt-0 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="relative max-w-md flex-1 text-left">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                <Input
+                  value={tagSearch}
+                  onChange={(event) => handleTagSearchChange(event.target.value)}
+                  placeholder="Search tags..."
+                  className="pl-9 w-full bg-card text-xs h-9 border border-border"
+                />
+              </div>
 
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      value={tagSearch}
-                      onChange={(event) => handleTagSearchChange(event.target.value)}
-                      placeholder="Search tags..."
-                      className="pl-9"
-                    />
-                  </div>
-                  <Badge variant="secondary" className="h-10 px-3">
-                    {tagTotalCount} total
-                  </Badge>
-                </div>
+              <Button
+                onClick={openCreateTagDialog}
+                className="gap-1.5 bg-foreground text-background text-xs h-9 font-semibold cursor-pointer shrink-0"
+              >
+                <Plus className="size-3.5" />
+                New tag
+              </Button>
+            </div>
 
-                <div className="overflow-hidden rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Usage Count</TableHead>
-                        <TableHead className="w-[140px] text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {isTagsLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
-                            <div className="inline-flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Loading tags...
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : tags.length > 0 ? (
-                        tags.map((tag) => (
-                          <TableRow key={tag.id}>
-                            <TableCell className="font-medium">{tag.name}</TableCell>
-                            <TableCell className="text-muted-foreground">{tag.usageCount}</TableCell>
-                            <TableCell>
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => openEditTagDialog(tag)}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-1.5 text-destructive hover:text-destructive"
-                                  onClick={() => setTagToDelete(tag)}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
+                    <th className="text-left font-medium px-4 py-2.5">Tag</th>
+                    <th className="text-right font-medium px-4 py-2.5">Videos</th>
+                    <th className="px-4 py-2.5 w-16"></th>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isTagsLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
+                        <div className="inline-flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading tags...
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : tags.length > 0 ? (
+                    tags.map((tag) => (
+                      <TableRow key={tag.id} className="border-b border-border last:border-0 hover:bg-accent/40 group">
+                        <TableCell className="px-4 py-2.5">
+                          <span className="inline-flex items-center gap-1.5 bg-muted border border-border px-2 py-0.5 rounded text-[11px] font-mono text-foreground font-medium">
+                            #{tag.name}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5 text-right font-mono text-muted-foreground">
+                          {tag.usageCount}
+                        </TableCell>
+                        <TableCell className="px-4 py-2.5">
+                          <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link
+                                  href={`/videos?tagId=${tag.id}`}
+                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  Delete
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
-                            No tags found
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                                  <Video className="size-3.5" />
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent>View videos</TooltipContent>
+                            </Tooltip>
 
-                <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {tags.length} of {tagTotalCount} tags
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => setTagPage((currentPage) => Math.max(1, currentPage - 1))}
-                      disabled={isTagsLoading || tagPage <= 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <span className="min-w-24 text-center text-sm text-muted-foreground">
-                      Page {tagPage}
-                      {tagPageCount > 0 ? ` of ${tagPageCount}` : ''}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() =>
-                        setTagPage((currentPage) =>
-                          tagPageCount > 0 ? Math.min(currentPage + 1, tagPageCount) : currentPage + 1
-                        )
-                      }
-                      disabled={isTagsLoading || tagPageCount === 0 || tagPage >= tagPageCount}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => openEditTagDialog(tag)}
+                                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                >
+                                  <Pencil className="size-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit tag</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => setTagToDelete(tag)}
+                                  className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete tag</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="py-10 text-center text-muted-foreground">
+                        No tags found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Tags Pagination */}
+            {tagPageCount > 1 && (
+              <div className="flex items-center justify-between text-xs pt-2">
+                <span className="text-muted-foreground font-mono">
+                  Page {tagPage} of {tagPageCount} ({tagTotalCount} total)
+                </span>
+                <div className="flex gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs font-semibold cursor-pointer"
+                    onClick={() => setTagPage((currentPage) => Math.max(1, currentPage - 1))}
+                    disabled={isTagsLoading || tagPage <= 1}
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs font-semibold cursor-pointer"
+                    onClick={() =>
+                      setTagPage((currentPage) =>
+                        tagPageCount > 0 ? Math.min(currentPage + 1, tagPageCount) : currentPage + 1
+                      )
+                    }
+                    disabled={isTagsLoading || tagPageCount === 0 || tagPage >= tagPageCount}
+                  >
+                    Next
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
+            
+            {renderNotice(tagNotice)}
           </TabsContent>
         </Tabs>
       </div>
@@ -790,55 +937,53 @@ export default function TaxonomyManagementPage() {
           setIsCategoryDialogOpen(open);
           if (!open) {
             setEditingCategory(null);
-            setCategoryForm(createEmptyCategoryForm());
+            setEditCategoryForm(createEmptyCategoryForm());
           }
         }}
       >
         <DialogContent className="border border-border bg-background sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>{editingCategory ? 'Edit category' : 'Create category'}</DialogTitle>
-            <DialogDescription>Set the category details used across uploads and video management.</DialogDescription>
+            <DialogTitle>Edit category</DialogTitle>
+            <DialogDescription>Update the category details used across uploads and video management.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 text-left">
             <div className="space-y-2">
-              <Label htmlFor="category-name">Name</Label>
+              <Label htmlFor="edit-category-name">Name</Label>
               <Input
-                id="category-name"
-                value={categoryForm.name}
-                onChange={(event) => setCategoryForm((current) => ({ ...current, name: event.target.value }))}
+                id="edit-category-name"
+                value={editCategoryForm.name}
+                onChange={(event) => setEditCategoryForm((current) => ({ ...current, name: event.target.value }))}
                 placeholder="Tutorials"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category-description">Description</Label>
+              <Label htmlFor="edit-category-description">Description</Label>
               <Textarea
-                id="category-description"
-                value={categoryForm.description}
-                onChange={(event) => setCategoryForm((current) => ({ ...current, description: event.target.value }))}
+                id="edit-category-description"
+                value={editCategoryForm.description}
+                onChange={(event) => setEditCategoryForm((current) => ({ ...current, description: event.target.value }))}
                 placeholder="Optional description"
-                className="min-h-28"
+                className="min-h-24"
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Parent category</Label>
-                <Select
-                  value={categoryForm.parentCategoryId}
-                  onValueChange={(value) => setCategoryForm((current) => ({ ...current, parentCategoryId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="No parent" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_PARENT_VALUE}>No parent</SelectItem>
-                    {availableParentOptions.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Parent category</Label>
+              <Select
+                value={editCategoryForm.parentCategoryId}
+                onValueChange={(value) => setEditCategoryForm((current) => ({ ...current, parentCategoryId: value }))}
+              >
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="No parent" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border border-border text-left">
+                  <SelectItem value={NO_PARENT_VALUE}>No parent</SelectItem>
+                  {availableParentOptions.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {renderNotice(categoryNotice)}
           </div>
@@ -851,9 +996,9 @@ export default function TaxonomyManagementPage() {
             >
               Cancel
             </Button>
-            <Button type="button" onClick={() => void submitCategory()} disabled={isSavingCategory} className="gap-2">
+            <Button type="button" onClick={() => void submitEditCategory()} disabled={isSavingCategory} className="gap-2 cursor-pointer">
               {isSavingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {editingCategory ? 'Save category' : 'Create category'}
+              Save category
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -873,68 +1018,64 @@ export default function TaxonomyManagementPage() {
             <DialogTitle>Display order</DialogTitle>
             <DialogDescription>Reorder sibling categories, then save the whole batch once.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 text-left">
             <div className="overflow-hidden rounded-lg border">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Display Order</TableHead>
-                    <TableHead className="w-[140px] text-right">Move</TableHead>
+                  <TableRow className="hover:bg-transparent text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
+                    <TableHead className="px-4 py-2.5 h-9">Category</TableHead>
+                    <TableHead className="px-4 py-2.5 h-9">Display Order</TableHead>
+                    <TableHead className="px-4 py-2.5 h-9 w-[140px] text-right">Move</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {orderDraftRows.map((row) => {
                     const siblingCategories = getSiblingCategories(row, orderDraftCategories);
                     return (
-                      <TableRow key={row.category.id}>
-                        <TableCell>
+                      <TableRow key={row.category.id} className="hover:bg-accent/20">
+                        <TableCell className="px-4 py-3">
                           <div
-                            className="flex items-start gap-2"
                             style={{ paddingLeft: `${row.depth * 20}px` }}
+                            className="font-medium text-foreground text-xs"
                           >
-                            {row.depth > 0 ? (
-                              <CornerDownRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <FolderTree className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                            )}
-                            <div className="space-y-1">
-                              <div className="font-medium text-foreground">{row.category.name}</div>
-                              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                {row.category.parentCategoryId ? (
-                                  <span>Child of {categoryNameMap[row.category.parentCategoryId] ?? 'Unknown category'}</span>
-                                ) : (
-                                  <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
-                                    Root
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
+                            {row.category.name}
                           </div>
                         </TableCell>
-                        <TableCell>{row.category.displayOrder}</TableCell>
-                        <TableCell>
+                        <TableCell className="px-4 py-3 font-mono text-muted-foreground text-xs">
+                          {row.category.displayOrder}
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           <div className="flex justify-end gap-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => moveDraftCategory(row, 'up')}
-                              disabled={row.siblingIndex === 0 || isSavingOrder || siblingCategories.length <= 1}
-                            >
-                              <ChevronUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => moveDraftCategory(row, 'down')}
-                              disabled={row.siblingIndex === row.siblingCount - 1 || isSavingOrder || siblingCategories.length <= 1}
-                            >
-                              <ChevronDown className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7 cursor-pointer"
+                                  onClick={() => moveDraftCategory(row, 'up')}
+                                  disabled={row.siblingIndex === 0 || isSavingOrder || siblingCategories.length <= 1}
+                                >
+                                  <ChevronUp className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move up</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7 cursor-pointer"
+                                  onClick={() => moveDraftCategory(row, 'down')}
+                                  disabled={row.siblingIndex === row.siblingCount - 1 || isSavingOrder || siblingCategories.length <= 1}
+                                >
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Move down</TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -954,7 +1095,7 @@ export default function TaxonomyManagementPage() {
             >
               Cancel
             </Button>
-            <Button type="button" onClick={() => void saveDisplayOrder()} disabled={isSavingOrder} className="gap-2">
+            <Button type="button" onClick={() => void saveDisplayOrder()} disabled={isSavingOrder} className="gap-2 cursor-pointer">
               {isSavingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Save order
             </Button>
@@ -977,7 +1118,7 @@ export default function TaxonomyManagementPage() {
             <DialogTitle>{editingTag ? 'Edit tag' : 'Create tag'}</DialogTitle>
             <DialogDescription>Tags are used for search, filtering, and video labeling.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 text-left">
             <div className="space-y-2">
               <Label htmlFor="tag-name">Name</Label>
               <Input
@@ -998,7 +1139,7 @@ export default function TaxonomyManagementPage() {
             >
               Cancel
             </Button>
-            <Button type="button" onClick={() => void submitTag()} disabled={isSavingTag} className="gap-2">
+            <Button type="button" onClick={() => void submitTag()} disabled={isSavingTag} className="gap-2 cursor-pointer">
               {isSavingTag ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {editingTag ? 'Save tag' : 'Create tag'}
             </Button>
@@ -1007,8 +1148,8 @@ export default function TaxonomyManagementPage() {
       </Dialog>
 
       <AlertDialog open={Boolean(categoryToDelete)} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
+        <AlertDialogContent className="bg-background border border-border">
+          <AlertDialogHeader className="text-left">
             <AlertDialogTitle>Delete category?</AlertDialogTitle>
             <AlertDialogDescription>
               {categoryToDelete
@@ -1024,7 +1165,7 @@ export default function TaxonomyManagementPage() {
                 void confirmDeleteCategory();
               }}
               disabled={isDeletingCategory}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
             >
               {isDeletingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
             </AlertDialogAction>
@@ -1033,8 +1174,8 @@ export default function TaxonomyManagementPage() {
       </AlertDialog>
 
       <AlertDialog open={Boolean(tagToDelete)} onOpenChange={(open) => !open && setTagToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
+        <AlertDialogContent className="bg-background border border-border">
+          <AlertDialogHeader className="text-left">
             <AlertDialogTitle>Delete tag?</AlertDialogTitle>
             <AlertDialogDescription>
               {tagToDelete
@@ -1050,7 +1191,7 @@ export default function TaxonomyManagementPage() {
                 void confirmDeleteTag();
               }}
               disabled={isDeletingTag}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer"
             >
               {isDeletingTag ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
             </AlertDialogAction>
