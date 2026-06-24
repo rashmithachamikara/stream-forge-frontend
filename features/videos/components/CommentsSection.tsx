@@ -5,7 +5,6 @@ import { apiClient } from '@/shared/lib/api';
 import { Comment } from '@/features/videos/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Loader2, MessageSquare, Pencil, Reply, Trash2 } from 'lucide-react';
 
 type ReplyState = Record<

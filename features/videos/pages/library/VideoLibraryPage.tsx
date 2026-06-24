@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
-import { Grid3x3, List, Search, X, Plus, VideoOff, SearchSlash } from 'lucide-react';
+import { Grid3x3, List, Search, X, Plus, SearchSlash } from 'lucide-react';
 import { apiClient } from '@/shared/lib/api';
 import { Category, TagSummary, Video } from '@/features/videos/types';
 import { VideoCard } from '@/features/videos/components/VideoCard';
@@ -146,10 +146,6 @@ export default function VideoLibrary() {
       isMounted = false;
     };
   }, [debouncedSearchTerm, selectedCategoryId, selectedTagId, uploaderFilter, selectedVisibility, user, currentPage, pageSize]);
-
-  const goToVideo = (videoId: string) => {
-    router.push(`/videos/${videoId}`);
-  };
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -518,7 +514,7 @@ export default function VideoLibrary() {
                 </div>
                 <h3 className="text-sm font-semibold text-foreground tracking-tight">No videos found</h3>
                 <p className="mt-1.5 text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                  We couldn't find any results matching your search terms or filters. Try adjusting your criteria.
+                  We couldn&apos;t find any results matching your search terms or filters. Try adjusting your criteria.
                 </p>
                 <button
                   onClick={clearFilters}

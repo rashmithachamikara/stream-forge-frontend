@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +11,6 @@ import { Video } from '@/features/videos/types';
 import { VideoCard } from '@/features/videos/components/VideoCard';
 
 export default function ViewerDashboard() {
-  const router = useRouter();
   const [videos] = useState<Video[]>(mockVideos);
 
   const recentVideos = [...videos].sort(

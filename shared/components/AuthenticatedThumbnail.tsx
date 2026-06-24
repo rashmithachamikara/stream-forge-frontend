@@ -19,8 +19,17 @@ export function AuthenticatedThumbnail({
   ...props
 }: AuthenticatedThumbnailProps) {
   const { token } = useAuth();
-  const [resolvedSrc, setResolvedSrc] = useState<string>(src || fallbackSrc);
+  const [blobState, setBlobState] = useState<{ src: string; url: string } | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const isProtected = Boolean(src && isProtectedThumbnailUrl(src) && token);
+
+  const resolvedSrc =
+    (isProtected && blobState?.src === src ? blobState.url : null) ??
+    (!src
+      ? fallbackSrc
+      : !isProtected
+        ? src
+        : fallbackSrc);
 
   useEffect(() => {
     const revokeObjectUrl = () => {
@@ -30,15 +39,8 @@ export function AuthenticatedThumbnail({
       }
     };
 
-    if (!src) {
+    if (!src || !isProtectedThumbnailUrl(src) || !token) {
       revokeObjectUrl();
-      setResolvedSrc(fallbackSrc);
-      return;
-    }
-
-    if (!isProtectedThumbnailUrl(src) || !token) {
-      revokeObjectUrl();
-      setResolvedSrc(src);
       return;
     }
 
@@ -68,11 +70,10 @@ export function AuthenticatedThumbnail({
 
         revokeObjectUrl();
         objectUrlRef.current = nextObjectUrl;
-        setResolvedSrc(nextObjectUrl);
-      } catch (error) {
+        setBlobState({ src, url: nextObjectUrl });
+      } catch {
         if (!controller.signal.aborted && isActive) {
           revokeObjectUrl();
-          setResolvedSrc(fallbackSrc);
         }
       }
     };
@@ -86,5 +87,6 @@ export function AuthenticatedThumbnail({
     };
   }, [fallbackSrc, src, token]);
 
+  // eslint-disable-next-line @next/next/no-img-element
   return <img src={resolvedSrc} alt={alt} {...props} />;
 }

@@ -12,12 +12,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
-  Activity,
   Clock,
   Download,
   Eye,
   Loader2,
-  MousePointerClick,
   Play,
   TrendingUp,
   TrendingDown,
@@ -140,7 +138,19 @@ const calculateDelta = (current: number, previous: number) => {
   return percentage >= 0 ? `+${formatted}%` : `${formatted}%`;
 };
 
-function KpiCard({ label, value, delta, icon: Icon, isLoading }: { label: string; value: string; delta: string; icon: any; isLoading: boolean }) {
+function KpiCard({
+  label,
+  value,
+  delta,
+  icon: Icon,
+  isLoading,
+}: {
+  label: string;
+  value: string;
+  delta: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isLoading: boolean;
+}) {
   const isPositive = !delta.startsWith('-');
   const IconTrend = isPositive ? TrendingUp : TrendingDown;
 
@@ -271,11 +281,19 @@ export default function AnalyticsDashboard() {
   }, [analyticsRange, rankingKind]);
 
   useEffect(() => {
-    void loadAnalytics();
+    const run = async () => {
+      await loadAnalytics();
+    };
+
+    void run();
   }, [loadAnalytics]);
 
   useEffect(() => {
-    void loadRankedVideos();
+    const run = async () => {
+      await loadRankedVideos();
+    };
+
+    void run();
   }, [loadRankedVideos]);
 
   const handleExport = async () => {
@@ -317,16 +335,6 @@ export default function AnalyticsDashboard() {
   const maxActivity = useMemo(() => {
     return Math.max(...peakWatchTime.map((item) => item.watchActivityCount), 1);
   }, [peakWatchTime]);
-
-  const dateLabels = useMemo(() => {
-    if (viewsOverTime.length === 0) return { start: '', mid: '', end: '' };
-    const format = (d: Date) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    return {
-      start: format(viewsOverTime[0].periodStart),
-      mid: format(viewsOverTime[Math.floor(viewsOverTime.length / 2)].periodStart),
-      end: format(viewsOverTime[viewsOverTime.length - 1].periodStart),
-    };
-  }, [viewsOverTime]);
 
   const xAxisLabels = useMemo(() => {
     if (viewsOverTime.length === 0) return [];

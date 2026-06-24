@@ -15,8 +15,6 @@ import {
   Plus,
   MoreHorizontal,
   Shield,
-  UserCheck,
-  UserX,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 
@@ -126,7 +124,6 @@ export default function UserManagementPage() {
 
   // Derived counts from the currently loaded page
   const activeCount = useMemo(() => users.filter((u) => u.isActive).length, [users]);
-  const inactiveCount = useMemo(() => users.filter((u) => !u.isActive).length, [users]);
   const adminCount = useMemo(() => users.filter((u) => u.role === 'admin').length, [users]);
   const editorCount = useMemo(() => users.filter((u) => u.role === 'editor').length, [users]);
 
@@ -345,7 +342,7 @@ export default function UserManagementPage() {
           >
             <h2 className="text-base font-bold mb-1 text-foreground">Invite user</h2>
             <p className="text-xs text-muted-foreground mb-5">
-              They'll receive an email with a secure activation link.
+              They&apos;ll receive an email with a secure activation link.
             </p>
 
             <label className="block text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-1.5">

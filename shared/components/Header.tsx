@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -26,9 +26,6 @@ import {
   Sun,
   Upload,
   X,
-  MessageSquare,
-  ThumbsUp,
-  Cog,
 } from 'lucide-react';
 import { UserRole } from '@/features/auth/types';
 import { apiClient } from '@/shared/lib/api';
@@ -87,14 +84,6 @@ const formatRelative = (date: Date): string => {
   return date.toLocaleDateString();
 };
 
-const ICONS = {
-  Comment: MessageSquare,
-  Reply: MessageSquare,
-  Like: ThumbsUp,
-  ProcessingComplete: Cog,
-  Upload: Upload,
-};
-
 const getNotificationTitle = (notification: Notification) => {
   switch (notification.notificationType) {
     case 'Comment':
@@ -111,19 +100,20 @@ const getNotificationTitle = (notification: Notification) => {
   }
 };
 
-export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
+export const Header: React.FC<HeaderProps> = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const [activeView, setActiveView] = useState<UserRole | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotifLoading, setIsNotifLoading] = useState(false);
 
-  const loadHeaderNotifications = async () => {
+  const resolvedView = useMemo(() => (user ? resolveActiveView(user.role, pathname) : null), [pathname, user]);
+
+  const loadHeaderNotifications = useCallback(async () => {
     if (!user) return;
     setIsNotifLoading(true);
     const [notificationsResponse, unreadCountResponse] = await Promise.all([
@@ -138,16 +128,22 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
       setUnreadCount(unreadCountResponse.data.unreadCount);
     }
     setIsNotifLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
-      void loadHeaderNotifications();
+      const run = async () => {
+        await loadHeaderNotifications();
+      };
+
+      void run();
     } else {
-      setNotifications([]);
-      setUnreadCount(0);
+      queueMicrotask(() => {
+        setNotifications([]);
+        setUnreadCount(0);
+      });
     }
-  }, [user]);
+  }, [loadHeaderNotifications, user]);
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
@@ -165,17 +161,10 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
   };
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setActiveView(null);
-      return;
-    }
-
-    setActiveView(resolveActiveView(user.role, pathname));
-  }, [pathname, user]);
+    queueMicrotask(() => {
+      setActiveView(resolvedView);
+    });
+  }, [resolvedView]);
 
   useEffect(() => {
     const handleViewChange = (event: Event) => {
@@ -190,7 +179,9 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
   }, [user]);
 
   useEffect(() => {
-    setMobileOpen(false);
+    queueMicrotask(() => {
+      setMobileOpen(false);
+    });
   }, [pathname]);
 
   const availableViews = useMemo(
@@ -297,7 +288,7 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
               aria-label="Toggle theme"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
-              {mounted && theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+              {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
             </Button>
 
             <DropdownMenu>
@@ -327,7 +318,6 @@ export const Header: React.FC<HeaderProps> = ({ title = 'Stream Forge' }) => {
                     </div>
                   ) : (
                     notifications.map((n) => {
-                      const Icon = ICONS[n.notificationType] || Bell;
                       return (
                         <div
                           key={n.id}

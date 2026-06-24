@@ -55,20 +55,8 @@ const formatPlaybackDuration = (seconds: number) => {
 export function VideoCard({ video, variant = 'grid', className, onClick, href }: VideoCardProps) {
   const isFeature = variant === 'feature';
   const isCompact = variant === 'compact';
-
-  const Comp = href ? Link : 'article';
-
-  return (
-    <Comp
-      href={href as any}
-      className={cn(
-        'group text-left block',
-        (onClick || href) && 'cursor-pointer',
-        isCompact && 'flex items-start gap-3',
-        className
-      )}
-      onClick={onClick}
-    >
+  const content = (
+    <>
       <div
         className={cn(
           'relative overflow-hidden bg-muted ring-1 ring-border',
@@ -97,8 +85,7 @@ export function VideoCard({ video, variant = 'grid', className, onClick, href }:
       </div>
 
       <div className={cn('min-w-0', isCompact ? 'flex-1 pt-0.5' : 'mt-4 flex gap-3')}>
-        {!isCompact && <InitialsAvatar name={video.uploadedBy} className="h-8 w-8 shrink-0" />}
-        {isCompact && <InitialsAvatar name={video.uploadedBy} className="h-8 w-8 shrink-0" />}
+        <InitialsAvatar name={video.uploadedBy} className="h-8 w-8 shrink-0" />
 
         <div className="min-w-0 flex-1">
           <h3
@@ -125,6 +112,27 @@ export function VideoCard({ video, variant = 'grid', className, onClick, href }:
           </div>
         </div>
       </div>
-    </Comp>
+    </>
+  );
+
+  const sharedClassName = cn(
+    'group text-left block',
+    (onClick || href) && 'cursor-pointer',
+    isCompact && 'flex items-start gap-3',
+    className
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={sharedClassName} onClick={onClick}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <article className={sharedClassName} onClick={onClick}>
+      {content}
+    </article>
   );
 }

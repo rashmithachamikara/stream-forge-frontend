@@ -14,7 +14,6 @@ import {
   PlaylistVisibility,
   UpdatePlaylistRequest,
 } from '@/features/playlists/types';
-import { Video } from '@/features/videos/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,7 +44,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  Clock,
   Edit2,
   Loader2,
   Play,
@@ -127,7 +125,8 @@ export default function PlaylistsPage() {
   const [isVideosLoading, setIsVideosLoading] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
+    const isMounted = true;
+    let mounted = isMounted;
 
     const loadPlaylists = async () => {
       setIsLoading(true);
@@ -138,7 +137,7 @@ export default function PlaylistsPage() {
         pageSize: PLAYLIST_PAGE_SIZE,
       });
 
-      if (!isMounted) {
+      if (!mounted) {
         return;
       }
 
@@ -157,28 +156,35 @@ export default function PlaylistsPage() {
     };
 
     void loadPlaylists();
-
+    return () => {
+      mounted = false;
+    };
   }, [currentPage]);
 
   useEffect(() => {
-    if (playlists.length > 0) {
-      const target = playlistIdParam ? playlists.find(p => p.id === playlistIdParam) : playlists[0];
-      if (target) {
-        if (selectedPlaylist?.id !== target.id) {
-          setSelectedPlaylist(target);
-          setPlaylistVideosPageNumber(1);
-        }
-      } else {
-        setSelectedPlaylist(playlists[0]);
-      }
-    } else {
-      setSelectedPlaylist(null);
+    const target = playlists.length > 0
+      ? playlistIdParam
+        ? playlists.find((playlist) => playlist.id === playlistIdParam) ?? playlists[0]
+        : playlists[0]
+      : null;
+
+    if ((selectedPlaylist?.id ?? null) === (target?.id ?? null)) {
+      return;
     }
+
+    queueMicrotask(() => {
+      setSelectedPlaylist(target);
+      if (target) {
+        setPlaylistVideosPageNumber(1);
+      }
+    });
   }, [playlistIdParam, playlists, selectedPlaylist?.id]);
 
   useEffect(() => {
     if (!selectedPlaylist) {
-      setPlaylistVideosPage(null);
+      queueMicrotask(() => {
+        setPlaylistVideosPage(null);
+      });
       return;
     }
 
@@ -706,7 +712,7 @@ export default function PlaylistsPage() {
                     </div>
                     <h3 className="text-sm font-semibold text-foreground tracking-tight">No videos in playlist</h3>
                     <p className="mt-1.5 text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                      This playlist doesn't contain any videos yet. Add videos from the Library or Viewer Dashboard.
+                      This playlist doesn&apos;t contain any videos yet. Add videos from the Library or Viewer Dashboard.
                     </p>
                   </div>
                 )}

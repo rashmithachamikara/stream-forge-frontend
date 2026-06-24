@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import {
@@ -214,15 +214,7 @@ export default function TaxonomyManagementPage() {
   const categoryTreeRows = useMemo(() => buildCategoryTreeRows(sortedCategories), [sortedCategories]);
   const orderDraftRows = useMemo(() => buildCategoryTreeRows(orderDraftCategories), [orderDraftCategories]);
 
-  useEffect(() => {
-    void loadCategories();
-  }, []);
-
-  useEffect(() => {
-    void loadTags();
-  }, [tagPage, tagSearch]);
-
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     setIsCategoriesLoading(true);
 
     const response = await apiClient.getCategories();
@@ -235,9 +227,9 @@ export default function TaxonomyManagementPage() {
     }
 
     setIsCategoriesLoading(false);
-  };
+  }, []);
 
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     setIsTagsLoading(true);
 
     const response = await apiClient.getTags(tagSearch.trim() || undefined, tagPage, TAG_PAGE_SIZE);
@@ -254,7 +246,23 @@ export default function TaxonomyManagementPage() {
     }
 
     setIsTagsLoading(false);
-  };
+  }, [tagPage, tagSearch]);
+
+  useEffect(() => {
+    const run = async () => {
+      await loadCategories();
+    };
+
+    void run();
+  }, [loadCategories]);
+
+  useEffect(() => {
+    const run = async () => {
+      await loadTags();
+    };
+
+    void run();
+  }, [loadTags]);
 
   const openCreateCategoryDialog = () => {
     setEditingCategory(null);
@@ -587,7 +595,7 @@ export default function TaxonomyManagementPage() {
                         </TableRow>
                       ) : categoryTreeRows.length > 0 ? (
                         categoryTreeRows.map((row) => {
-                          const { category, depth, siblingIndex, siblingCount } = row;
+                          const { category, depth } = row;
 
                           return (
                           <TableRow key={category.id}>

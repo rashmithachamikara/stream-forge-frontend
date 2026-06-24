@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import { Button } from '@/components/ui/button';
-import { Bell, MessageSquare, ThumbsUp, Upload, Cog, Trash2 } from 'lucide-react';
+import { Bell, MessageSquare, ThumbsUp, Upload, Cog } from 'lucide-react';
 import { Notification, NotificationListFilters } from '@/features/notifications/types';
 import { cn } from '@/shared/lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -87,7 +87,11 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    void loadNotifications(readFilter);
+    const run = async () => {
+      await loadNotifications(readFilter);
+    };
+
+    void run();
   }, [readFilter]);
 
   const refreshUnreadCount = async () => {
@@ -209,7 +213,7 @@ export default function NotificationsPage() {
             <div className="size-12 mx-auto bg-muted rounded-full grid place-items-center mb-4">
               <Bell className="size-5 text-muted-foreground" />
             </div>
-            <p className="text-sm font-semibold">You're all caught up</p>
+            <p className="text-sm font-semibold">You&apos;re all caught up</p>
           </div>
         ) : (
           <div className="border border-border rounded-lg bg-card divide-y divide-border overflow-hidden">

@@ -93,7 +93,7 @@ export default function BookmarksPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Bookmarks</h1>
-          <p className="text-muted-foreground">Saved timestamps from videos you're watching ({bookmarks.length})</p>
+          <p className="text-muted-foreground">Saved timestamps from videos you&apos;re watching ({bookmarks.length})</p>
         </div>
 
         <Input

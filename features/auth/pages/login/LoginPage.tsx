@@ -45,7 +45,7 @@ export default function LoginPage() {
             Secure, scalable video delivery for serious organizations.
           </h1>
           <p className="text-sm opacity-70 leading-relaxed">
-            Stream Forge powers internal town halls, training libraries, and customer-facing media for companies that can't compromise on reliability.
+            Stream Forge powers internal town halls, training libraries, and customer-facing media for companies that can&apos;t compromise on reliability.
           </p>
         </div>
         <p className="text-[11px] font-mono opacity-50 text-left">© 2026 Stream Forge Systems</p>

@@ -5,7 +5,6 @@ import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -34,7 +33,6 @@ import {
   Upload,
   Edit2,
   Trash2,
-  Archive,
   Code,
   Copy,
   Check,
@@ -43,7 +41,6 @@ import {
 import { apiClient } from '@/shared/lib/api';
 import { Video, VideoListFilters, VideoStatus, VideoVisibility } from '@/features/videos/types';
 import { formatDuration } from '@/features/videos/utils';
-import { capitalize } from '@/shared/lib/utils';
 import { VideoCard } from '@/features/videos/components/VideoCard';
 
 export default function EditorDashboard() {
@@ -67,8 +64,6 @@ export default function EditorDashboard() {
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-
   // Selected video and form state
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [copied, setCopied] = useState(false);
@@ -121,7 +116,11 @@ export default function EditorDashboard() {
   }, [searchTerm, statusFilter, visibilityFilter, sortBy, currentPage]);
 
   useEffect(() => {
-    loadVideos();
+    const run = async () => {
+      await loadVideos();
+    };
+
+    void run();
   }, [loadVideos]);
 
   const handleEmbed = (video: Video) => {
@@ -146,11 +145,6 @@ export default function EditorDashboard() {
   const handleDeleteClick = (video: Video) => {
     setSelectedVideo(video);
     setDeleteDialogOpen(true);
-  };
-
-  const handleArchiveClick = (video: Video) => {
-    setSelectedVideo(video);
-    setArchiveDialogOpen(true);
   };
 
   const handleSaveMetadata = async () => {
@@ -202,22 +196,6 @@ export default function EditorDashboard() {
       setDeleteDialogOpen(false);
     } else {
       setError(response.error || 'Failed to delete video');
-    }
-    setIsSubmitting(false);
-  };
-
-  const handleArchive = async () => {
-    if (!selectedVideo) return;
-
-    setIsSubmitting(true);
-    const response = await apiClient.archiveVideo(selectedVideo.id);
-
-    if (response.success) {
-      // Reload videos or remove from list
-      await loadVideos();
-      setArchiveDialogOpen(false);
-    } else {
-      setError(response.error || 'Failed to archive video');
     }
     setIsSubmitting(false);
   };
@@ -670,7 +648,7 @@ export default function EditorDashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Video?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "<strong>{selectedVideo?.title}</strong>"? This action
+              Are you sure you want to delete &quot;<strong>{selectedVideo?.title}</strong>&quot;? This action
               cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -688,29 +666,6 @@ export default function EditorDashboard() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Archive Confirmation Dialog */}
-      <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Archive Video?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to archive "<strong>{selectedVideo?.title}</strong>"? Archived
-              videos can be restored later.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleArchive}
-              disabled={isSubmitting}
-              className="bg-foreground text-background hover:opacity-90"
-            >
-              {isSubmitting && <Loader className="w-4 h-4 animate-spin mr-2" />}
-              Archive
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </DashboardLayout>
   );
 }

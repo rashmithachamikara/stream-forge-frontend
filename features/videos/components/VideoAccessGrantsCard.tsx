@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiClient } from '@/shared/lib/api';
 import { AccessGrant, AccessGrantPermission } from '@/features/videos/types';
 import { UserProfile } from '@/features/admin/types';
@@ -80,7 +80,7 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
     [form.userId, users]
   );
 
-  const loadGrants = async () => {
+  const loadGrants = useCallback(async () => {
     setIsLoadingGrants(true);
     setError(null);
 
@@ -98,9 +98,9 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
     }
 
     setIsLoadingGrants(false);
-  };
+  }, [statusFilter, videoId]);
 
-  const loadUsers = async (searchTerm?: string) => {
+  const loadUsers = useCallback(async (searchTerm?: string) => {
     setIsLoadingUsers(true);
 
     const response = await apiClient.getUsers({
@@ -116,11 +116,15 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
     }
 
     setIsLoadingUsers(false);
-  };
+  }, []);
 
   useEffect(() => {
-    void loadGrants();
-  }, [statusFilter, videoId]);
+    const run = async () => {
+      await loadGrants();
+    };
+
+    void run();
+  }, [loadGrants]);
 
   useEffect(() => {
     if (!isDialogOpen) {
@@ -132,15 +136,19 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
     }, 250);
 
     return () => window.clearTimeout(timeoutId);
-  }, [form.searchTerm, isDialogOpen]);
+  }, [form.searchTerm, isDialogOpen, loadUsers]);
 
   useEffect(() => {
     if (!isDialogOpen) {
       return;
     }
 
-    void loadUsers(form.searchTerm);
-  }, [isDialogOpen]);
+    const run = async () => {
+      await loadUsers(form.searchTerm);
+    };
+
+    void run();
+  }, [form.searchTerm, isDialogOpen, loadUsers]);
 
   const copyShareToken = async (value: string) => {
     await navigator.clipboard.writeText(value);

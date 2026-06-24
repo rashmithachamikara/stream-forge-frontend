@@ -17,7 +17,6 @@ import {
   CreateTagRequest,
   ReactionSummary,
   ReactionSummaryDto,
-  ReactionType,
   SetReactionRequest,
   TagSummaryDto,
   TagSummary,
@@ -39,8 +38,6 @@ import {
   AnalyticsBreakdownItem,
   AnalyticsBreakdownKind,
   AnalyticsDateRange,
-  AnalyticsEngagementSummary,
-  AnalyticsEngagementSummaryDto,
   AnalyticsSummary,
   AnalyticsSummaryDto,
   AnalyticsTimeSeriesPoint,
@@ -351,14 +348,6 @@ const mapAnalyticsTimeSeriesPoint = (point: AnalyticsTimeSeriesPointDto): Analyt
   viewCount: point.viewCount ?? 0,
 });
 
-const mapAnalyticsEngagementSummary = (summary: AnalyticsEngagementSummaryDto): AnalyticsEngagementSummary => ({
-  likeCount: summary.likeCount ?? 0,
-  dislikeCount: summary.dislikeCount ?? 0,
-  commentCount: summary.commentCount ?? 0,
-  engagementScore: summary.engagementScore ?? 0,
-  engagementRate: summary.engagementRate ?? null,
-});
-
 const mapRankedVideoAnalytics = (video: RankedVideoAnalyticsDto): RankedVideoAnalytics => ({
   videoId: video.videoId ?? '',
   title: video.title ?? 'Untitled video',
@@ -613,7 +602,7 @@ class ApiClient {
         success: true,
         data,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Request failed',
@@ -635,7 +624,7 @@ class ApiClient {
         success: true,
         data: session,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Invalid email or password',
@@ -656,7 +645,7 @@ class ApiClient {
         success: true,
         data: session,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to refresh session',
@@ -675,7 +664,7 @@ class ApiClient {
         success: true,
         data: mapAuthUser(user),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch user',
@@ -706,7 +695,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapVideoSummary),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch videos',
@@ -728,7 +717,7 @@ class ApiClient {
         data: response.data?.items ?? [],
         error: response.error,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Search failed',
@@ -744,7 +733,7 @@ class ApiClient {
         success: true,
         data: mapVideoDetail(video),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch video',
@@ -758,7 +747,7 @@ class ApiClient {
         method: 'POST',
         body: formData,
       });
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Upload failed',
@@ -772,7 +761,7 @@ class ApiClient {
         method: 'PUT',
         body: JSON.stringify(data),
       });
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Update failed',
@@ -785,7 +774,7 @@ class ApiClient {
       return await this.request<void>(`${API_V1_PREFIX}/videos/${id}`, {
         method: 'DELETE',
       });
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Delete failed',
@@ -803,7 +792,7 @@ class ApiClient {
         success: true,
         data: mapVideoProcessingStatus(status),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch video processing status',
@@ -819,7 +808,7 @@ class ApiClient {
         success: true,
         data: categories.map(mapCategory),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch categories',
@@ -838,7 +827,7 @@ class ApiClient {
         success: true,
         data: mapCategory(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create category',
@@ -857,7 +846,7 @@ class ApiClient {
         success: true,
         data: mapCategory(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update category',
@@ -875,7 +864,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to delete category',
@@ -898,7 +887,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapTagSummary),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch tags',
@@ -917,7 +906,7 @@ class ApiClient {
         success: true,
         data: mapTagSummary(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create tag',
@@ -936,7 +925,7 @@ class ApiClient {
         success: true,
         data: mapTagSummary(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update tag',
@@ -954,7 +943,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to delete tag',
@@ -980,7 +969,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapUserProfile),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch users',
@@ -994,7 +983,7 @@ class ApiClient {
         method: 'POST',
         body: JSON.stringify(userData),
       });
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to create user',
@@ -1008,7 +997,7 @@ class ApiClient {
         method: 'PUT',
         body: JSON.stringify(userData),
       });
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to update user',
@@ -1021,7 +1010,7 @@ class ApiClient {
       return await this.request<void>(`/admin/users/${id}`, {
         method: 'DELETE',
       });
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to delete user',
@@ -1047,7 +1036,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapAccessGrant),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch access grants',
@@ -1074,7 +1063,7 @@ class ApiClient {
         success: true,
         data: mapAccessGrant(grant),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to create access grant',
@@ -1092,7 +1081,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to delete access grant',
@@ -1108,7 +1097,7 @@ class ApiClient {
         success: true,
         data: mapReactionSummary(summary),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch reaction summary',
@@ -1127,7 +1116,7 @@ class ApiClient {
         success: true,
         data: mapReactionSummary(summary),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to update reaction',
@@ -1145,7 +1134,7 @@ class ApiClient {
         success: true,
         data: mapReactionSummary(summary),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to clear reaction',
@@ -1168,7 +1157,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapComment),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch comments',
@@ -1187,7 +1176,7 @@ class ApiClient {
         success: true,
         data: mapComment(comment),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to create comment',
@@ -1206,7 +1195,7 @@ class ApiClient {
         success: true,
         data: mapComment(comment),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to update comment',
@@ -1224,7 +1213,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to delete comment',
@@ -1249,7 +1238,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapBookmark),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch video bookmarks',
@@ -1268,7 +1257,7 @@ class ApiClient {
         success: true,
         data: mapBookmark(bookmark),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to create bookmark',
@@ -1291,7 +1280,7 @@ class ApiClient {
         success: true,
         data: mapBookmark(bookmark),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to update bookmark',
@@ -1309,7 +1298,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to delete bookmark',
@@ -1332,7 +1321,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapBookmark),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch bookmarks',
@@ -1366,7 +1355,7 @@ class ApiClient {
         success: true,
         data: mapRecordAnalyticsEventResult(result),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to record analytics event',
@@ -1386,7 +1375,7 @@ class ApiClient {
         success: true,
         data: mapAnalyticsSummary(summary),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch analytics summary' };
     }
   }
@@ -1403,7 +1392,7 @@ class ApiClient {
         success: true,
         data: points.map(mapAnalyticsTimeSeriesPoint),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch views over time' };
     }
   }
@@ -1425,7 +1414,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapRankedVideoAnalytics),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch ranked videos' };
     }
   }
@@ -1438,7 +1427,7 @@ class ApiClient {
         success: true,
         data: mapActiveViewers(response),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch active viewers' };
     }
   }
@@ -1455,7 +1444,7 @@ class ApiClient {
         success: true,
         data: response.map(mapPeakWatchTimeItem),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch peak watch time' };
     }
   }
@@ -1486,7 +1475,7 @@ class ApiClient {
 
       const response = await this.requestRaw<TagBreakdownItemDto[]>(path);
       return { success: true, data: response.map(mapTagBreakdownItem) };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch analytics breakdown' };
     }
   }
@@ -1503,7 +1492,7 @@ class ApiClient {
         success: true,
         data: mapAuthBreakdown(response),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch auth breakdown' };
     }
   }
@@ -1531,7 +1520,7 @@ class ApiClient {
         success: true,
         data: await response.blob(),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to download analytics export' };
     }
   }
@@ -1545,7 +1534,7 @@ class ApiClient {
       );
 
       return { success: true, data: mapAnalyticsSummary(summary) };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch analytics summary' };
     }
   }
@@ -1559,7 +1548,7 @@ class ApiClient {
       );
 
       return { success: true, data: points.map(mapAnalyticsTimeSeriesPoint) };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch views over time' };
     }
   }
@@ -1579,7 +1568,7 @@ class ApiClient {
       );
 
       return { success: true, data: mapPagedResponse(response, mapRankedVideoAnalytics) };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch ranked videos' };
     }
   }
@@ -1610,7 +1599,7 @@ class ApiClient {
 
       const response = await this.requestRaw<TagBreakdownItemDto[]>(path);
       return { success: true, data: response.map(mapTagBreakdownItem) };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch analytics breakdown' };
     }
   }
@@ -1624,7 +1613,7 @@ class ApiClient {
       );
 
       return { success: true, data: mapAuthBreakdown(response) };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to fetch auth breakdown' };
     }
   }
@@ -1644,7 +1633,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapPlaylist),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch playlists',
@@ -1667,7 +1656,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapPlaylist),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch playlists',
@@ -1683,7 +1672,7 @@ class ApiClient {
         success: true,
         data: mapPlaylist(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch playlist',
@@ -1702,7 +1691,7 @@ class ApiClient {
         success: true,
         data: mapPlaylist(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to create playlist',
@@ -1721,7 +1710,7 @@ class ApiClient {
         success: true,
         data: mapPlaylist(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to update playlist',
@@ -1739,7 +1728,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to delete playlist',
@@ -1764,7 +1753,7 @@ class ApiClient {
         success: true,
         data: mapPlaylistVideosPage(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch playlist videos',
@@ -1786,7 +1775,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to add video to playlist',
@@ -1804,7 +1793,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to remove video from playlist',
@@ -1826,7 +1815,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to reorder playlist videos',
@@ -1850,7 +1839,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapNotification),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch notifications',
@@ -1866,7 +1855,7 @@ class ApiClient {
         success: true,
         data: mapUnreadNotificationCount(response),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch unread notification count',
@@ -1884,7 +1873,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to mark notification as read',
@@ -1902,7 +1891,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to mark notification as unread',
@@ -1920,7 +1909,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to mark all notifications as read',
@@ -1938,7 +1927,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to delete notification',
@@ -1956,7 +1945,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to clear read notifications',
@@ -1983,7 +1972,7 @@ class ApiClient {
         success: true,
         data: mapPagedResponse(response, mapVideoSummary),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to fetch your videos',
@@ -2017,7 +2006,7 @@ class ApiClient {
         success: true,
         data: mapVideoDetail(video),
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to update video metadata',
@@ -2038,7 +2027,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to archive video',
@@ -2048,3 +2037,4 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+

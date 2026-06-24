@@ -9,7 +9,7 @@ import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
 import { CommentsSection } from '@/features/videos/components/CommentsSection';
 import { apiClient } from '@/shared/lib/api';
 import { capitalize, cn } from '@/shared/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -27,8 +27,6 @@ import {
   ListPlus,
   ThumbsUp,
   ThumbsDown,
-  Eye,
-  Calendar,
   Shield,
   Clock,
   AlertCircle,
@@ -41,7 +39,6 @@ import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 import { Playlist } from '@/features/playlists/types';
 import { VideoVisibilityBadge } from '@/features/videos/components/VideoVisibilityBadge';
 import { VideoStatusBadge } from '@/features/videos/components/VideoStatusBadge';
-import { VideoCard } from '@/features/videos/components/VideoCard';
 
 const ACTIVE_PROCESSING_STATUSES = new Set(['Uploading', 'Processing']);
 const PROCESSING_POLL_INTERVAL_MS = 4000;
@@ -69,10 +66,13 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   useEffect(() => {
     const stored = localStorage.getItem('streamforge_playlist_autoplay');
-    if (stored !== null) {
-      setAutoplay(stored === 'true');
-    }
-    setIsAutoplayLoaded(true);
+
+    queueMicrotask(() => {
+      if (stored !== null) {
+        setAutoplay(stored === 'true');
+      }
+      setIsAutoplayLoaded(true);
+    });
   }, []);
 
   const handleAutoplayChange = (value: boolean) => {
@@ -142,8 +142,10 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   useEffect(() => {
     if (!playlistId) {
-      setPlaylist(null);
-      setPlaylistVideos([]);
+      queueMicrotask(() => {
+        setPlaylist(null);
+        setPlaylistVideos([]);
+      });
       return;
     }
 

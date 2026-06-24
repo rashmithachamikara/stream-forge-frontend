@@ -8,12 +8,10 @@ import { createVideoUploadClient } from '@/features/videos/lib/uploadClient';
 import { apiClient } from '@/shared/lib/api';
 import { Category, TagSummary } from '@/features/videos/types';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -25,12 +23,9 @@ import {
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   Upload,
-  Video,
   X,
   Check,
-  CheckCircle,
   FileVideo,
-  Settings,
   Eye,
   Lock,
   Globe,
@@ -135,15 +130,19 @@ export default function UploadVideoPage() {
   // Client-side local video metadata extraction
   useEffect(() => {
     if (!selectedFile) {
-      setThumbnailUrl(null);
-      setVideoDuration(null);
-      setVideoResolution(null);
-      setVideoAspectRatio(null);
-      setIsGeneratingThumbnail(false);
+      queueMicrotask(() => {
+        setThumbnailUrl(null);
+        setVideoDuration(null);
+        setVideoResolution(null);
+        setVideoAspectRatio(null);
+        setIsGeneratingThumbnail(false);
+      });
       return;
     }
 
-    setIsGeneratingThumbnail(true);
+    queueMicrotask(() => {
+      setIsGeneratingThumbnail(true);
+    });
     const url = URL.createObjectURL(selectedFile);
 
     const video = document.createElement('video');
@@ -238,7 +237,7 @@ export default function UploadVideoPage() {
       
       try {
         URL.revokeObjectURL(url);
-      } catch (e) {}
+      } catch {}
     };
   }, [selectedFile]);
 
@@ -417,7 +416,7 @@ export default function UploadVideoPage() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Upload complete</h1>
             <p className="text-sm text-muted-foreground mt-2 mb-6">
-              “{title}” has been uploaded and is now being processed. You'll be notified when it's ready.
+              “{title}” has been uploaded and is now being processed. You&apos;ll be notified when it&apos;s ready.
             </p>
             <div className="flex justify-center gap-2">
               <Button type="button" onClick={resetForm} variant="outline" className="h-8 text-xs px-4">
@@ -472,6 +471,7 @@ export default function UploadVideoPage() {
                   {/* Thumbnail Preview */}
                   <div className="aspect-video w-full max-w-[400px] rounded-lg bg-muted overflow-hidden relative ring-1 ring-border flex items-center justify-center">
                     {thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={thumbnailUrl}
                         alt="Local video thumbnail preview"
@@ -742,7 +742,7 @@ export default function UploadVideoPage() {
                         </div>
                         <div className="flex-1">
                           <p className="text-xs font-semibold">Auto-generate thumbnail</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">We'll select an optimal frame from the video.</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">We&apos;ll select an optimal frame from the video.</p>
                         </div>
                       </button>
 

@@ -2,8 +2,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Hls from 'hls.js';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { AnalyticsEventType } from '@/features/admin/types';
 import { apiClient } from '@/shared/lib/api';
@@ -223,7 +221,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [hlsUrl]);
 
-  const sendAnalyticsEvent = (eventType: AnalyticsEventType) => {
+  const sendAnalyticsEvent = useCallback((eventType: AnalyticsEventType) => {
     if (!videoId || !videoRef.current) {
       return;
     }
@@ -238,7 +236,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       position: Math.floor(videoRef.current.currentTime),
       durationWatched,
     });
-  };
+  }, [videoId]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -482,7 +480,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }, ANALYTICS_PLAY_HEARTBEAT_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [isPlaying, videoId]);
+  }, [isPlaying, sendAnalyticsEvent, videoId]);
 
   useEffect(() => {
     if (!videoId || !ANALYTICS_TRACK_CLOSE) {
@@ -496,7 +494,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       window.removeEventListener('pagehide', handleClose);
       handleClose();
     };
-  }, [videoId]);
+  }, [sendAnalyticsEvent, videoId]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
