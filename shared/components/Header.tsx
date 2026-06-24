@@ -105,13 +105,12 @@ export const Header: React.FC<HeaderProps> = () => {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
-  const [activeView, setActiveView] = useState<UserRole | null>(null);
+  const resolvedView = useMemo(() => (user ? resolveActiveView(user.role, pathname) : null), [pathname, user]);
+  const [activeView, setActiveView] = useState<UserRole | null>(resolvedView);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotifLoading, setIsNotifLoading] = useState(false);
-
-  const resolvedView = useMemo(() => (user ? resolveActiveView(user.role, pathname) : null), [pathname, user]);
 
   const loadHeaderNotifications = useCallback(async () => {
     if (!user) return;

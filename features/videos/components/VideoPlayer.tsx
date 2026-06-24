@@ -81,6 +81,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const watchedSinceLastEventRef = useRef(0);
   const lastPlaybackPositionRef = useRef(0);
   const isSeekingRef = useRef(false);
+  const bookmarkInputRef = useRef<HTMLInputElement>(null);
+  const showBookmarksPanelRef = useRef(false);
+  const handleAddBookmarkRef = useRef<() => void>(() => {});
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -310,6 +313,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     
     const isNewSeek = accumulatedSeekRef.current === 0;
     accumulatedSeekRef.current += seconds;
+    
+    if (accumulatedSeekRef.current === 0) {
+      setShowSeekIndicator(false);
+      setSeekIndicator(null);
+      return;
+    }
+    
     const sign = accumulatedSeekRef.current > 0 ? '+' : '';
     const text = `${sign}${accumulatedSeekRef.current}s`;
     
@@ -419,12 +429,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, []);
 
-  const handleAddBookmark = () => {
-    if (onBookmarkAdd) {
-      onBookmarkAdd(currentTime, bookmarkTitle.trim() || undefined);
+  const handleAddBookmark = useCallback(() => {
+    if (onBookmarkAdd && videoRef.current) {
+      onBookmarkAdd(videoRef.current.currentTime, bookmarkTitle.trim() || undefined);
       setBookmarkTitle('');
     }
-  };
+  }, [onBookmarkAdd, bookmarkTitle]);
+
+  useEffect(() => {
+    showBookmarksPanelRef.current = showBookmarksPanel;
+  }, [showBookmarksPanel]);
+
+  useEffect(() => {
+    handleAddBookmarkRef.current = handleAddBookmark;
+  }, [handleAddBookmark]);
 
   const handleBookmarkSeek = (timestamp: number) => {
     if (!videoRef.current) {
@@ -498,6 +516,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Handle Ctrl + Enter to submit bookmark
+      if (showBookmarksPanelRef.current && event.ctrlKey && event.key === 'Enter') {
+        event.preventDefault();
+        handleAddBookmarkRef.current();
+        return;
+      }
+
       const active = document.activeElement;
       if (
         active &&
@@ -537,6 +562,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           event.preventDefault();
           setShowBookmarksPanel((prev) => !prev);
           handleMouseMove();
+          break;
+        case '/':
+          if (showBookmarksPanelRef.current) {
+            event.preventDefault();
+            bookmarkInputRef.current?.focus();
+          }
           break;
         case 'ArrowLeft':
         case 'j':
@@ -699,9 +730,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
             <button
               onClick={() => setShowBookmarksPanel(false)}
-              className="text-xs text-muted-foreground hover:text-foreground hover:bg-accent px-2 py-1 rounded bg-transparent border-0 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent px-2 py-1 rounded bg-transparent border-0 cursor-pointer transition-colors"
             >
               Close
+              <Kbd>B</Kbd>
             </button>
           </div>
 
@@ -711,17 +743,35 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <p className="text-[10px] text-muted-foreground">Save the current position with a note.</p>
             </div>
             <input
-              placeholder="Bookmark note (optional)"
+              ref={bookmarkInputRef}
+              placeholder="press / to type note"
               value={bookmarkTitle}
               onChange={(event) => setBookmarkTitle(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                }
+              }}
               className="w-full border border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary rounded px-3 py-1.5 text-xs"
             />
             <button
               onClick={handleAddBookmark}
               disabled={isBookmarkSaving}
-              className="w-full text-xs font-semibold px-3 py-1.5 rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded bg-primary text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
             >
-              {isBookmarkSaving ? 'Saving...' : 'Add bookmark'}
+              {isBookmarkSaving ? (
+                'Saving...'
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  Add bookmark
+                  <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-normal opacity-85">
+                    (<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 px-1 text-[9px]">Ctrl</Kbd>
+                    <span>+</span>
+                    <Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 px-1 text-[9px]">Enter</Kbd>)
+                  </span>
+                </span>
+              )}
             </button>
           </div>
 
