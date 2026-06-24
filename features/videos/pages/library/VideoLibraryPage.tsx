@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
@@ -37,6 +37,7 @@ function Chip({ label, onClear }: { label: string; onClear: () => void }) {
 
 export default function VideoLibrary() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,6 +58,72 @@ export default function VideoLibrary() {
   const [isFilterLoading, setIsFilterLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const pageSize = viewMode === 'grid' ? 12 : 10;
+
+  // Sync query parameters with filter states
+  useEffect(() => {
+    const categoryId = searchParams.get('categoryId');
+    const tagId = searchParams.get('tagId');
+    const search = searchParams.get('search');
+    const visibility = searchParams.get('visibility');
+    const uploader = searchParams.get('uploader');
+    const page = searchParams.get('page');
+
+    queueMicrotask(() => {
+      setSelectedCategoryId(categoryId || null);
+      setSelectedTagId(tagId || null);
+      setSearchTerm(search || '');
+
+      if (visibility) {
+        const formatted = visibility.charAt(0).toUpperCase() + visibility.slice(1).toLowerCase();
+        if (['All', 'Public', 'Private', 'Internal'].includes(formatted)) {
+          setSelectedVisibility(formatted as 'All' | 'Public' | 'Private' | 'Internal');
+        } else {
+          setSelectedVisibility('All');
+        }
+      } else {
+        setSelectedVisibility('All');
+      }
+
+      if (uploader) {
+        if (['all', 'me', 'others'].includes(uploader.toLowerCase())) {
+          setUploaderFilter(uploader.toLowerCase() as 'all' | 'me' | 'others');
+        } else {
+          setUploaderFilter('all');
+        }
+      } else {
+        setUploaderFilter('all');
+      }
+
+      if (page) {
+        const parsed = parseInt(page, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          setCurrentPage(parsed);
+        } else {
+          setCurrentPage(1);
+        }
+      } else {
+        setCurrentPage(1);
+      }
+    });
+  }, [searchParams]);
+
+  // Update browser URL query string when filters change
+  useEffect(() => {
+    if (isFilterLoading) return;
+
+    const params = new URLSearchParams();
+    if (selectedCategoryId) params.set('categoryId', selectedCategoryId);
+    if (selectedTagId) params.set('tagId', selectedTagId);
+    if (searchTerm.trim()) params.set('search', searchTerm.trim());
+    if (selectedVisibility !== 'All') params.set('visibility', selectedVisibility.toLowerCase());
+    if (uploaderFilter !== 'all') params.set('uploader', uploaderFilter);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+
+    const queryString = params.toString();
+    const targetUrl = queryString ? `/videos?${queryString}` : '/videos';
+
+    window.history.replaceState(null, '', targetUrl);
+  }, [selectedCategoryId, selectedTagId, searchTerm, selectedVisibility, uploaderFilter, currentPage, isFilterLoading]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
