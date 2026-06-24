@@ -250,7 +250,7 @@ export const Header: React.FC<HeaderProps> = () => {
               </Button>
             )}
 
-            {availableViews.length > 1 && currentView && (
+            {user?.role !== 'viewer' && availableViews.length > 1 && currentView && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="secondary" size="sm" className="capitalize h-7 text-[11px] px-3 flex items-center gap-1">

@@ -89,6 +89,7 @@ export function VideoCard({ video, variant = 'grid', className, onClick, href }:
 
         <div className="min-w-0 flex-1">
           <h3
+            title={video.title}
             className={cn(
               'line-clamp-2 font-semibold leading-snug text-foreground transition-colors group-hover:text-primary',
               isFeature ? 'text-base' : 'text-sm md:text-[15px]'
