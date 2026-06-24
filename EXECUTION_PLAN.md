@@ -25,3 +25,4 @@
 ## Backlog
 
 - [ ] Replace the interim `hls.js` bearer-header playback workaround with a proper media-auth solution such as signed playback URLs or cookie-backed protected media access.
+- [ ] Bookmarks Page: Category filtering, sorting and grouping by video are implemented on the client side (frontend). Needs native category filtering and grouping support from backend API later.

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Hls from 'hls.js';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { AnalyticsEventType } from '@/features/admin/types';
@@ -74,6 +75,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onEnded,
   autoPlay,
 }) => {
+  const searchParams = useSearchParams();
+  const tParam = searchParams?.get('t');
+  const startTime = tParam ? parseInt(tParam, 10) : 0;
+  const lastSeekTimeRef = useRef<number>(-1);
+  const initialStartTimeRef = useRef<number>(startTime);
+
+  useEffect(() => {
+    initialStartTimeRef.current = startTime;
+  }, [hlsUrl, startTime]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -128,7 +139,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     hlsRef.current = null;
     setIsLoading(true);
     setPlaybackError(null);
-    setCurrentTime(0);
+    setCurrentTime(initialStartTimeRef.current);
     setIsPlaying(false);
     setQuality('auto');
     setQualityOptions([]);
@@ -137,8 +148,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setShowBookmarksPanel(false);
     analyticsSessionIdRef.current = createAnalyticsSessionId();
     watchedSinceLastEventRef.current = 0;
-    lastPlaybackPositionRef.current = 0;
+    lastPlaybackPositionRef.current = initialStartTimeRef.current;
     isSeekingRef.current = false;
+    lastSeekTimeRef.current = -1;
 
     if (Hls.isSupported()) {
       const hlsInstance = new Hls({
@@ -202,6 +214,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     autoPlayRef.current = autoPlay;
   }, [autoPlay]);
+
+  useEffect(() => {
+    if (videoRef.current && startTime > 0 && lastSeekTimeRef.current !== startTime) {
+      videoRef.current.currentTime = startTime;
+      setCurrentTime(startTime);
+      lastPlaybackPositionRef.current = startTime;
+      lastSeekTimeRef.current = startTime;
+    }
+  }, [startTime]);
 
   useEffect(() => {
     if (autoPlayRef.current && videoRef.current) {
@@ -680,6 +701,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onLoadedMetadata={() => {
           if (videoRef.current && Number.isFinite(videoRef.current.duration)) {
             setMediaDuration(videoRef.current.duration);
+          }
+          if (videoRef.current && startTime > 0) {
+            videoRef.current.currentTime = startTime;
+            setCurrentTime(startTime);
+            lastPlaybackPositionRef.current = startTime;
+            lastSeekTimeRef.current = startTime;
           }
         }}
         onCanPlay={() => setIsLoading(false)}
