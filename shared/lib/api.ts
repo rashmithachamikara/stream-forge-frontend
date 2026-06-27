@@ -1525,6 +1525,34 @@ class ApiClient {
     }
   }
 
+  async downloadMeAnalyticsVideos(filters: AnalyticsDateRange = {}): Promise<ApiResponse<Blob>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      params.set('format', 'csv');
+      const headers = new Headers();
+
+      if (this.token) {
+        headers.set('Authorization', `Bearer ${this.token}`);
+      }
+
+      const response = await fetch(`${this.baseUrl}${API_V1_PREFIX}/me/analytics/reports/videos?${params.toString()}`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      return {
+        success: true,
+        data: await response.blob(),
+      };
+    } catch {
+      return { success: false, error: 'Failed to download analytics export' };
+    }
+  }
+
   async getMeAnalyticsSummary(filters: AnalyticsDateRange = {}): Promise<ApiResponse<AnalyticsSummary>> {
     try {
       const params = new URLSearchParams();
@@ -1562,7 +1590,7 @@ class ApiClient {
       this.appendDateRange(params, filters);
       appendQueryParam(params, 'page', filters.page ?? 1);
       appendQueryParam(params, 'pageSize', filters.pageSize ?? 10);
-      const endpoint = kind === 'top' ? 'top-videos' : `${kind}-videos`;
+      const endpoint = (kind === 'top' || kind === 'most-watched') ? 'top-videos' : `${kind}-videos`;
       const response = await this.requestRaw<PaginatedResponse<RankedVideoAnalyticsDto>>(
         `${API_V1_PREFIX}/me/analytics/${endpoint}?${params.toString()}`
       );

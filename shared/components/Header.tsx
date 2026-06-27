@@ -56,6 +56,7 @@ const navItems: NavItem[] = [
   { label: 'Playlists', href: '/playlists', roles: ['admin', 'editor', 'viewer'], activePatterns: ['/playlists'] },
   { label: 'Bookmarks', href: '/bookmarks', roles: ['viewer'], activePatterns: ['/bookmarks'] },
   { label: 'Notifications', href: '/notifications', roles: ['admin', 'editor', 'viewer'], activePatterns: ['/notifications'] },
+  { label: 'Analytics', href: '/editor/analytics', roles: ['editor'], activePatterns: ['/editor/analytics'] },
   { label: 'Analytics', href: '/admin/analytics', roles: ['admin'], activePatterns: ['/admin/analytics'] },
   { label: 'Users', href: '/admin/users', roles: ['admin'], activePatterns: ['/admin/users'] },
   { label: 'Taxonomy', href: '/admin/taxonomy', roles: ['admin'], activePatterns: ['/admin/taxonomy'] },
