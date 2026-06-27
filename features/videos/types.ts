@@ -6,6 +6,7 @@ export interface Video {
   duration: number;
   uploadedBy: string;
   uploadedAt: Date;
+  uploaderId?: string;
   views: number;
   categories: string[];
   tags: string[];

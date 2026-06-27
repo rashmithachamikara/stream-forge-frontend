@@ -36,8 +36,10 @@ import {
   Copy,
   Check,
   Loader,
+  BarChart2,
 } from 'lucide-react';
 import { apiClient } from '@/shared/lib/api';
+import VideoStatsModal from '@/features/videos/components/VideoStatsModal';
 import { Video, VideoListFilters, VideoStatus, VideoVisibility } from '@/features/videos/types';
 import { VideoCard } from '@/features/videos/components/VideoCard';
 
@@ -70,6 +72,7 @@ export default function EditorDashboard() {
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   // Selected video and form state
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [copied, setCopied] = useState(false);
@@ -189,6 +192,11 @@ export default function EditorDashboard() {
   const handleDeleteClick = (video: Video) => {
     setSelectedVideo(video);
     setDeleteDialogOpen(true);
+  };
+
+  const handleStatsClick = (video: Video) => {
+    setSelectedVideo(video);
+    setStatsDialogOpen(true);
   };
 
   const handleSaveMetadata = async () => {
@@ -464,6 +472,15 @@ export default function EditorDashboard() {
                         >
                           <Code className="size-3 mr-1" />
                           Embed
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-muted-foreground hover:bg-accent border-border bg-card size-8 p-0"
+                          onClick={() => handleStatsClick(video)}
+                          aria-label="Video stats"
+                        >
+                          <BarChart2 className="size-3" />
                         </Button>
                         <Button
                           variant="outline"
@@ -757,6 +774,16 @@ export default function EditorDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Video Statistics Modal */}
+      {selectedVideo && (
+        <VideoStatsModal
+          videoId={selectedVideo.id}
+          videoTitle={selectedVideo.title}
+          isOpen={statsDialogOpen}
+          onOpenChange={setStatsDialogOpen}
+        />
+      )}
 
     </DashboardLayout>
   );

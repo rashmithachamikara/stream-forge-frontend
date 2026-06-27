@@ -42,6 +42,8 @@ import {
   AnalyticsSummaryDto,
   AnalyticsTimeSeriesPoint,
   AnalyticsTimeSeriesPointDto,
+  AnalyticsEngagementSummary,
+  AnalyticsEngagementSummaryDto,
   AuthBreakdown,
   AuthBreakdownDto,
   BrowserBreakdownItemDto,
@@ -226,6 +228,7 @@ const mapVideoSummary = (video: VideoSummaryDto): Video => {
     categoryId: video.categoryId ?? null,
     status: video.status,
     updatedAt: video.updatedAt ? new Date(video.updatedAt) : undefined,
+    uploaderId: video.uploaderId,
   };
 };
 
@@ -392,6 +395,16 @@ const mapTagBreakdownItem = (item: TagBreakdownItemDto): AnalyticsBreakdownItem 
 const mapAuthBreakdown = (breakdown: AuthBreakdownDto): AuthBreakdown => ({
   authenticatedViewCount: breakdown.authenticatedViewCount ?? 0,
   anonymousViewCount: breakdown.anonymousViewCount ?? 0,
+});
+
+const mapAnalyticsEngagementSummary = (
+  dto: AnalyticsEngagementSummaryDto
+): AnalyticsEngagementSummary => ({
+  likeCount: dto.likeCount ?? 0,
+  dislikeCount: dto.dislikeCount ?? 0,
+  commentCount: dto.commentCount ?? 0,
+  engagementScore: dto.engagementScore ?? 0,
+  engagementRate: dto.engagementRate ?? null,
 });
 
 const mapRecordAnalyticsEventResult = (
@@ -1643,6 +1656,54 @@ class ApiClient {
       return { success: true, data: mapAuthBreakdown(response) };
     } catch {
       return { success: false, error: 'Failed to fetch auth breakdown' };
+    }
+  }
+
+  async getVideoAnalyticsSummary(
+    videoId: string,
+    filters: AnalyticsDateRange = {}
+  ): Promise<ApiResponse<AnalyticsSummary>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const summary = await this.requestRaw<AnalyticsSummaryDto>(
+        `${API_V1_PREFIX}/videos/${videoId}/analytics/summary?${params.toString()}`
+      );
+      return { success: true, data: mapAnalyticsSummary(summary) };
+    } catch {
+      return { success: false, error: 'Failed to fetch video analytics summary' };
+    }
+  }
+
+  async getVideoAnalyticsTimeseries(
+    videoId: string,
+    filters: AnalyticsDateRange = {}
+  ): Promise<ApiResponse<AnalyticsTimeSeriesPoint[]>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const points = await this.requestRaw<AnalyticsTimeSeriesPointDto[]>(
+        `${API_V1_PREFIX}/videos/${videoId}/analytics/timeseries?${params.toString()}`
+      );
+      return { success: true, data: points.map(mapAnalyticsTimeSeriesPoint) };
+    } catch {
+      return { success: false, error: 'Failed to fetch video analytics timeseries' };
+    }
+  }
+
+  async getVideoEngagementSummary(
+    videoId: string,
+    filters: AnalyticsDateRange = {}
+  ): Promise<ApiResponse<AnalyticsEngagementSummary>> {
+    try {
+      const params = new URLSearchParams();
+      this.appendDateRange(params, filters);
+      const engagement = await this.requestRaw<AnalyticsEngagementSummaryDto>(
+        `${API_V1_PREFIX}/videos/${videoId}/analytics/engagement?${params.toString()}`
+      );
+      return { success: true, data: mapAnalyticsEngagementSummary(engagement) };
+    } catch {
+      return { success: false, error: 'Failed to fetch video engagement summary' };
     }
   }
 

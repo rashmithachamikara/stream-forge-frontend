@@ -31,6 +31,7 @@ import {
   Clock,
   AlertCircle,
   Trash2,
+  BarChart2,
 } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import { ReactionSummary, ReactionType, Video, VideoProcessingStatus } from '@/features/videos/types';
@@ -39,6 +40,9 @@ import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 import { Playlist } from '@/features/playlists/types';
 import { VideoVisibilityBadge } from '@/features/videos/components/VideoVisibilityBadge';
 import { VideoStatusBadge } from '@/features/videos/components/VideoStatusBadge';
+import VideoStatsModal from '@/features/videos/components/VideoStatsModal';
+import { UserRole } from '@/features/auth/types';
+import { resolveActiveView, getAllowedViews, ACTIVE_VIEW_CHANGE_EVENT } from '@/shared/lib/viewMode';
 
 const ACTIVE_PROCESSING_STATUSES = new Set(['Uploading', 'Processing']);
 const PROCESSING_POLL_INTERVAL_MS = 4000;
@@ -95,6 +99,22 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [bookmarkMessage, setBookmarkMessage] = useState<string | null>(null);
   const [playlistMessage, setPlaylistMessage] = useState<string | null>(null);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+
+  const resolvedView = React.useMemo(() => (user ? resolveActiveView(user.role, null) : null), [user]);
+  const [activeView, setActiveView] = useState<UserRole | null>(resolvedView);
+
+  useEffect(() => {
+    const handleViewChange = (event: Event) => {
+      const nextView = (event as CustomEvent<UserRole>).detail;
+      if (user && getAllowedViews(user.role).includes(nextView)) {
+        setActiveView(nextView);
+      }
+    };
+
+    window.addEventListener(ACTIVE_VIEW_CHANGE_EVENT, handleViewChange);
+    return () => window.removeEventListener(ACTIVE_VIEW_CHANGE_EVENT, handleViewChange);
+  }, [user]);
 
   const loadVideo = useCallback(async ({ showLoading = false }: { showLoading?: boolean } = {}) => {
     if (showLoading) {
@@ -350,7 +370,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   const isLiked = reactionSummary?.currentUserReaction === 'Like';
   const isDisliked = reactionSummary?.currentUserReaction === 'Dislike';
-  const canManageVideo = user?.role === 'admin' || user?.role === 'editor';
+  const isOwner = !!(user && video && user.id === video.uploaderId);
+  const canManageVideo = activeView !== 'viewer' && (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
 
   if (isLoading) {
     return (
@@ -579,6 +600,15 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                   </button>
                   {canManageVideo && (
                     <button
+                      onClick={() => setStatsDialogOpen(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer"
+                    >
+                      <BarChart2 className="size-3.5" />
+                      Stats
+                    </button>
+                  )}
+                  {canManageVideo && (
+                    <button
                       onClick={() => router.push(`/videos/${video.id}/manage`)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer"
                     >
@@ -749,6 +779,17 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
             </div>
           </aside>
         </div>
+
+        {/* Video Statistics Modal */}
+        {video && (
+          <VideoStatsModal
+            videoId={video.id}
+            videoTitle={video.title}
+            isOpen={statsDialogOpen}
+            onOpenChange={setStatsDialogOpen}
+          />
+        )}
+
       </DashboardLayout>
     );
 }
