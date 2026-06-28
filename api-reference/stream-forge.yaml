@@ -5707,6 +5707,76 @@
               "responses": { "200": { "description": "OK" } },
             },
         },
+      "/api/v1/videos/{videoId}/transcriptions/{transcriptionId}/chunks":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "transcriptionId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TranscriptChunkDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TranscriptChunkDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/TranscriptChunkDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
       "/api/v1/videos/{videoId}/transcript-search":
         {
           "get":
@@ -6504,6 +6574,21 @@
                   "totalPages": { "type": "integer", "format": "int32" },
                   "hasNextPage": { "type": "boolean" },
                   "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "TranscriptChunkDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "chunkId": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "transcriptionId": { "type": "string", "format": "uuid" },
+                  "language": { "type": "string", "nullable": true },
+                  "startSeconds": { "type": "number", "format": "double" },
+                  "endSeconds": { "type": "number", "format": "double" },
+                  "content": { "type": "string", "nullable": true },
                 },
               "additionalProperties": false,
             },
