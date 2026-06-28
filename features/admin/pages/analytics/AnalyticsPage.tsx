@@ -160,15 +160,25 @@ function KpiCard({
         <span className="text-[10px] uppercase tracking-widest font-bold">{label}</span>
         <Icon className="size-4 text-muted-foreground" />
       </div>
-      <p className="text-2xl font-bold tracking-tight text-foreground">{isLoading ? '-' : value}</p>
-      {!isLoading && (
-        <p className={cn(
-          "text-[11px] mt-1 font-medium inline-flex items-center gap-1",
-          isPositive ? "text-success" : "text-destructive"
-        )}>
-          <IconTrend className="size-3" /> {delta}
-        </p>
-      )}
+      <p className="text-2xl font-bold tracking-tight text-foreground font-mono">
+        {isLoading ? (
+          <span className="inline-block h-8 w-24 bg-muted/60 rounded animate-pulse" />
+        ) : (
+          value
+        )}
+      </p>
+      <div className="h-5 mt-1 flex items-center">
+        {isLoading ? (
+          <span className="inline-block h-3.5 w-14 bg-muted/60 rounded animate-pulse" />
+        ) : (
+          <p className={cn(
+            "text-[11px] font-medium font-mono inline-flex items-center gap-1",
+            isPositive ? "text-success" : "text-destructive"
+          )}>
+            <IconTrend className="size-3" /> {delta}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
