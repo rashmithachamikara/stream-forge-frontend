@@ -3,49 +3,53 @@
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
+import { useAuth } from '@/features/auth/AuthContext';
 
 export default function UnauthorizedPage() {
   const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleSignOut = async () => {
+    await logout();
+    router.push('/login');
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary p-4">
-      <div className="w-full max-w-md">
-        <Card>
-          <CardContent className="p-8 text-center space-y-6">
-            <div className="flex justify-center">
-              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-8 h-8 text-destructive" />
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md border border-border bg-card shadow-none">
+        <CardContent className="p-8 text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="w-12 h-12 bg-destructive/10 text-destructive border border-destructive/20 rounded-full flex items-center justify-center">
+              <ShieldAlert className="w-5 h-5" />
             </div>
+          </div>
 
-            <div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-              <p className="text-muted-foreground">
-                You don&apos;t have permission to access this page. Your current role doesn&apos;t have the required access level.
-              </p>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">Access Denied</h1>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              Your account current role does not have the permissions required to view this protected page.
+            </p>
+          </div>
 
-            <div className="bg-muted p-4 rounded-lg text-left space-y-2 text-sm">
-              <p className="font-semibold text-foreground">What can you do?</p>
-              <ul className="text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Return to your dashboard</li>
-                <li>Contact your administrator for access</li>
-                <li>Check your account permissions</li>
-              </ul>
-            </div>
+          {/* Technical metadata log block */}
+          <div className="bg-muted p-4 rounded-md text-left font-mono text-[11px] text-muted-foreground border border-border/40">
+            <p className="font-semibold text-foreground mb-1">HTTP_403_FORBIDDEN</p>
+            <p>CODE: ACCESS_DENIED</p>
+            <p>SCOPE: ADMIN_CONSOLE_PREFERENCE</p>
+            <p>ACTION: Contact administrator for role escalation</p>
+          </div>
 
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1 bg-transparent" onClick={() => router.back()}>
-                Go Back
-              </Button>
-              <Button className="flex-1" onClick={() => router.push('/dashboard')}>
-                Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={handleSignOut}>
+              Sign Out
+            </Button>
+            <Button variant="default" className="flex-1" onClick={() => router.push('/dashboard')}>
+              Dashboard
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
