@@ -109,17 +109,27 @@ export default function LoginPage() {
             <p className="text-xs text-destructive font-medium">{error}</p>
           )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-foreground text-background py-2.5 rounded-md text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {isLoading ? 'Signing in...' : (
-              <>
-                Continue <ArrowRight className="size-4" />
-              </>
-            )}
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-foreground text-background py-2.5 rounded-md text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
+            >
+              {isLoading ? 'Signing in...' : (
+                <>
+                  Continue <ArrowRight className="size-4" />
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              disabled={isLoading}
+              className="w-full bg-transparent text-muted-foreground border border-border py-2.5 rounded-md text-sm font-medium hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
 
           <p className="text-[11px] text-muted-foreground text-center">
             Use the credentials provisioned by your Stream Forge administrator.

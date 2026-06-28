@@ -9,19 +9,29 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   title?: string;
   requiredRoles?: UserRole[];
+  allowGuests?: boolean;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
   title = 'Stream Forge',
   requiredRoles,
+  allowGuests = false,
 }) => {
+  const content = (
+    <div className="min-h-screen bg-background text-foreground">
+      <Header title={title} />
+      <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6">{children}</main>
+    </div>
+  );
+
+  if (allowGuests) {
+    return content;
+  }
+
   return (
     <ProtectedRoute requiredRoles={requiredRoles}>
-      <div className="min-h-screen bg-background text-foreground">
-        <Header title={title} />
-        <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6">{children}</main>
-      </div>
+      {content}
     </ProtectedRoute>
   );
 };

@@ -213,7 +213,7 @@ export const Header: React.FC<HeaderProps> = () => {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
+    router.push('/');
   };
 
   return (
@@ -291,83 +291,91 @@ export const Header: React.FC<HeaderProps> = () => {
               {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="h-7 w-7 relative cursor-pointer" aria-label="Notifications">
-                  <Bell className="size-3.5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden bg-popover border border-border rounded-md shadow-lg">
-                <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">Notifications</span>
-                  <Link href="/notifications" className="text-[11px] text-primary hover:underline font-semibold cursor-pointer">
-                    View all
-                  </Link>
-                </div>
-                <div className="max-h-80 overflow-y-auto divide-y divide-border">
-                  {isNotifLoading ? (
-                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                      Loading notifications...
+            {user ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" className="h-7 w-7 relative cursor-pointer" aria-label="Notifications">
+                      <Bell className="size-3.5" />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden bg-popover border border-border rounded-md shadow-lg">
+                    <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">Notifications</span>
+                      <Link href="/notifications" className="text-[11px] text-primary hover:underline font-semibold cursor-pointer">
+                        View all
+                      </Link>
                     </div>
-                  ) : notifications.length === 0 ? (
-                    <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                      No notifications
-                    </div>
-                  ) : (
-                    notifications.map((n) => {
-                      return (
-                        <div
-                          key={n.id}
-                          onClick={() => void handleNotificationClick(n)}
-                          className={cn(
-                            "px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-pointer text-left flex items-start gap-2",
-                            !n.isRead && "bg-primary/[0.01]"
-                          )}
-                        >
-                          {!n.isRead && (
-                            <span className="mt-1.5 size-1.5 bg-primary rounded-full shrink-0" />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-foreground truncate">{getNotificationTitle(n)}</p>
-                            <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
-                            <span className="text-[9px] font-mono text-muted-foreground mt-1 block">
-                              {formatRelative(n.createdAt)}
-                            </span>
-                          </div>
+                    <div className="max-h-80 overflow-y-auto divide-y divide-border">
+                      {isNotifLoading ? (
+                        <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                          Loading notifications...
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                      ) : notifications.length === 0 ? (
+                        <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                          No notifications
+                        </div>
+                      ) : (
+                        notifications.map((n) => {
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => void handleNotificationClick(n)}
+                              className={cn(
+                                "px-3 py-2.5 hover:bg-accent/40 transition-colors cursor-pointer text-left flex items-start gap-2",
+                                !n.isRead && "bg-primary/[0.01]"
+                              )}
+                            >
+                              {!n.isRead && (
+                                <span className="mt-1.5 size-1.5 bg-primary rounded-full shrink-0" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold text-foreground truncate">{getNotificationTitle(n)}</p>
+                                <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                                <span className="text-[9px] font-mono text-muted-foreground mt-1 block">
+                                  {formatRelative(n.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-7 w-7 rounded-full p-0" aria-label="Account menu">
-                  <InitialsAvatar name={user?.name} className="h-7 w-7" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="space-y-0.5">
-                  <p className="text-xs font-semibold text-foreground">{user?.name}</p>
-                  <p className="truncate text-[11px] font-normal text-muted-foreground">{user?.email}</p>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/admin/settings')}>
-                  <Settings className="size-3.5" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={handleLogout}>
-                  <LogOut className="size-3.5" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-7 w-7 rounded-full p-0" aria-label="Account menu">
+                      <InitialsAvatar name={user?.name} className="h-7 w-7" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="space-y-0.5">
+                      <p className="text-xs font-semibold text-foreground">{user?.name}</p>
+                      <p className="truncate text-[11px] font-normal text-muted-foreground">{user?.email}</p>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => router.push('/admin/settings')}>
+                      <Settings className="size-3.5" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                      <LogOut className="size-3.5" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <Button asChild variant="default" size="sm" className="h-7 text-[11px] px-3 font-semibold">
+                <Link href="/login">Sign In</Link>
+              </Button>
+            )}
           </div>
         </div>
 

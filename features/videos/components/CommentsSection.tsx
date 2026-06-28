@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { apiClient } from '@/shared/lib/api';
 import { Comment } from '@/features/videos/types';
 import { Button } from '@/components/ui/button';
@@ -467,37 +468,46 @@ export function CommentsSection({
 
   const content = (
     <div className="space-y-5">
-      <div className="flex gap-3">
-        <div className="size-8 rounded-full bg-muted ring-1 ring-border grid place-items-center font-semibold text-[10px] text-muted-foreground shrink-0 select-none">
-          {currentUserId ? 'U' : '?'}
+      {currentUserId ? (
+        <div className="flex gap-3">
+          <div className="size-8 rounded-full bg-muted ring-1 ring-border grid place-items-center font-semibold text-[10px] text-muted-foreground shrink-0 select-none">
+            U
+          </div>
+          <div className="flex-1">
+            <textarea
+              placeholder="Add a comment..."
+              value={newComment}
+              onChange={(event) => setNewComment(event.target.value)}
+              className="w-full bg-card border border-border rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none text-foreground"
+              rows={2}
+            />
+            {newComment.trim() && (
+              <div className="mt-2 flex justify-end gap-2">
+                <button
+                  onClick={() => setNewComment('')}
+                  className="text-xs px-3 py-1.5 rounded-md hover:bg-accent border border-border cursor-pointer text-foreground bg-transparent"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => void handleCreateComment(newComment)}
+                  disabled={isSubmitting}
+                  className="text-xs px-3 py-1.5 rounded-md bg-foreground text-background font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+                >
+                  Comment
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex-1">
-          <textarea
-            placeholder="Add a comment..."
-            value={newComment}
-            onChange={(event) => setNewComment(event.target.value)}
-            className="w-full bg-card border border-border rounded-md p-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none text-foreground"
-            rows={2}
-          />
-          {newComment.trim() && (
-            <div className="mt-2 flex justify-end gap-2">
-              <button
-                onClick={() => setNewComment('')}
-                className="text-xs px-3 py-1.5 rounded-md hover:bg-accent border border-border cursor-pointer text-foreground bg-transparent"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => void handleCreateComment(newComment)}
-                disabled={isSubmitting}
-                className="text-xs px-3 py-1.5 rounded-md bg-foreground text-background font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-              >
-                Comment
-              </button>
-            </div>
-          )}
+      ) : (
+        <div className="flex items-center justify-between p-4 bg-muted/40 border border-border rounded-lg">
+          <p className="text-xs text-muted-foreground">Please sign in to add comments or participate in discussions.</p>
+          <Button asChild variant="secondary" size="sm" className="h-7 text-[11px] px-3">
+            <Link href="/login">Sign In</Link>
+          </Button>
         </div>
-      </div>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

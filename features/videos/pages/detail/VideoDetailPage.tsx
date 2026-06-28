@@ -84,6 +84,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     localStorage.setItem('streamforge_playlist_autoplay', String(value));
   };
   const { user, token } = useAuth();
+  const isGuest = !user;
   const [video, setVideo] = useState<Video | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
   const [processingStatus, setProcessingStatus] = useState<VideoProcessingStatus | null>(null);
@@ -132,7 +133,9 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
         pageSize: 4,
       }),
       apiClient.getReactionSummary(videoId),
-      apiClient.getVideoBookmarks(videoId, { page: 1, pageSize: 20 }),
+      user
+        ? apiClient.getVideoBookmarks(videoId, { page: 1, pageSize: 20 })
+        : Promise.resolve({ success: true, data: { items: [] } }),
     ]);
 
     if (videoResponse.success && videoResponse.data) {
@@ -158,7 +161,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     }
 
     return videoResponse.data ?? null;
-  }, [videoId]);
+  }, [videoId, user]);
 
   useEffect(() => {
     if (!playlistId) {
@@ -282,6 +285,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   };
 
   const loadPlaylists = useCallback(async () => {
+    if (isGuest) return;
     setIsPlaylistsLoading(true);
     setError(null);
 
@@ -295,9 +299,10 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     }
 
     setIsPlaylistsLoading(false);
-  }, []);
+  }, [isGuest]);
 
   const handlePlaylistDialogChange = async (open: boolean) => {
+    if (isGuest) return;
     setIsPlaylistDialogOpen(open);
 
     if (open && playlists.length === 0 && !isPlaylistsLoading) {
@@ -375,7 +380,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Watch Video">
+      <DashboardLayout title="Watch Video" allowGuests={true}>
         <Card className="overflow-hidden py-0">
           <CardContent className="flex aspect-video items-center justify-center p-0 text-center">
             <p className="text-muted-foreground">Loading video...</p>
@@ -387,12 +392,12 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   if (error || !video) {
     return (
-      <DashboardLayout title="Watch Video">
+      <DashboardLayout title="Watch Video" allowGuests={true}>
         <Card className="border-destructive/40 bg-destructive/5 py-16 text-center">
           <CardContent className="space-y-4">
             <p className="font-medium text-destructive">{error ?? 'Video not found'}</p>
-            <Button variant="outline" onClick={() => router.push('/videos')}>
-              Back to Library
+            <Button variant="outline" onClick={() => router.push('/explore')}>
+              Back to Explore
             </Button>
           </CardContent>
         </Card>
@@ -407,7 +412,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const processingProgress = processingStatus?.progress ?? 0;
 
   return (
-    <DashboardLayout title="Watch Video">
+    <DashboardLayout title="Watch Video" allowGuests={true}>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
           <div className="space-y-6">
             {isVideoReady ? (
@@ -517,7 +522,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     <>
                       <button
                         onClick={() => void handleReaction('Like')}
-                        disabled={isReactionSaving || isProcessing || isVideoDeleted}
+                        disabled={isGuest || isReactionSaving || isProcessing || isVideoDeleted}
+                        title={isGuest ? 'Sign in to like this video' : undefined}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                           isLiked ? 'bg-accent font-semibold' : 'bg-transparent'
                         }`}
@@ -527,7 +533,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                       </button>
                       <button
                         onClick={() => void handleReaction('Dislike')}
-                        disabled={isReactionSaving || isProcessing || isVideoDeleted}
+                        disabled={isGuest || isReactionSaving || isProcessing || isVideoDeleted}
+                        title={isGuest ? 'Sign in to dislike this video' : undefined}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                           isDisliked ? 'bg-accent font-semibold' : 'bg-transparent'
                         }`}
@@ -541,7 +548,8 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     <Dialog open={isPlaylistDialogOpen} onOpenChange={(open) => void handlePlaylistDialogChange(open)}>
                       <DialogTrigger asChild>
                         <button
-                          disabled={isProcessing || isVideoDeleted}
+                          disabled={isGuest || isProcessing || isVideoDeleted}
+                          title={isGuest ? 'Sign in to save to playlists' : undefined}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <ListPlus className="size-3.5" />

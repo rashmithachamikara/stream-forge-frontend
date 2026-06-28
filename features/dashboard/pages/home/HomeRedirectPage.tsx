@@ -13,7 +13,7 @@ export default function Home() {
       if (isAuthenticated && user) {
         router.push(`/dashboard/${user.role}`);
       } else {
-        router.push('/login');
+        router.push('/explore');
       }
     }
   }, [isLoading, isAuthenticated, user, router]);
