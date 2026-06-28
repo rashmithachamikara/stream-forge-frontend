@@ -18,20 +18,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   requiredRoles,
   allowGuests = false,
 }) => {
-  const content = (
+  return (
     <div className="min-h-screen bg-background text-foreground">
       <Header title={title} />
-      <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6">
+        {allowGuests ? (
+          children
+        ) : (
+          <ProtectedRoute requiredRoles={requiredRoles}>
+            {children}
+          </ProtectedRoute>
+        )}
+      </main>
     </div>
-  );
-
-  if (allowGuests) {
-    return content;
-  }
-
-  return (
-    <ProtectedRoute requiredRoles={requiredRoles}>
-      {content}
-    </ProtectedRoute>
   );
 };
