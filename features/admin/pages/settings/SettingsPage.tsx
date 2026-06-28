@@ -7,33 +7,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
-  Settings,
-  Bot,
-  Key,
+  Cpu,
+  KeyRound,
   Video,
-  Server,
-  Database,
+  HardDrive,
   Shield,
+  FileText,
+  Copy,
+  Plus,
+  Trash2,
   Save,
-  AlertCircle,
   CheckCircle,
+  Download,
   Eye,
   EyeOff,
-  Download,
-  Trash2,
-  Plus,
 } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 
 interface AIModel {
   id: string;
@@ -53,7 +46,19 @@ interface APIKey {
   lastUsed?: string;
 }
 
+const SECTIONS = [
+  { id: 'ai', label: 'AI & Transcription', icon: Cpu },
+  { id: 'api', label: 'API Keys', icon: KeyRound },
+  { id: 'processing', label: 'Video Processing', icon: Video },
+  { id: 'storage', label: 'Storage & CDN', icon: HardDrive },
+  { id: 'security', label: 'Security', icon: Shield },
+  { id: 'audit', label: 'Audit Log', icon: FileText },
+] as const;
+
+type SectionId = typeof SECTIONS[number]['id'];
+
 export default function AdminSettingsPage() {
+  const [active, setActive] = useState<SectionId>('ai');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [showApiKeys, setShowApiKeys] = useState<{ [key: string]: boolean }>({});
 
@@ -212,22 +217,17 @@ export default function AdminSettingsPage() {
 
   return (
     <DashboardLayout title="Admin Settings" requiredRoles={['admin']}>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-              <Settings className="w-8 h-8" />
-              System Settings
-            </h1>
-            <p className="text-muted-foreground">
-              Configure AI models, API keys, and system preferences
-            </p>
+            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Admin · Settings</p>
+            <h1 className="text-2xl font-bold tracking-tight mt-1 text-foreground">Platform settings</h1>
           </div>
           <Button
             onClick={handleSaveSettings}
             disabled={saveStatus === 'saving'}
-            className="gap-2"
+            variant="default"
           >
             {saveStatus === 'saving' ? (
               <>
@@ -236,7 +236,7 @@ export default function AdminSettingsPage() {
               </>
             ) : saveStatus === 'saved' ? (
               <>
-                <CheckCircle className="w-4 h-4" />
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
                 Saved
               </>
             ) : (
@@ -248,364 +248,386 @@ export default function AdminSettingsPage() {
           </Button>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="ai-models" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-            <TabsTrigger value="ai-models" className="gap-2">
-              <Bot className="w-4 h-4" />
-              AI Models
-            </TabsTrigger>
-            <TabsTrigger value="api-keys" className="gap-2">
-              <Key className="w-4 h-4" />
-              API Keys
-            </TabsTrigger>
-            <TabsTrigger value="video" className="gap-2">
-              <Video className="w-4 h-4" />
-              Video
-            </TabsTrigger>
-            <TabsTrigger value="system" className="gap-2">
-              <Server className="w-4 h-4" />
-              System
-            </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2">
-              <Shield className="w-4 h-4" />
-              Security
-            </TabsTrigger>
-          </TabsList>
+        {/* Layout container */}
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-8">
+          <nav className="space-y-0.5">
+            {SECTIONS.map((s) => {
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setActive(s.id)}
+                  className={cn(
+                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors text-left cursor-pointer',
+                    active === s.id
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  )}
+                >
+                  <Icon className="size-3.5 shrink-0" />
+                  {s.label}
+                </button>
+              );
+            })}
+          </nav>
 
-          {/* AI Models Tab */}
-          <TabsContent value="ai-models" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bot className="w-5 h-5" />
-                  AI Models for Transcription
-                </CardTitle>
-                <CardDescription>
-                  Install and manage AI models for automatic transcript generation
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {aiModels.map((model) => (
-                  <div
-                    key={model.id}
-                    className="flex items-start gap-4 p-4 border border-border rounded-lg bg-muted/30"
-                  >
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <Bot className="w-6 h-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-foreground">{model.name}</h4>
-                        <Badge
-                          variant={
-                            model.status === 'installed'
-                              ? 'default'
-                              : model.status === 'installing'
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                        >
-                          {model.status === 'installed'
-                            ? 'Installed'
-                            : model.status === 'installing'
-                            ? 'Installing...'
-                            : 'Available'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {model.provider} • {model.size}
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {model.capabilities.map((cap) => (
-                          <Badge key={cap} variant="outline" className="text-xs">
-                            {cap}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {model.status === 'installed' ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleUninstallModel(model.id)}
-                          className="gap-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Uninstall
-                        </Button>
-                      ) : model.status === 'available' ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleInstallModel(model.id)}
-                          className="gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Install
-                        </Button>
-                      ) : (
-                        <Button size="sm" disabled className="gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Installing
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Transcription Settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Auto-generate Transcripts</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically transcribe uploaded videos
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Language Detection</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically detect video language
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>Default Language</Label>
-                  <Select defaultValue="en">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                      <SelectItem value="ja">Japanese</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* API Keys Tab */}
-          <TabsContent value="api-keys" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Key className="w-5 h-5" />
-                      API Keys
+          <div className="min-w-0 space-y-6">
+            {active === 'ai' && (
+              <>
+                {/* AI Models Card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Cpu className="w-4 h-4 text-primary shrink-0" />
+                      AI Models for Transcription
                     </CardTitle>
-                    <CardDescription>
-                      Manage API keys for external services
+                    <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                      Install and manage AI models for automatic transcript generation
                     </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-3">
+                    {aiModels.map((model) => (
+                      <div
+                        key={model.id}
+                        className="flex items-start gap-4 p-4 border border-border rounded-md bg-muted/30"
+                      >
+                        <div className="p-3 bg-primary/10 rounded-lg shrink-0">
+                          <Cpu className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <h4 className="font-semibold text-xs text-foreground truncate">{model.name}</h4>
+                            <Badge
+                              className="text-[9px] px-1.5 py-0.5 font-mono"
+                              variant={
+                                model.status === 'installed'
+                                  ? 'default'
+                                  : model.status === 'installing'
+                                  ? 'secondary'
+                                  : 'outline'
+                              }
+                            >
+                              {model.status === 'installed'
+                                ? 'Installed'
+                                : model.status === 'installing'
+                                ? 'Installing...'
+                                : 'Available'}
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mb-2 font-mono">
+                            {model.provider} • {model.size}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {model.capabilities.map((cap) => (
+                              <Badge key={cap} variant="outline" className="text-[9px] px-1.5 py-0">
+                                {cap}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="shrink-0">
+                          {model.status === 'installed' ? (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleUninstallModel(model.id)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Uninstall
+                            </Button>
+                          ) : model.status === 'available' ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleInstallModel(model.id)}
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              Install
+                            </Button>
+                          ) : (
+                            <Button variant="outline" size="sm" disabled>
+                              <div className="w-3.5 h-3.5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                              Installing
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Transcription Settings Card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="text-sm font-semibold text-foreground">Transcription Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-4">
+                    <div className="flex items-center justify-between py-2 border-b border-border">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Auto-generate Transcripts</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Automatically transcribe uploaded videos
+                        </p>
+                      </div>
+                      <Switch defaultChecked className="cursor-pointer" />
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-border">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Language Detection</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Automatically detect video language
+                        </p>
+                      </div>
+                      <Switch defaultChecked className="cursor-pointer" />
+                    </div>
+                    <div className="space-y-1.5 pt-2">
+                      <Label className="text-xs font-semibold text-foreground">Default Language</Label>
+                      <Select defaultValue="en">
+                        <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="es">Spanish</SelectItem>
+                          <SelectItem value="fr">French</SelectItem>
+                          <SelectItem value="de">German</SelectItem>
+                          <SelectItem value="ja">Japanese</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {active === 'api' && (
+              <Card className="bg-card border border-border rounded-lg p-5">
+                <CardHeader className="p-0 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <KeyRound className="w-4 h-4 text-primary shrink-0" />
+                        API Keys
+                      </CardTitle>
+                      <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                        Manage API keys for external services
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowNewApiKeyForm(!showNewApiKeyForm)}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Key
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => setShowNewApiKeyForm(!showNewApiKeyForm)}
-                    className="gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Key
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {showNewApiKeyForm && (
-                  <div className="p-4 border border-border rounded-lg bg-muted/30 space-y-4">
-                    <h4 className="font-semibold">Add New API Key</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Name</Label>
+                </CardHeader>
+                <CardContent className="p-0 space-y-4">
+                  {showNewApiKeyForm && (
+                    <div className="p-4 border border-border rounded-md bg-muted/30 space-y-4">
+                      <h4 className="font-semibold text-xs text-foreground">Add New API Key</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-muted-foreground mb-1.5">Name</Label>
+                          <Input
+                            placeholder="e.g., OpenAI API"
+                            value={newApiKey.name}
+                            onChange={(e) =>
+                              setNewApiKey({ ...newApiKey, name: e.target.value })
+                            }
+                            className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-muted-foreground mb-1.5">Service</Label>
+                          <Select
+                            value={newApiKey.service}
+                            onValueChange={(value) =>
+                              setNewApiKey({ ...newApiKey, service: value })
+                            }
+                          >
+                            <SelectTrigger className="w-full text-xs h-9 cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                              <SelectValue placeholder="Select service" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="OpenAI">OpenAI</SelectItem>
+                              <SelectItem value="Azure">Azure</SelectItem>
+                              <SelectItem value="Google">Google Cloud</SelectItem>
+                              <SelectItem value="AWS">AWS</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5">API Key</Label>
                         <Input
-                          placeholder="e.g., OpenAI API"
-                          value={newApiKey.name}
+                          type="password"
+                          placeholder="Enter your API key"
+                          value={newApiKey.key}
                           onChange={(e) =>
-                            setNewApiKey({ ...newApiKey, name: e.target.value })
+                            setNewApiKey({ ...newApiKey, key: e.target.value })
                           }
+                          className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label>Service</Label>
-                        <Select
-                          value={newApiKey.service}
-                          onValueChange={(value) =>
-                            setNewApiKey({ ...newApiKey, service: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select service" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="OpenAI">OpenAI</SelectItem>
-                            <SelectItem value="Azure">Azure</SelectItem>
-                            <SelectItem value="Google">Google Cloud</SelectItem>
-                            <SelectItem value="AWS">AWS</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>API Key</Label>
-                      <Input
-                        type="password"
-                        placeholder="Enter your API key"
-                        value={newApiKey.key}
-                        onChange={(e) =>
-                          setNewApiKey({ ...newApiKey, key: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={handleAddApiKey}>Add API Key</Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setShowNewApiKeyForm(false);
-                          setNewApiKey({ name: '', service: '', key: '' });
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {apiKeys.map((apiKey) => (
-                  <div
-                    key={apiKey.id}
-                    className="flex items-start gap-4 p-4 border border-border rounded-lg"
-                  >
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <Key className="w-6 h-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-foreground">{apiKey.name}</h4>
-                        <Badge variant={apiKey.isActive ? 'default' : 'secondary'}>
-                          {apiKey.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {apiKey.service}
-                        {apiKey.lastUsed && ` • Last used: ${apiKey.lastUsed}`}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
-                          {showApiKeys[apiKey.id]
-                            ? apiKey.key
-                            : apiKey.key.slice(0, 12) + '••••••••••'}
-                        </code>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleAddApiKey} variant="default">
+                          Add API Key
+                        </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => toggleApiKeyVisibility(apiKey.id)}
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setShowNewApiKeyForm(false);
+                            setNewApiKey({ name: '', service: '', key: '' });
+                          }}
                         >
-                          {showApiKeys[apiKey.id] ? (
-                            <EyeOff className="w-3 h-3" />
-                          ) : (
-                            <Eye className="w-3 h-3" />
-                          )}
+                          Cancel
                         </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Switch
-                        checked={apiKey.isActive}
-                        onCheckedChange={() => toggleApiKeyStatus(apiKey.id)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteApiKey(apiKey.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                  )}
+
+                  {apiKeys.map((apiKey) => (
+                    <div
+                      key={apiKey.id}
+                      className="flex items-start gap-4 p-4 border border-border rounded-md bg-muted/10"
+                    >
+                      <div className="p-3 bg-primary/10 rounded-lg shrink-0">
+                        <KeyRound className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-xs text-foreground truncate">{apiKey.name}</h4>
+                          <Badge variant={apiKey.isActive ? 'default' : 'secondary'} className="text-[9px] px-1.5 py-0.5 font-mono">
+                            {apiKey.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mb-2 font-mono">
+                          {apiKey.service}
+                          {apiKey.lastUsed && ` • Last used: ${apiKey.lastUsed}`}
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <code className="text-[10px] bg-muted px-2 py-1 rounded font-mono text-foreground select-all">
+                            {showApiKeys[apiKey.id]
+                              ? apiKey.key
+                              : apiKey.key.slice(0, 12) + '•••••••••'}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => toggleApiKeyVisibility(apiKey.id)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            {showApiKeys[apiKey.id] ? (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(apiKey.key);
+                              alert('Key copied to clipboard!');
+                            }}
+                            className="text-muted-foreground hover:text-foreground"
+                            title="Copy to clipboard"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Switch
+                          checked={apiKey.isActive}
+                          onCheckedChange={() => toggleApiKeyStatus(apiKey.id)}
+                          className="cursor-pointer"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => handleDeleteApiKey(apiKey.id)}
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Video Settings Tab */}
-          <TabsContent value="video" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Video className="w-5 h-5" />
-                  Default Video Quality Settings
-                </CardTitle>
-                <CardDescription>
-                  Configure default quality levels for video transcoding
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Default Quality</Label>
-                  <Select
-                    value={videoSettings.defaultQuality}
-                    onValueChange={(value) =>
-                      setVideoSettings({ ...videoSettings, defaultQuality: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1080p">1080p Full HD</SelectItem>
-                      <SelectItem value="720p">720p HD</SelectItem>
-                      <SelectItem value="480p">480p SD</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {active === 'processing' && (
+              <>
+                {/* Quality Settings Card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Video className="w-4 h-4 text-primary shrink-0" />
+                      Default Video Quality Settings
+                    </CardTitle>
+                    <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                      Configure default quality levels for video transcoding
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Default Quality</Label>
+                      <Select
+                        value={videoSettings.defaultQuality}
+                        onValueChange={(value) =>
+                          setVideoSettings({ ...videoSettings, defaultQuality: value })
+                        }
+                      >
+                        <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1080p">1080p Full HD</SelectItem>
+                          <SelectItem value="720p">720p HD</SelectItem>
+                          <SelectItem value="480p">480p SD</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <Separator />
+                    <Separator />
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Enable Auto-Transcoding</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically transcode videos on upload
-                    </p>
-                  </div>
-                  <Switch
-                    checked={videoSettings.enableAutoTranscoding}
-                    onCheckedChange={(checked) =>
-                      setVideoSettings({
-                        ...videoSettings,
-                        enableAutoTranscoding: checked,
-                      })
-                    }
-                  />
-                </div>
+                    <div className="flex items-center justify-between py-1">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Enable Auto-Transcoding</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Automatically transcode videos on upload
+                        </p>
+                      </div>
+                      <Switch
+                        checked={videoSettings.enableAutoTranscoding}
+                        onCheckedChange={(checked) =>
+                          setVideoSettings({
+                            ...videoSettings,
+                            enableAutoTranscoding: checked,
+                          })
+                        }
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <Separator />
-
-                <div className="space-y-3">
-                  <Label className="text-base">Available Quality Levels</Label>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                      <div>
-                        <div className="font-medium">1080p Full HD</div>
-                        <div className="text-sm text-muted-foreground">
+                {/* Available Quality Levels Card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="text-sm font-semibold text-foreground">Available Quality Levels</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-2">
+                    <div className="flex items-center justify-between p-3 border border-border rounded-md bg-muted/10">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-foreground">1080p Full HD</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
                           1920x1080 • 5000kbps
                         </div>
                       </div>
@@ -614,12 +636,13 @@ export default function AdminSettingsPage() {
                         onCheckedChange={(checked) =>
                           setVideoSettings({ ...videoSettings, enable1080p: checked })
                         }
+                        className="cursor-pointer"
                       />
                     </div>
-                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                      <div>
-                        <div className="font-medium">720p HD</div>
-                        <div className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between p-3 border border-border rounded-md bg-muted/10">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-foreground">720p HD</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
                           1280x720 • 2500kbps
                         </div>
                       </div>
@@ -628,12 +651,13 @@ export default function AdminSettingsPage() {
                         onCheckedChange={(checked) =>
                           setVideoSettings({ ...videoSettings, enable720p: checked })
                         }
+                        className="cursor-pointer"
                       />
                     </div>
-                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                      <div>
-                        <div className="font-medium">480p SD</div>
-                        <div className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between p-3 border border-border rounded-md bg-muted/10">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-foreground">480p SD</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
                           854x480 • 1200kbps
                         </div>
                       </div>
@@ -642,12 +666,13 @@ export default function AdminSettingsPage() {
                         onCheckedChange={(checked) =>
                           setVideoSettings({ ...videoSettings, enable480p: checked })
                         }
+                        className="cursor-pointer"
                       />
                     </div>
-                    <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                      <div>
-                        <div className="font-medium">360p</div>
-                        <div className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between p-3 border border-border rounded-md bg-muted/10">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-foreground">360p</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5 font-mono">
                           640x360 • 800kbps
                         </div>
                       </div>
@@ -656,392 +681,427 @@ export default function AdminSettingsPage() {
                         onCheckedChange={(checked) =>
                           setVideoSettings({ ...videoSettings, enable360p: checked })
                         }
+                        className="cursor-pointer"
                       />
                     </div>
-                  </div>
-                </div>
 
-                <Separator />
+                    <Separator className="my-4" />
 
-                <div className="space-y-2">
-                  <Label>Maximum File Size (GB)</Label>
-                  <Input
-                    type="number"
-                    value={videoSettings.maxFileSize}
-                    onChange={(e) =>
-                      setVideoSettings({
-                        ...videoSettings,
-                        maxFileSize: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+                    <div className="space-y-1.5 pt-2">
+                      <Label className="text-xs font-semibold text-foreground">Maximum File Size (GB)</Label>
+                      <Input
+                        type="number"
+                        value={videoSettings.maxFileSize}
+                        onChange={(e) =>
+                          setVideoSettings({
+                            ...videoSettings,
+                            maxFileSize: e.target.value,
+                          })
+                        }
+                        className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                      />
+                    </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Auto-generate Thumbnails</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Create thumbnails from video frames
-                    </p>
-                  </div>
-                  <Switch
-                    checked={videoSettings.enableThumbnailGeneration}
-                    onCheckedChange={(checked) =>
-                      setVideoSettings({
-                        ...videoSettings,
-                        enableThumbnailGeneration: checked,
-                      })
-                    }
-                  />
-                </div>
+                    <Separator className="my-4" />
 
-                {videoSettings.enableThumbnailGeneration && (
-                  <div className="space-y-2">
-                    <Label>Number of Thumbnails</Label>
-                    <Select
-                      value={videoSettings.thumbnailCount}
-                      onValueChange={(value) =>
-                        setVideoSettings({ ...videoSettings, thumbnailCount: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="5">5</SelectItem>
-                        <SelectItem value="10">10</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    <div className="flex items-center justify-between py-1">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Auto-generate Thumbnails</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Create thumbnails from video frames
+                        </p>
+                      </div>
+                      <Switch
+                        checked={videoSettings.enableThumbnailGeneration}
+                        onCheckedChange={(checked) =>
+                          setVideoSettings({
+                            ...videoSettings,
+                            enableThumbnailGeneration: checked,
+                          })
+                        }
+                        className="cursor-pointer"
+                      />
+                    </div>
 
-          {/* System Settings Tab */}
-          <TabsContent value="system" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="w-5 h-5" />
-                  Storage Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Storage Provider</Label>
-                  <Select
-                    value={systemSettings.storageProvider}
-                    onValueChange={(value) =>
-                      setSystemSettings({ ...systemSettings, storageProvider: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="local">Local Storage</SelectItem>
-                      <SelectItem value="s3">Amazon S3</SelectItem>
-                      <SelectItem value="azure">Azure Blob Storage</SelectItem>
-                      <SelectItem value="gcs">Google Cloud Storage</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                    {videoSettings.enableThumbnailGeneration && (
+                      <div className="space-y-1.5 pt-2">
+                        <Label className="text-xs font-semibold text-foreground">Number of Thumbnails</Label>
+                        <Select
+                          value={videoSettings.thumbnailCount}
+                          onValueChange={(value) =>
+                            setVideoSettings({ ...videoSettings, thumbnailCount: value })
+                          }
+                        >
+                          <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring font-mono">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="font-mono">
+                            <SelectItem value="1">1</SelectItem>
+                            <SelectItem value="3">3</SelectItem>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="10">10</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
 
-                <div className="space-y-2">
-                  <Label>Storage Path</Label>
-                  <Input
-                    value={systemSettings.storagePath}
-                    onChange={(e) =>
-                      setSystemSettings({
-                        ...systemSettings,
-                        storagePath: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+            {active === 'storage' && (
+              <>
+                {/* Storage Settings Card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <HardDrive className="w-4 h-4 text-primary shrink-0" />
+                      Storage Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Storage Provider</Label>
+                      <Select
+                        value={systemSettings.storageProvider}
+                        onValueChange={(value) =>
+                          setSystemSettings({ ...systemSettings, storageProvider: value })
+                        }
+                      >
+                        <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="local">Local Storage</SelectItem>
+                          <SelectItem value="s3">Amazon S3</SelectItem>
+                          <SelectItem value="azure">Azure Blob Storage</SelectItem>
+                          <SelectItem value="gcs">Google Cloud Storage</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <Separator />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Storage Path</Label>
+                      <Input
+                        value={systemSettings.storagePath}
+                        onChange={(e) =>
+                          setSystemSettings({
+                            ...systemSettings,
+                            storagePath: e.target.value,
+                          })
+                        }
+                        className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                      />
+                    </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Enable CDN</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Use CDN for video delivery
-                    </p>
-                  </div>
-                  <Switch
-                    checked={systemSettings.cdnEnabled}
-                    onCheckedChange={(checked) =>
-                      setSystemSettings({ ...systemSettings, cdnEnabled: checked })
-                    }
-                  />
-                </div>
+                    <Separator />
 
-                {systemSettings.cdnEnabled && (
-                  <div className="space-y-2">
-                    <Label>CDN URL</Label>
-                    <Input
-                      placeholder="https://cdn.example.com"
-                      value={systemSettings.cdnUrl}
-                      onChange={(e) =>
-                        setSystemSettings({ ...systemSettings, cdnUrl: e.target.value })
-                      }
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    <div className="flex items-center justify-between py-1">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Enable CDN</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Use CDN for video delivery
+                        </p>
+                      </div>
+                      <Switch
+                        checked={systemSettings.cdnEnabled}
+                        onCheckedChange={(checked) =>
+                          setSystemSettings({ ...systemSettings, cdnEnabled: checked })
+                        }
+                        className="cursor-pointer"
+                      />
+                    </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Server className="w-5 h-5" />
-                  Processing Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Max Concurrent Uploads</Label>
-                  <Input
-                    type="number"
-                    value={systemSettings.maxConcurrentUploads}
-                    onChange={(e) =>
-                      setSystemSettings({
-                        ...systemSettings,
-                        maxConcurrentUploads: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+                    {systemSettings.cdnEnabled && (
+                      <div className="space-y-1.5 pt-1 animate-in fade-in duration-200">
+                        <Label className="text-xs font-semibold text-foreground">CDN URL</Label>
+                        <Input
+                          placeholder="https://cdn.example.com"
+                          value={systemSettings.cdnUrl}
+                          onChange={(e) =>
+                            setSystemSettings({ ...systemSettings, cdnUrl: e.target.value })
+                          }
+                          className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-                <div className="space-y-2">
-                  <Label>Max Concurrent Transcodes</Label>
-                  <Input
-                    type="number"
-                    value={systemSettings.maxConcurrentTranscodes}
-                    onChange={(e) =>
-                      setSystemSettings({
-                        ...systemSettings,
-                        maxConcurrentTranscodes: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+                {/* Processing Limits Card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="text-sm font-semibold text-foreground">Concurrency Limits & Analytics</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Max Concurrent Uploads</Label>
+                      <Input
+                        type="number"
+                        value={systemSettings.maxConcurrentUploads}
+                        onChange={(e) =>
+                          setSystemSettings({
+                            ...systemSettings,
+                            maxConcurrentUploads: e.target.value,
+                          })
+                        }
+                        className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                      />
+                    </div>
 
-                <Separator />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Max Concurrent Transcodes</Label>
+                      <Input
+                        type="number"
+                        value={systemSettings.maxConcurrentTranscodes}
+                        onChange={(e) =>
+                          setSystemSettings({
+                            ...systemSettings,
+                            maxConcurrentTranscodes: e.target.value,
+                          })
+                        }
+                        className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                      />
+                    </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Enable Analytics</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Track video views and engagement
-                    </p>
-                  </div>
-                  <Switch
-                    checked={systemSettings.enableAnalytics}
-                    onCheckedChange={(checked) =>
-                      setSystemSettings({ ...systemSettings, enableAnalytics: checked })
-                    }
-                  />
-                </div>
+                    <Separator />
 
-                <div className="space-y-2">
-                  <Label>Data Retention (days)</Label>
-                  <Input
-                    type="number"
-                    value={systemSettings.retentionDays}
-                    onChange={(e) =>
-                      setSystemSettings({
-                        ...systemSettings,
-                        retentionDays: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    <div className="flex items-center justify-between py-1">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Enable Analytics</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Track video views and engagement
+                        </p>
+                      </div>
+                      <Switch
+                        checked={systemSettings.enableAnalytics}
+                        onCheckedChange={(checked) =>
+                          setSystemSettings({ ...systemSettings, enableAnalytics: checked })
+                        }
+                        className="cursor-pointer"
+                      />
+                    </div>
 
-          {/* Security Settings Tab */}
-          <TabsContent value="security" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  Authentication Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Require Multi-Factor Authentication</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enforce MFA for all users
-                    </p>
-                  </div>
-                  <Switch
-                    checked={securitySettings.requireMFA}
-                    onCheckedChange={(checked) =>
-                      setSecuritySettings({ ...securitySettings, requireMFA: checked })
-                    }
-                  />
-                </div>
+                    <div className="space-y-1.5 pt-2">
+                      <Label className="text-xs font-semibold text-foreground">Data Retention (days)</Label>
+                      <Input
+                        type="number"
+                        value={systemSettings.retentionDays}
+                        onChange={(e) =>
+                          setSystemSettings({
+                            ...systemSettings,
+                            retentionDays: e.target.value,
+                          })
+                        }
+                        className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
 
-                <Separator />
+            {active === 'security' && (
+              <>
+                {/* Authentication settings card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Shield className="w-4 h-4 text-primary shrink-0" />
+                      Authentication Settings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-4">
+                    <div className="flex items-center justify-between py-1">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Require Multi-Factor Authentication</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Enforce MFA for all users
+                        </p>
+                      </div>
+                      <Switch
+                        checked={securitySettings.requireMFA}
+                        onCheckedChange={(checked) =>
+                          setSecuritySettings({ ...securitySettings, requireMFA: checked })
+                        }
+                        className="cursor-pointer"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>Session Timeout (minutes)</Label>
-                  <Input
-                    type="number"
-                    value={securitySettings.sessionTimeout}
-                    onChange={(e) =>
-                      setSecuritySettings({
-                        ...securitySettings,
-                        sessionTimeout: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+                    <Separator />
 
-                <div className="space-y-2">
-                  <Label>Max Login Attempts</Label>
-                  <Input
-                    type="number"
-                    value={securitySettings.maxLoginAttempts}
-                    onChange={(e) =>
-                      setSecuritySettings({
-                        ...securitySettings,
-                        maxLoginAttempts: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Session Timeout (minutes)</Label>
+                      <Input
+                        type="number"
+                        value={securitySettings.sessionTimeout}
+                        onChange={(e) =>
+                          setSecuritySettings({
+                            ...securitySettings,
+                            sessionTimeout: e.target.value,
+                          })
+                        }
+                        className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                      />
+                    </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Password Policy</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Minimum Password Length</Label>
-                  <Input
-                    type="number"
-                    value={securitySettings.passwordMinLength}
-                    onChange={(e) =>
-                      setSecuritySettings({
-                        ...securitySettings,
-                        passwordMinLength: e.target.value,
-                      })
-                    }
-                  />
-                </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Max Login Attempts</Label>
+                      <Input
+                        type="number"
+                        value={securitySettings.maxLoginAttempts}
+                        onChange={(e) =>
+                          setSecuritySettings({
+                            ...securitySettings,
+                            maxLoginAttempts: e.target.value,
+                          })
+                        }
+                        className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Require Special Characters</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Passwords must contain special characters
-                    </p>
-                  </div>
-                  <Switch
-                    checked={securitySettings.requireSpecialChar}
-                    onCheckedChange={(checked) =>
-                      setSecuritySettings({
-                        ...securitySettings,
-                        requireSpecialChar: checked,
-                      })
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                {/* Password Policy Card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="text-sm font-semibold text-foreground">Password Policy</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Minimum Password Length</Label>
+                      <Input
+                        type="number"
+                        value={securitySettings.passwordMinLength}
+                        onChange={(e) =>
+                          setSecuritySettings({
+                            ...securitySettings,
+                            passwordMinLength: e.target.value,
+                          })
+                        }
+                        className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                      />
+                    </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Network Security</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Enable IP Whitelist</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Restrict access to specific IP addresses
-                    </p>
-                  </div>
-                  <Switch
-                    checked={securitySettings.enableIPWhitelist}
-                    onCheckedChange={(checked) =>
-                      setSecuritySettings({
-                        ...securitySettings,
-                        enableIPWhitelist: checked,
-                      })
-                    }
-                  />
-                </div>
+                    <div className="flex items-center justify-between py-1">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Require Special Characters</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Passwords must contain special characters
+                        </p>
+                      </div>
+                      <Switch
+                        checked={securitySettings.requireSpecialChar}
+                        onCheckedChange={(checked) =>
+                          setSecuritySettings({
+                            ...securitySettings,
+                            requireSpecialChar: checked,
+                          })
+                        }
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
 
-                {securitySettings.enableIPWhitelist && (
-                  <div className="space-y-2">
-                    <Label>Allowed IP Addresses (one per line)</Label>
-                    <textarea
-                      className="w-full min-h-[100px] p-2 rounded-md border border-border bg-background text-foreground"
-                      placeholder="192.168.1.1&#10;10.0.0.0/8"
-                      value={securitySettings.ipWhitelist}
-                      onChange={(e) =>
-                        setSecuritySettings({
-                          ...securitySettings,
-                          ipWhitelist: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                )}
+                {/* Network Security Card */}
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="text-sm font-semibold text-foreground">Network Security</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-4">
+                    <div className="flex items-center justify-between py-1">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Enable IP Whitelist</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Restrict access to specific IP addresses
+                        </p>
+                      </div>
+                      <Switch
+                        checked={securitySettings.enableIPWhitelist}
+                        onCheckedChange={(checked) =>
+                          setSecuritySettings({
+                            ...securitySettings,
+                            enableIPWhitelist: checked,
+                          })
+                        }
+                        className="cursor-pointer"
+                      />
+                    </div>
 
-                <Separator />
+                    {securitySettings.enableIPWhitelist && (
+                      <div className="space-y-1.5 pt-2 animate-in fade-in duration-200">
+                        <Label className="text-xs font-semibold text-foreground">Allowed IP Addresses (one per line)</Label>
+                        <textarea
+                          className="w-full min-h-[100px] p-2.5 rounded-md border-0 bg-muted text-foreground text-xs font-mono outline-hidden focus:ring-1 focus:ring-ring"
+                          placeholder="192.168.1.1&#10;10.0.0.0/8"
+                          value={securitySettings.ipWhitelist}
+                          onChange={(e) =>
+                            setSecuritySettings({
+                              ...securitySettings,
+                              ipWhitelist: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    )}
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base">Enable Audit Log</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Log all administrative actions
-                    </p>
-                  </div>
-                  <Switch
-                    checked={securitySettings.enableAuditLog}
-                    onCheckedChange={(checked) =>
-                      setSecuritySettings({
-                        ...securitySettings,
-                        enableAuditLog: checked,
-                      })
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    <Separator />
 
-        {/* Info Banner */}
-        <Card className="border-blue-500/50 bg-blue-500/5">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-foreground mb-1">
-                  Changes require review
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  Some settings changes may require system restart or affect ongoing
-                  operations. Please review changes carefully before saving.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                    <div className="flex items-center justify-between py-1">
+                      <div className="min-w-0">
+                        <Label className="text-xs font-semibold text-foreground">Enable Audit Log</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          Log all administrative actions
+                        </p>
+                      </div>
+                      <Switch
+                        checked={securitySettings.enableAuditLog}
+                        onCheckedChange={(checked) =>
+                          setSecuritySettings({
+                            ...securitySettings,
+                            enableAuditLog: checked,
+                          })
+                        }
+                        className="cursor-pointer"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {active === 'audit' && (
+              <Card className="bg-card border border-border rounded-lg p-5">
+                <CardHeader className="p-0 mb-4">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <FileText className="w-4 h-4 text-primary shrink-0" />
+                    Audit Log
+                  </CardTitle>
+                  <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                    Immutable record of administrative and security-relevant actions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 space-y-px font-mono text-[11px] text-foreground">
+                  {[
+                    { ts: '2026-06-15 09:14:22', actor: 'alex@streamforge.io', action: 'Updated security settings · session timeout 1h → 8h' },
+                    { ts: '2026-06-15 08:42:01', actor: 'sarah@streamforge.io', action: 'Published video v_001' },
+                    { ts: '2026-06-14 21:18:55', actor: 'system', action: 'API key sfk_live_3c12... used from 198.51.100.12' },
+                    { ts: '2026-06-14 16:02:11', actor: 'alex@streamforge.io', action: 'Invited user mira@streamforge.io as editor' },
+                    { ts: '2026-06-14 09:30:00', actor: 'jordan@streamforge.io', action: 'Archived video v_010' },
+                    { ts: '2026-06-13 22:11:08', actor: 'system', action: 'Auto-suspended user theo@streamforge.io · inactivity' },
+                  ].map((e, i) => (
+                    <div key={i} className="grid grid-cols-[140px_160px_1fr] gap-3 py-2 px-3 hover:bg-muted/40 rounded transition-colors">
+                      <span className="text-muted-foreground">{e.ts}</span>
+                      <span className="truncate font-semibold">{e.actor}</span>
+                      <span className="text-muted-foreground">{e.action}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
