@@ -799,6 +799,305 @@
               "responses": { "200": { "description": "OK" } },
             },
         },
+      "/api/v1/admin/processing/transcription-jobs":
+        {
+          "get":
+            {
+              "tags": ["AdminProcessing"],
+              "parameters":
+                [
+                  {
+                    "name": "status",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/processing/transcription-jobs/{jobKey}":
+        {
+          "get":
+            {
+              "tags": ["AdminProcessing"],
+              "parameters":
+                [
+                  {
+                    "name": "jobKey",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/processing/transcription-jobs/{jobKey}/retry":
+        {
+          "post":
+            {
+              "tags": ["AdminProcessing"],
+              "parameters":
+                [
+                  {
+                    "name": "jobKey",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/processing/transcription-jobs/{jobKey}/resync":
+        {
+          "post":
+            {
+              "tags": ["AdminProcessing"],
+              "parameters":
+                [
+                  {
+                    "name": "jobKey",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/transcription/settings":
+        {
+          "get":
+            {
+              "tags": ["AdminTranscriptionSettings"],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminTranscriptionSettingsDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminTranscriptionSettingsDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminTranscriptionSettingsDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "put":
+            {
+              "tags": ["AdminTranscriptionSettings"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateAdminTranscriptionSettingsRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateAdminTranscriptionSettingsRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateAdminTranscriptionSettingsRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminTranscriptionSettingsDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminTranscriptionSettingsDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminTranscriptionSettingsDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
       "/api/v1/auth/register":
         {
           "post":
@@ -3182,6 +3481,41 @@
                 },
             },
         },
+      "/internal/transcriptions/callback":
+        {
+          "post":
+            {
+              "tags": ["TranscriptionCallbacks"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/TranscriptionCallbackRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/TranscriptionCallbackRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/TranscriptionCallbackRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
       "/api/v1/uploads/sessions":
         {
           "post":
@@ -4623,6 +4957,11 @@
                     "schema": { "type": "string", "format": "uuid" },
                   },
                   {
+                    "name": "excludeUploaderId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
                     "name": "status",
                     "in": "query",
                     "schema": { "$ref": "#/components/schemas/VideoStatus" },
@@ -5043,6 +5382,403 @@
               "responses": { "200": { "description": "OK" } },
             },
         },
+      "/api/v1/videos/{videoId}/transcriptions":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "post":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RequestVideoTranscriptionRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RequestVideoTranscriptionRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/RequestVideoTranscriptionRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/transcription-jobs":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/transcriptions/{transcriptionId}/status":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "transcriptionId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/VideoTranscriptionDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/transcriptions/{transcriptionId}":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "transcriptionId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/videos/{videoId}/transcriptions/{transcriptionId}/content":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "transcriptionId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses": { "200": { "description": "OK" } },
+            },
+        },
+      "/api/v1/videos/{videoId}/transcript-search":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "q",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "language",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
     },
   "components":
     {
@@ -5111,6 +5847,30 @@
                   "videoId": { "type": "string", "format": "uuid" },
                   "orderIndex":
                     { "type": "integer", "format": "int32", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "AdminTranscriptionSettingsDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "enabled": { "type": "boolean" },
+                  "autoTranscribeOnReady": { "type": "boolean" },
+                  "provider": { "type": "string", "nullable": true },
+                  "defaultLanguage": { "type": "string", "nullable": true },
+                  "outputFormats":
+                    {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "nullable": true,
+                    },
+                  "model": { "type": "string", "nullable": true },
+                  "device": { "type": "string", "nullable": true },
+                  "computeType": { "type": "string", "nullable": true },
+                  "beamSize": { "type": "integer", "format": "int32" },
+                  "enableVad": { "type": "boolean" },
+                  "enableWordTimestamps": { "type": "boolean" },
                 },
               "additionalProperties": false,
             },
@@ -5680,6 +6440,21 @@
                 },
               "additionalProperties": false,
             },
+          "RequestVideoTranscriptionRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "language": { "type": "string", "nullable": true },
+                  "outputFormats":
+                    {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
           "SetReactionRequestDto":
             {
               "type": "object",
@@ -5732,11 +6507,137 @@
                 },
               "additionalProperties": false,
             },
+          "TranscriptSearchResultDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "chunkId": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "transcriptionId": { "type": "string", "format": "uuid" },
+                  "language": { "type": "string", "nullable": true },
+                  "startSeconds": { "type": "number", "format": "double" },
+                  "endSeconds": { "type": "number", "format": "double" },
+                  "content": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "TranscriptSearchResultDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/TranscriptSearchResultDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "TranscriptionCallbackArtifactDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "kind": { "type": "string", "nullable": true },
+                  "path": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "TranscriptionCallbackRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "correlationId": { "type": "string", "nullable": true },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "workerJobId": { "type": "string", "nullable": true },
+                  "status": { "type": "string", "nullable": true },
+                  "language": { "type": "string", "nullable": true },
+                  "artifacts":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/TranscriptionCallbackArtifactDto",
+                        },
+                      "nullable": true,
+                    },
+                  "failureReason": { "type": "string", "nullable": true },
+                  "provider": { "type": "string", "nullable": true },
+                  "model": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "TranscriptionLiveStatusDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "status": { "type": "string", "nullable": true },
+                  "progressPercent": { "type": "integer", "format": "int32" },
+                  "stage": { "type": "string", "nullable": true },
+                  "message": { "type": "string", "nullable": true },
+                  "language": { "type": "string", "nullable": true },
+                  "startedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "completedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "mediaDurationSeconds":
+                    { "type": "number", "format": "double", "nullable": true },
+                  "transcribedUntilSeconds":
+                    { "type": "number", "format": "double", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
           "UnreadNotificationCountDto":
             {
               "type": "object",
               "properties":
                 { "unreadCount": { "type": "integer", "format": "int32" } },
+              "additionalProperties": false,
+            },
+          "UpdateAdminTranscriptionSettingsRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "enabled": { "type": "boolean" },
+                  "autoTranscribeOnReady": { "type": "boolean" },
+                  "provider": { "type": "string", "nullable": true },
+                  "defaultLanguage": { "type": "string", "nullable": true },
+                  "outputFormats":
+                    {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "nullable": true,
+                    },
+                  "model": { "type": "string", "nullable": true },
+                  "device": { "type": "string", "nullable": true },
+                  "computeType": { "type": "string", "nullable": true },
+                  "beamSize": { "type": "integer", "format": "int32" },
+                  "enableVad": { "type": "boolean" },
+                  "enableWordTimestamps": { "type": "boolean" },
+                },
               "additionalProperties": false,
             },
           "UpdateBookmarkRequestDto":
@@ -6060,6 +6961,91 @@
                   "totalPages": { "type": "integer", "format": "int32" },
                   "hasNextPage": { "type": "boolean" },
                   "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "VideoTranscriptionArtifactDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "format": { "type": "string", "nullable": true },
+                  "status": { "type": "string", "nullable": true },
+                  "failureReason": { "type": "string", "nullable": true },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "VideoTranscriptionDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "id": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "language": { "type": "string", "nullable": true },
+                  "format": { "type": "string", "nullable": true },
+                  "status": { "type": "string", "nullable": true },
+                  "source": { "type": "string", "nullable": true },
+                  "correlationId": { "type": "string", "nullable": true },
+                  "workerJobId": { "type": "string", "nullable": true },
+                  "model": { "type": "string", "nullable": true },
+                  "failureReason": { "type": "string", "nullable": true },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "liveStatus":
+                    {
+                      "$ref": "#/components/schemas/TranscriptionLiveStatusDto",
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "VideoTranscriptionJobDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "jobKey": { "type": "string", "nullable": true },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "language": { "type": "string", "nullable": true },
+                  "status": { "type": "string", "nullable": true },
+                  "source": { "type": "string", "nullable": true },
+                  "correlationId": { "type": "string", "nullable": true },
+                  "workerJobId": { "type": "string", "nullable": true },
+                  "model": { "type": "string", "nullable": true },
+                  "failureReason": { "type": "string", "nullable": true },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "liveStatus":
+                    {
+                      "$ref": "#/components/schemas/TranscriptionLiveStatusDto",
+                    },
+                  "artifacts":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/VideoTranscriptionArtifactDto",
+                        },
+                      "nullable": true,
+                    },
                 },
               "additionalProperties": false,
             },
