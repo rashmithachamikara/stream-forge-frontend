@@ -807,7 +807,77 @@
               "parameters":
                 [
                   {
-                    "name": "status",
+                    "name": "Page",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "PageSize",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "Status",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "VideoId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "UploaderUserId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "Search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "CreatedFrom",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "CreatedTo",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "HasError",
+                    "in": "query",
+                    "schema": { "type": "boolean" },
+                  },
+                  {
+                    "name": "Provider",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "Language",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "Format",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "Source",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "SortBy",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "SortDirection",
                     "in": "query",
                     "schema": { "type": "string" },
                   },
@@ -823,33 +893,21 @@
                             {
                               "schema":
                                 {
-                                  "type": "array",
-                                  "items":
-                                    {
-                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
-                                    },
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDtoPagedResponseDto",
                                 },
                             },
                           "application/json":
                             {
                               "schema":
                                 {
-                                  "type": "array",
-                                  "items":
-                                    {
-                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
-                                    },
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDtoPagedResponseDto",
                                 },
                             },
                           "text/json":
                             {
                               "schema":
                                 {
-                                  "type": "array",
-                                  "items":
-                                    {
-                                      "$ref": "#/components/schemas/VideoTranscriptionJobDto",
-                                    },
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDtoPagedResponseDto",
                                 },
                             },
                         },
@@ -882,21 +940,21 @@
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                           "application/json":
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                           "text/json":
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                         },
@@ -929,21 +987,21 @@
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                           "application/json":
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                           "text/json":
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                         },
@@ -976,21 +1034,21 @@
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                           "application/json":
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                           "text/json":
                             {
                               "schema":
                                 {
-                                  "$ref": "#/components/schemas/VideoTranscriptionJobDto",
+                                  "$ref": "#/components/schemas/AdminTranscriptionJobDto",
                                 },
                             },
                         },
@@ -1006,7 +1064,77 @@
               "parameters":
                 [
                   {
-                    "name": "status",
+                    "name": "Page",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "PageSize",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "Status",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "VideoId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "UploaderUserId",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "Search",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "CreatedFrom",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "CreatedTo",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "StartedFrom",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "StartedTo",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "CompletedFrom",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "CompletedTo",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "HasError",
+                    "in": "query",
+                    "schema": { "type": "boolean" },
+                  },
+                  {
+                    "name": "SortBy",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "SortDirection",
                     "in": "query",
                     "schema": { "type": "string" },
                   },
@@ -1022,33 +1150,21 @@
                             {
                               "schema":
                                 {
-                                  "type": "array",
-                                  "items":
-                                    {
-                                      "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
-                                    },
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDtoPagedResponseDto",
                                 },
                             },
                           "application/json":
                             {
                               "schema":
                                 {
-                                  "type": "array",
-                                  "items":
-                                    {
-                                      "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
-                                    },
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDtoPagedResponseDto",
                                 },
                             },
                           "text/json":
                             {
                               "schema":
                                 {
-                                  "type": "array",
-                                  "items":
-                                    {
-                                      "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
-                                    },
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDtoPagedResponseDto",
                                 },
                             },
                         },
@@ -6119,6 +6235,67 @@
                 },
               "additionalProperties": false,
             },
+          "AdminTranscriptionJobDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "jobKey": { "type": "string", "nullable": true },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "videoTitle": { "type": "string", "nullable": true },
+                  "language": { "type": "string", "nullable": true },
+                  "status": { "type": "string", "nullable": true },
+                  "source": { "type": "string", "nullable": true },
+                  "correlationId": { "type": "string", "nullable": true },
+                  "workerJobId": { "type": "string", "nullable": true },
+                  "model": { "type": "string", "nullable": true },
+                  "failureReason": { "type": "string", "nullable": true },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "updatedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "liveStatus":
+                    {
+                      "$ref": "#/components/schemas/TranscriptionLiveStatusDto",
+                    },
+                  "artifacts":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/VideoTranscriptionArtifactDto",
+                        },
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "AdminTranscriptionJobDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/AdminTranscriptionJobDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "AdminTranscriptionSettingsDto":
             {
               "type": "object",
@@ -6169,6 +6346,29 @@
                       "nullable": true,
                     },
                   "videoStatus": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "AdminVideoProcessingJobDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
                 },
               "additionalProperties": false,
             },

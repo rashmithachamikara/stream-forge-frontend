@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -54,7 +56,10 @@ import {
 import { cn } from '@/shared/lib/utils';
 import {
   ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
   Eye,
+  FileText,
   Loader2,
   RefreshCcw,
   RotateCcw,
@@ -108,9 +113,17 @@ const getVideoJobFailure = (job: AdminVideoProcessingJob) =>
   job.errorMessage?.trim() || null;
 
 const getTranscriptionJobFailure = (job: VideoTranscriptionJob) =>
-  job.failureReason?.trim() || job.liveStatus?.message?.trim() || null;
+  job.failureReason?.trim() ||
+  (job.status === 'Failed' || job.liveStatus?.status === 'Failed'
+    ? job.liveStatus?.message?.trim()
+    : null) ||
+  null;
 
 const getTranscriptionJobProgress = (job: VideoTranscriptionJob) => {
+  if (job.status === 'Completed') {
+    return 100;
+  }
+
   if (typeof job.liveStatus?.progressPercent === 'number' && !Number.isNaN(job.liveStatus.progressPercent)) {
     return Math.max(0, Math.min(100, job.liveStatus.progressPercent));
   }
@@ -170,6 +183,25 @@ const EmptyState = ({
   </div>
 );
 
+const SortIcon = ({
+  field,
+  sortBy,
+  direction,
+}: {
+  field: string;
+  sortBy: string;
+  direction: 'asc' | 'desc';
+}) => {
+  if (sortBy !== field) {
+    return <ArrowUpDown className="size-3 text-muted-foreground/60" />;
+  }
+  return direction === 'asc' ? (
+    <ChevronUp className="size-3 text-primary animate-in fade-in duration-200" />
+  ) : (
+    <ChevronDown className="size-3 text-primary animate-in fade-in duration-200" />
+  );
+};
+
 export default function ProcessingPage() {
   const [activeTab, setActiveTab] = useState<ProcessingTab>('video');
   const [videoStatusFilter, setVideoStatusFilter] = useState<VideoStatusFilter>('all');
@@ -190,6 +222,63 @@ export default function ProcessingPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeActionKey, setActiveActionKey] = useState<string | null>(null);
 
+  // New pagination, filtering, and sorting states
+  const [videoPage, setVideoPage] = useState(1);
+  const [videoPageSize] = useState(10);
+  const [videoTotalPages, setVideoTotalPages] = useState(1);
+  const [videoTotalCount, setVideoTotalCount] = useState(0);
+  const [videoSearch, setVideoSearch] = useState('');
+  const [videoSearchInput, setVideoSearchInput] = useState('');
+  const [videoHasError, setVideoHasError] = useState(false);
+  const [videoSortBy, setVideoSortBy] = useState('createdat');
+  const [videoSortDirection, setVideoSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const [transcriptionPage, setTranscriptionPage] = useState(1);
+  const [transcriptionPageSize] = useState(10);
+  const [transcriptionTotalPages, setTranscriptionTotalPages] = useState(1);
+  const [transcriptionTotalCount, setTranscriptionTotalCount] = useState(0);
+  const [transcriptionSearch, setTranscriptionSearch] = useState('');
+  const [transcriptionSearchInput, setTranscriptionSearchInput] = useState('');
+  const [transcriptionHasError, setTranscriptionHasError] = useState(false);
+  const [transcriptionSortBy, setTranscriptionSortBy] = useState('createdat');
+  const [transcriptionSortDirection, setTranscriptionSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setVideoSearch(videoSearchInput);
+      setVideoPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [videoSearchInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTranscriptionSearch(transcriptionSearchInput);
+      setTranscriptionPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [transcriptionSearchInput]);
+
+  const handleSortVideo = (field: string) => {
+    if (videoSortBy === field) {
+      setVideoSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setVideoSortBy(field);
+      setVideoSortDirection('desc');
+    }
+    setVideoPage(1);
+  };
+
+  const handleSortTranscription = (field: string) => {
+    if (transcriptionSortBy === field) {
+      setTranscriptionSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setTranscriptionSortBy(field);
+      setTranscriptionSortDirection('desc');
+    }
+    setTranscriptionPage(1);
+  };
+
   const loadVideoJobs = useCallback(
     async (options: { silent?: boolean } = {}) => {
       if (!options.silent) {
@@ -197,11 +286,19 @@ export default function ProcessingPage() {
       }
 
       const response = await apiClient.getAdminVideoProcessingJobs({
-        status: videoStatusFilter,
+        Page: videoPage,
+        PageSize: videoPageSize,
+        Status: videoStatusFilter,
+        Search: videoSearch || undefined,
+        HasError: videoHasError || undefined,
+        SortBy: videoSortBy,
+        SortDirection: videoSortDirection,
       });
 
       if (response.success && response.data) {
-        setVideoJobs(response.data);
+        setVideoJobs(response.data.items ?? []);
+        setVideoTotalPages(response.data.totalPages ?? 1);
+        setVideoTotalCount(response.data.totalCount ?? 0);
         setVideoJobsError(null);
       } else {
         setVideoJobs([]);
@@ -212,7 +309,7 @@ export default function ProcessingPage() {
         setIsVideoJobsLoading(false);
       }
     },
-    [videoStatusFilter]
+    [videoPage, videoPageSize, videoStatusFilter, videoSearch, videoHasError, videoSortBy, videoSortDirection]
   );
 
   const loadTranscriptionJobs = useCallback(
@@ -222,11 +319,19 @@ export default function ProcessingPage() {
       }
 
       const response = await apiClient.getAdminTranscriptionJobs({
-        status: transcriptionStatusFilter,
+        Page: transcriptionPage,
+        PageSize: transcriptionPageSize,
+        Status: transcriptionStatusFilter,
+        Search: transcriptionSearch || undefined,
+        HasError: transcriptionHasError || undefined,
+        SortBy: transcriptionSortBy,
+        SortDirection: transcriptionSortDirection,
       });
 
       if (response.success && response.data) {
-        setTranscriptionJobs(response.data);
+        setTranscriptionJobs(response.data.items ?? []);
+        setTranscriptionTotalPages(response.data.totalPages ?? 1);
+        setTranscriptionTotalCount(response.data.totalCount ?? 0);
         setTranscriptionJobsError(null);
       } else {
         setTranscriptionJobs([]);
@@ -237,7 +342,15 @@ export default function ProcessingPage() {
         setIsTranscriptionJobsLoading(false);
       }
     },
-    [transcriptionStatusFilter]
+    [
+      transcriptionPage,
+      transcriptionPageSize,
+      transcriptionStatusFilter,
+      transcriptionSearch,
+      transcriptionHasError,
+      transcriptionSortBy,
+      transcriptionSortDirection,
+    ]
   );
 
   const loadDetail = useCallback(
@@ -431,10 +544,7 @@ export default function ProcessingPage() {
   const currentDetailTitle =
     detailSelection?.kind === 'video' ? 'Video job details' : 'Transcription job details';
 
-  const currentDetailDescription =
-    detailSelection?.kind === 'video'
-      ? ''
-      : 'Inspect grouped transcription status, live progress, artifacts, and recovery actions.';
+  const currentDetailDescription = '';
 
   return (
     <DashboardLayout title="Processing" requiredRoles={['admin']}>
@@ -457,25 +567,41 @@ export default function ProcessingPage() {
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as ProcessingTab)}
-          className="rounded-lg border border-border bg-card"
+          className="space-y-6"
         >
-          <div className="border-b border-border px-5 pt-4">
-            <TabsList className="w-auto gap-5 border-0">
-              <TabsTrigger value="video" className="px-0 text-xs font-semibold uppercase tracking-wider">
-                Video Jobs
-              </TabsTrigger>
-              <TabsTrigger value="transcription" className="px-0 text-xs font-semibold uppercase tracking-wider">
-                Transcription Jobs
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <TabsList className="border-b border-border flex gap-6 w-full justify-start h-auto rounded-none bg-transparent p-0 overflow-y-hidden overflow-x-hidden">
+            <TabsTrigger
+              value="video"
+              className="h-auto pb-3 px-0 text-xs font-semibold capitalize border-b-2 -mb-px rounded-none bg-transparent hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent flex items-center gap-1.5 cursor-pointer shadow-none"
+            >
+              <Video className="size-3.5" />
+              Video Jobs <span className="text-muted-foreground ml-0.5 font-mono">({videoTotalCount})</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="transcription"
+              className="h-auto pb-3 px-0 text-xs font-semibold capitalize border-b-2 -mb-px rounded-none bg-transparent hover:text-foreground data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:bg-transparent flex items-center gap-1.5 cursor-pointer shadow-none"
+            >
+              <FileText className="size-3.5" />
+              Transcription Jobs <span className="text-muted-foreground ml-0.5 font-mono">({transcriptionTotalCount})</span>
+            </TabsTrigger>
+          </TabsList>
 
-          <TabsContent value="video" className="space-y-4 p-5">
+          <TabsContent value="video" className="space-y-4 outline-none mt-0">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Search video jobs..."
+                  value={videoSearchInput}
+                  onChange={(e) => setVideoSearchInput(e.target.value)}
+                  className="h-8 bg-muted border-0 rounded-md px-3 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-ring"
+                />
                 <Select
                   value={videoStatusFilter}
-                  onValueChange={(value) => setVideoStatusFilter(value as VideoStatusFilter)}
+                  onValueChange={(value) => {
+                    setVideoStatusFilter(value as VideoStatusFilter);
+                    setVideoPage(1);
+                  }}
                 >
                   <SelectTrigger className="h-8 w-40 text-xs">
                     <SelectValue />
@@ -488,11 +614,27 @@ export default function ProcessingPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <div className="flex items-center gap-2 select-none">
+                  <Label
+                    htmlFor="video-errors-only"
+                    className="text-xs text-muted-foreground cursor-pointer font-medium"
+                  >
+                    Errors Only
+                  </Label>
+                  <Switch
+                    id="video-errors-only"
+                    checked={videoHasError}
+                    onCheckedChange={(checked) => {
+                      setVideoHasError(checked);
+                      setVideoPage(1);
+                    }}
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="font-mono"
+                  className="font-mono h-8"
                   onClick={() => void loadVideoJobs()}
                   disabled={isVideoJobsLoading}
                 >
@@ -512,31 +654,74 @@ export default function ProcessingPage() {
               </div>
             ) : null}
 
-            <div className="overflow-hidden rounded-lg border border-border">
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
               <Table className="text-xs">
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Video</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Video Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
+                    <TableHead className="h-9 font-medium px-4">
+                      <button
+                        onClick={() => handleSortVideo('videotitle')}
+                        className="inline-flex items-center gap-1 hover:text-foreground cursor-pointer font-mono"
+                      >
+                        Video <SortIcon field="videotitle" sortBy={videoSortBy} direction={videoSortDirection} />
+                      </button>
+                    </TableHead>
+                    <TableHead className="h-9 font-medium px-4">Status</TableHead>
+                    <TableHead className="h-9 font-medium px-4">
+                      <button
+                        onClick={() => handleSortVideo('progress')}
+                        className="inline-flex items-center gap-1 hover:text-foreground cursor-pointer font-mono"
+                      >
+                        Progress <SortIcon field="progress" sortBy={videoSortBy} direction={videoSortDirection} />
+                      </button>
+                    </TableHead>
+                    <TableHead className="h-9 font-medium px-4">
+                      <button
+                        onClick={() => handleSortVideo('createdat')}
+                        className="inline-flex items-center gap-1 hover:text-foreground cursor-pointer font-mono"
+                      >
+                        Created <SortIcon field="createdat" sortBy={videoSortBy} direction={videoSortDirection} />
+                      </button>
+                    </TableHead>
+                    <TableHead className="h-9 font-medium px-4 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isVideoJobsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                        <div className="inline-flex items-center gap-2">
-                          <Loader2 className="size-4 animate-spin" />
-                          Loading video processing jobs...
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={`video-skeleton-${index}`} className="hover:bg-transparent">
+                        <TableCell className="min-w-[220px]">
+                          <div className="space-y-1.5 animate-pulse">
+                            <div className="h-4 w-40 bg-muted/60 rounded" />
+                            <div className="h-3 w-48 bg-muted/40 rounded" />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-5 w-16 bg-muted/50 rounded-full animate-pulse" />
+                        </TableCell>
+                        <TableCell className="min-w-[150px]">
+                          <div className="space-y-2 animate-pulse">
+                            <div className="flex justify-between animate-pulse">
+                              <div className="h-3 w-10 bg-muted/40 rounded" />
+                              <div className="h-3 w-6 bg-muted/40 rounded" />
+                            </div>
+                            <div className="h-2 w-full bg-muted/40 rounded" />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-3.5 w-24 bg-muted/40 rounded animate-pulse" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2 animate-pulse">
+                            <div className="h-7 w-12 bg-muted/45 rounded" />
+                            <div className="h-7 w-12 bg-muted/45 rounded" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : videoJobs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="p-0">
+                      <TableCell colSpan={5} className="p-0">
                         <EmptyState
                           icon={Video}
                           title="No video jobs in this view"
@@ -566,11 +751,10 @@ export default function ProcessingPage() {
                             <div className="space-y-1">
                               <Link
                                 href={`/videos/${job.videoId}`}
-                                className="inline-flex items-center gap-2 font-medium text-foreground transition-colors hover:text-primary"
+                                className="font-medium text-foreground transition-colors hover:text-primary"
                                 onClick={(event) => event.stopPropagation()}
                               >
-                                <Eye className="size-3.5 text-muted-foreground" />
-                                <span>{job.videoTitle ?? 'Untitled video'}</span>
+                                {job.videoTitle ?? 'Untitled video'}
                               </Link>
                               <p className="font-mono text-[11px] text-muted-foreground">
                                 {job.videoId}
@@ -596,11 +780,7 @@ export default function ProcessingPage() {
                               <Progress value={job.progress} className="h-2" />
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={cn('font-mono', getStatusBadgeClass(job.videoStatus))}>
-                              {formatJobStatus(job.videoStatus)}
-                            </Badge>
-                          </TableCell>
+
                           <TableCell className="font-mono text-muted-foreground">
                             {formatDateTime(job.createdAt)}
                           </TableCell>
@@ -675,16 +855,53 @@ export default function ProcessingPage() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination Controls */}
+            {videoTotalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-border pt-4 px-1">
+                <p className="text-xs text-muted-foreground font-mono">
+                  Page {videoPage} of {videoTotalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setVideoPage((p) => Math.max(1, p - 1))}
+                    disabled={videoPage === 1 || isVideoJobsLoading}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setVideoPage((p) => Math.min(videoTotalPages, p + 1))}
+                    disabled={videoPage === videoTotalPages || isVideoJobsLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
-          <TabsContent value="transcription" className="space-y-4 p-5">
+          <TabsContent value="transcription" className="space-y-4 outline-none mt-0">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Search transcription jobs..."
+                  value={transcriptionSearchInput}
+                  onChange={(e) => setTranscriptionSearchInput(e.target.value)}
+                  className="h-8 bg-muted border-0 rounded-md px-3 text-xs w-48 focus:outline-none focus:ring-1 focus:ring-ring"
+                />
                 <Select
                   value={transcriptionStatusFilter}
-                  onValueChange={(value) =>
-                    setTranscriptionStatusFilter(value as TranscriptionStatusFilter)
-                  }
+                  onValueChange={(value) => {
+                    setTranscriptionStatusFilter(value as TranscriptionStatusFilter);
+                    setTranscriptionPage(1);
+                  }}
                 >
                   <SelectTrigger className="h-8 w-40 text-xs">
                     <SelectValue />
@@ -697,11 +914,27 @@ export default function ProcessingPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <div className="flex items-center gap-2 select-none">
+                  <Label
+                    htmlFor="transcription-errors-only"
+                    className="text-xs text-muted-foreground cursor-pointer font-medium"
+                  >
+                    Errors Only
+                  </Label>
+                  <Switch
+                    id="transcription-errors-only"
+                    checked={transcriptionHasError}
+                    onCheckedChange={(checked) => {
+                      setTranscriptionHasError(checked);
+                      setTranscriptionPage(1);
+                    }}
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="font-mono"
+                  className="font-mono h-8"
                   onClick={() => void loadTranscriptionJobs()}
                   disabled={isTranscriptionJobsLoading}
                 >
@@ -721,29 +954,73 @@ export default function ProcessingPage() {
               </div>
             ) : null}
 
-            <div className="overflow-hidden rounded-lg border border-border">
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
               <Table className="text-xs">
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Video</TableHead>
-                    <TableHead>Language</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Stage</TableHead>
-                    <TableHead>Artifacts</TableHead>
-                    <TableHead>Updated</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border bg-muted/30">
+                    <TableHead className="h-9 font-medium px-4">Video</TableHead>
+                    <TableHead className="h-9 font-medium px-4">Language</TableHead>
+                    <TableHead className="h-9 font-medium px-4">
+                      <button
+                        onClick={() => handleSortTranscription('status')}
+                        className="inline-flex items-center gap-1 hover:text-foreground cursor-pointer font-mono"
+                      >
+                        Status <SortIcon field="status" sortBy={transcriptionSortBy} direction={transcriptionSortDirection} />
+                      </button>
+                    </TableHead>
+                    <TableHead className="h-9 font-medium px-4">Stage</TableHead>
+                    <TableHead className="h-9 font-medium px-4">Artifacts</TableHead>
+                    <TableHead className="h-9 font-medium px-4">
+                      <button
+                        onClick={() => handleSortTranscription('updatedat')}
+                        className="inline-flex items-center gap-1 hover:text-foreground cursor-pointer font-mono"
+                      >
+                        Updated <SortIcon field="updatedat" sortBy={transcriptionSortBy} direction={transcriptionSortDirection} />
+                      </button>
+                    </TableHead>
+                    <TableHead className="h-9 font-medium px-4 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isTranscriptionJobsLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                        <div className="inline-flex items-center gap-2">
-                          <Loader2 className="size-4 animate-spin" />
-                          Loading transcription jobs...
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={`transcription-skeleton-${index}`} className="hover:bg-transparent">
+                        <TableCell className="min-w-[260px]">
+                          <div className="space-y-1.5 animate-pulse">
+                            <div className="h-4 w-40 bg-muted/60 rounded" />
+                            <div className="h-3 w-48 bg-muted/40 rounded" />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-3.5 w-16 bg-muted/40 rounded animate-pulse" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-5 w-16 bg-muted/50 rounded-full animate-pulse" />
+                        </TableCell>
+                        <TableCell className="min-w-[200px]">
+                          <div className="space-y-2 animate-pulse">
+                            <div className="h-3.5 w-24 bg-muted/45 rounded mb-1 animate-pulse" />
+                            <div className="flex justify-between animate-pulse">
+                              <div className="h-3 w-10 bg-muted/40 rounded" />
+                              <div className="h-3 w-6 bg-muted/40 rounded" />
+                            </div>
+                            <div className="h-2 w-full bg-muted/40 rounded animate-pulse" />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-3.5 w-20 bg-muted/40 rounded animate-pulse" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-3.5 w-24 bg-muted/40 rounded animate-pulse" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2 animate-pulse">
+                            <div className="h-7 w-12 bg-muted/45 rounded animate-pulse" />
+                            <div className="h-7 w-12 bg-muted/45 rounded animate-pulse" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : transcriptionJobs.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="p-0">
@@ -758,9 +1035,7 @@ export default function ProcessingPage() {
                     transcriptionJobs.map((job) => {
                       const progress = getTranscriptionJobProgress(job);
                       const jobFailure = getTranscriptionJobFailure(job);
-                      const artifactSummary = job.artifacts
-                        .map((artifact) => artifact.format?.toUpperCase() ?? 'TXT')
-                        .join(' · ');
+
                       const retryActionKey = `transcription:retry:${job.jobKey}`;
                       const resyncActionKey = `transcription:resync:${job.jobKey}`;
                       const openTranscriptionDetails = () => {
@@ -780,17 +1055,18 @@ export default function ProcessingPage() {
                             <div className="space-y-1">
                               <Link
                                 href={`/videos/${job.videoId}`}
-                                className="inline-flex items-center gap-2 font-medium text-foreground transition-colors hover:text-primary"
+                                className="font-medium text-foreground transition-colors hover:text-primary"
                                 onClick={(event) => event.stopPropagation()}
                               >
-                                <Eye className="size-3.5 text-muted-foreground" />
-                                <span>{job.videoId}</span>
+                                {job.videoTitle ?? 'Untitled video'}
                               </Link>
                               <p className="font-mono text-[11px] text-muted-foreground">
                                 {job.jobKey ?? 'No job key'}
                               </p>
                               {jobFailure ? (
                                 <p className="text-xs text-destructive">{jobFailure}</p>
+                              ) : job.liveStatus?.message ? (
+                                <p className="text-xs text-muted-foreground">{job.liveStatus.message}</p>
                               ) : null}
                             </div>
                           </TableCell>
@@ -804,9 +1080,13 @@ export default function ProcessingPage() {
                           </TableCell>
                           <TableCell className="min-w-[200px] whitespace-normal">
                             <div className="space-y-1.5">
-                              <div className="text-muted-foreground">
-                                {job.liveStatus?.stage || job.liveStatus?.status || job.status || 'Pending'}
-                              </div>
+                              {job.status !== 'Completed' && (
+                                <div className="text-muted-foreground">
+                                  {job.status === 'Failed'
+                                    ? '—'
+                                    : (job.liveStatus?.stage || job.liveStatus?.status || job.status || 'Pending')}
+                                </div>
+                              )}
                               {progress !== null ? (
                                 <div className="space-y-1.5">
                                   <div className="flex items-center justify-between gap-2">
@@ -830,8 +1110,22 @@ export default function ProcessingPage() {
                               ) : null}
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono text-muted-foreground">
-                            {artifactSummary || '—'}
+                          <TableCell>
+                            {job.artifacts.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {job.artifacts.map((artifact, i) => (
+                                  <Badge
+                                    key={i}
+                                    variant="secondary"
+                                    className="font-mono text-[10px] px-1.5 py-0 h-4.5 bg-muted text-muted-foreground hover:bg-muted border-0 rounded-sm"
+                                  >
+                                    {(artifact.format ?? 'TXT').toUpperCase()}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="font-mono text-muted-foreground">
                             {formatDateTime(job.updatedAt ?? job.createdAt)}
@@ -907,6 +1201,35 @@ export default function ProcessingPage() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination Controls */}
+            {transcriptionTotalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-border pt-4 px-1">
+                <p className="text-xs text-muted-foreground font-mono">
+                  Page {transcriptionPage} of {transcriptionTotalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setTranscriptionPage((p) => Math.max(1, p - 1))}
+                    disabled={transcriptionPage === 1 || isTranscriptionJobsLoading}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setTranscriptionPage((p) => Math.min(transcriptionTotalPages, p + 1))}
+                    disabled={transcriptionPage === transcriptionTotalPages || isTranscriptionJobsLoading}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
@@ -922,7 +1245,7 @@ export default function ProcessingPage() {
           }
         }}
       >
-        <DialogContent className="border border-border bg-card sm:max-w-3xl">
+        <DialogContent className="border border-border bg-card sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{currentDetailTitle}</DialogTitle>
             {currentDetailDescription ? (
@@ -1009,8 +1332,12 @@ export default function ProcessingPage() {
                   </Badge>
                 </div>
                 {getTranscriptionJobFailure(transcriptionJobDetail) ? (
-                  <p className="mt-3 text-sm text-destructive">
+                  <p className="mt-3 text-sm text-destructive font-mono">
                     {getTranscriptionJobFailure(transcriptionJobDetail)}
+                  </p>
+                ) : transcriptionJobDetail.liveStatus?.message ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    {transcriptionJobDetail.liveStatus.message}
                   </p>
                 ) : null}
                 {getTranscriptionJobProgress(transcriptionJobDetail) !== null ? (
@@ -1038,38 +1365,35 @@ export default function ProcessingPage() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-lg border border-border p-4">
+                <div className="rounded-lg border border-border p-4 md:col-span-1">
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Video</p>
                   <Link
                     href={`/videos/${transcriptionJobDetail.videoId}`}
-                    className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
+                    className="mt-2 inline-flex max-w-full items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
                   >
-                    <Eye className="size-3.5 text-muted-foreground" />
-                    {transcriptionJobDetail.videoId}
+                    <span className="truncate">
+                      {transcriptionJobDetail.videoTitle ?? 'Untitled video'}
+                    </span>
                   </Link>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">{transcriptionJobDetail.videoId}</p>
                 </div>
-                <div className="rounded-lg border border-border p-4">
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Job key</p>
-                  <p className="mt-2 font-mono text-xs text-foreground">
-                    {transcriptionJobDetail.jobKey ?? '—'}
-                  </p>
+                <div className="rounded-lg border border-border p-4 md:col-span-1">
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Lifecycle</p>
+                  <div className="mt-2 space-y-1.5 font-mono text-xs text-muted-foreground">
+                    <p>Job Key · <span className="text-foreground">{transcriptionJobDetail.jobKey ?? '—'}</span></p>
+                    <p>Status · {transcriptionJobDetail.liveStatus?.status ?? transcriptionJobDetail.status ?? '—'}</p>
+                    <p>Stage · {transcriptionJobDetail.liveStatus?.stage ?? '—'}</p>
+                    <p>Created · {formatDateTime(transcriptionJobDetail.createdAt)}</p>
+                    <p>Updated · {formatDateTime(transcriptionJobDetail.updatedAt ?? transcriptionJobDetail.createdAt)}</p>
+                  </div>
                 </div>
-                <div className="rounded-lg border border-border p-4">
+                <div className="rounded-lg border border-border p-4 md:col-span-2">
                   <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Worker</p>
                   <div className="mt-2 space-y-1.5 font-mono text-xs text-muted-foreground">
                     <p>Source · {transcriptionJobDetail.source ?? '—'}</p>
                     <p>Model · {transcriptionJobDetail.model ?? '—'}</p>
                     <p>Worker Job · {transcriptionJobDetail.workerJobId ?? '—'}</p>
                     <p>Correlation · {transcriptionJobDetail.correlationId ?? '—'}</p>
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border p-4">
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Lifecycle</p>
-                  <div className="mt-2 space-y-1.5 font-mono text-xs text-muted-foreground">
-                    <p>Status · {transcriptionJobDetail.liveStatus?.status ?? transcriptionJobDetail.status ?? '—'}</p>
-                    <p>Stage · {transcriptionJobDetail.liveStatus?.stage ?? '—'}</p>
-                    <p>Created · {formatDateTime(transcriptionJobDetail.createdAt)}</p>
-                    <p>Updated · {formatDateTime(transcriptionJobDetail.updatedAt ?? transcriptionJobDetail.createdAt)}</p>
                   </div>
                 </div>
               </div>

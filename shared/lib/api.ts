@@ -49,10 +49,8 @@ import {
 import {
   ActiveViewers,
   ActiveViewersDto,
-  AdminTranscriptionJobStatus,
   AdminTranscriptionSettings,
   AdminTranscriptionSettingsDto,
-  AdminVideoJobStatus,
   AdminVideoProcessingJob,
   AdminVideoProcessingJobDto,
   AnalyticsBreakdownItem,
@@ -316,6 +314,7 @@ const mapVideoTranscription = (transcription: VideoTranscriptionDto): VideoTrans
 const mapVideoTranscriptionJob = (job: VideoTranscriptionJobDto): VideoTranscriptionJob => ({
   jobKey: job.jobKey ?? null,
   videoId: job.videoId ?? '',
+  videoTitle: job.videoTitle ?? null,
   language: job.language ?? null,
   status: job.status ?? null,
   source: job.source ?? null,
@@ -1411,19 +1410,50 @@ class ApiClient {
   }
 
   async getAdminTranscriptionJobs(
-    filters: { status?: AdminTranscriptionJobStatus | 'all' } = {}
-  ): Promise<ApiResponse<VideoTranscriptionJob[]>> {
+    filters: {
+      Page?: number;
+      PageSize?: number;
+      Status?: string | 'all';
+      VideoId?: string;
+      UploaderUserId?: string;
+      Search?: string;
+      CreatedFrom?: string;
+      CreatedTo?: string;
+      HasError?: boolean;
+      Provider?: string;
+      Language?: string;
+      Format?: string;
+      Source?: string;
+      SortBy?: string;
+      SortDirection?: string;
+    } = {}
+  ): Promise<ApiResponse<PaginatedResponse<VideoTranscriptionJob>>> {
     try {
       const params = new URLSearchParams();
-      appendQueryParam(params, 'status', filters.status && filters.status !== 'all' ? filters.status : undefined);
+      appendQueryParam(params, 'Page', filters.Page);
+      appendQueryParam(params, 'PageSize', filters.PageSize);
+      appendQueryParam(params, 'Status', filters.Status && filters.Status !== 'all' ? filters.Status : undefined);
+      appendQueryParam(params, 'VideoId', filters.VideoId);
+      appendQueryParam(params, 'UploaderUserId', filters.UploaderUserId);
+      appendQueryParam(params, 'Search', filters.Search);
+      appendQueryParam(params, 'CreatedFrom', filters.CreatedFrom);
+      appendQueryParam(params, 'CreatedTo', filters.CreatedTo);
+      appendQueryParam(params, 'HasError', filters.HasError);
+      appendQueryParam(params, 'Provider', filters.Provider);
+      appendQueryParam(params, 'Language', filters.Language);
+      appendQueryParam(params, 'Format', filters.Format);
+      appendQueryParam(params, 'Source', filters.Source);
+      appendQueryParam(params, 'SortBy', filters.SortBy);
+      appendQueryParam(params, 'SortDirection', filters.SortDirection);
+
       const query = params.toString();
-      const response = await this.requestRaw<VideoTranscriptionJobDto[]>(
+      const response = await this.requestRaw<PaginatedResponse<VideoTranscriptionJobDto>>(
         `${API_V1_PREFIX}/admin/processing/transcription-jobs${query ? `?${query}` : ''}`
       );
 
       return {
         success: true,
-        data: response.map(mapVideoTranscriptionJob),
+        data: mapPagedResponse(response, mapVideoTranscriptionJob),
       };
     } catch {
       return {
@@ -1490,19 +1520,50 @@ class ApiClient {
   }
 
   async getAdminVideoProcessingJobs(
-    filters: { status?: AdminVideoJobStatus | 'all' } = {}
-  ): Promise<ApiResponse<AdminVideoProcessingJob[]>> {
+    filters: {
+      Page?: number;
+      PageSize?: number;
+      Status?: string | 'all';
+      VideoId?: string;
+      UploaderUserId?: string;
+      Search?: string;
+      CreatedFrom?: string;
+      CreatedTo?: string;
+      StartedFrom?: string;
+      StartedTo?: string;
+      CompletedFrom?: string;
+      CompletedTo?: string;
+      HasError?: boolean;
+      SortBy?: string;
+      SortDirection?: string;
+    } = {}
+  ): Promise<ApiResponse<PaginatedResponse<AdminVideoProcessingJob>>> {
     try {
       const params = new URLSearchParams();
-      appendQueryParam(params, 'status', filters.status && filters.status !== 'all' ? filters.status : undefined);
+      appendQueryParam(params, 'Page', filters.Page);
+      appendQueryParam(params, 'PageSize', filters.PageSize);
+      appendQueryParam(params, 'Status', filters.Status && filters.Status !== 'all' ? filters.Status : undefined);
+      appendQueryParam(params, 'VideoId', filters.VideoId);
+      appendQueryParam(params, 'UploaderUserId', filters.UploaderUserId);
+      appendQueryParam(params, 'Search', filters.Search);
+      appendQueryParam(params, 'CreatedFrom', filters.CreatedFrom);
+      appendQueryParam(params, 'CreatedTo', filters.CreatedTo);
+      appendQueryParam(params, 'StartedFrom', filters.StartedFrom);
+      appendQueryParam(params, 'StartedTo', filters.StartedTo);
+      appendQueryParam(params, 'CompletedFrom', filters.CompletedFrom);
+      appendQueryParam(params, 'CompletedTo', filters.CompletedTo);
+      appendQueryParam(params, 'HasError', filters.HasError);
+      appendQueryParam(params, 'SortBy', filters.SortBy);
+      appendQueryParam(params, 'SortDirection', filters.SortDirection);
+
       const query = params.toString();
-      const response = await this.requestRaw<AdminVideoProcessingJobDto[]>(
+      const response = await this.requestRaw<PaginatedResponse<AdminVideoProcessingJobDto>>(
         `${API_V1_PREFIX}/admin/processing/video-jobs${query ? `?${query}` : ''}`
       );
 
       return {
         success: true,
-        data: response.map(mapAdminVideoProcessingJob),
+        data: mapPagedResponse(response, mapAdminVideoProcessingJob),
       };
     } catch {
       return {

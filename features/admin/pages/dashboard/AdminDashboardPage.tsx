@@ -7,7 +7,7 @@ import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
-import { Video } from '@/features/videos/types';
+import { Video, AdminVideoProcessingJob } from '@/features/videos/types';
 
 interface QueueItem {
   id: string;
@@ -72,13 +72,12 @@ export default function AdminDashboard() {
 
     const loadData = async () => {
       try {
-        const [usersRes, videosRes, analyticsRes, recentRes, procRes, uploadRes] = await Promise.all([
+        const [usersRes, videosRes, analyticsRes, recentRes, procRes] = await Promise.all([
           apiClient.getUsers({ page: 1, pageSize: 1 }),
           apiClient.getVideos({ page: 1, pageSize: 1 }),
           apiClient.getAdminAnalyticsSummary(),
           apiClient.getVideos({ sort: 'recentlyCreated', pageSize: 5 }),
-          apiClient.getVideos({ status: 'Processing', pageSize: 10 }),
-          apiClient.getVideos({ status: 'Uploading', pageSize: 10 }),
+          apiClient.getAdminVideoProcessingJobs({ Page: 1, PageSize: 5 }),
         ]);
 
         if (!active) return;
@@ -112,34 +111,18 @@ export default function AdminDashboard() {
           setRecentVideos(recentRes.data.items);
         }
 
-        // Fetch queue item progress details
-        const rawQueue = [...(procRes.data?.items || []), ...(uploadRes.data?.items || [])];
-        if (rawQueue.length === 0) {
+        // Populate Processing Queue
+        if (procRes.success && procRes.data) {
+          const items = procRes.data.items.map((job: AdminVideoProcessingJob) => ({
+            id: job.jobKey ?? job.videoId,
+            title: job.videoTitle ?? 'Untitled video',
+            status: job.status,
+            progress: job.progress,
+          }));
+          setProcessingVideos(items);
+        } else {
           setProcessingVideos([]);
-          return;
         }
-
-        const queueDetailsPromises = rawQueue.map(async (v) => {
-          try {
-            const statusRes = await apiClient.getVideoProcessingStatus(v.id);
-            return {
-              id: v.id,
-              title: v.title,
-              status: v.status || 'Processing',
-              progress: statusRes.success && statusRes.data ? statusRes.data.progress : null,
-            };
-          } catch {
-            return {
-              id: v.id,
-              title: v.title,
-              status: v.status || 'Processing',
-              progress: null,
-            };
-          }
-        });
-
-        const detailedQueue = await Promise.all(queueDetailsPromises);
-        setProcessingVideos(detailedQueue);
       } catch (err) {
         console.error('Failed to load admin dashboard data:', err);
       }
@@ -270,10 +253,18 @@ export default function AdminDashboard() {
 
           {/* Active Processing Queue (1/3 width) */}
           <div className="space-y-4">
-            <div className="border-b border-border pb-3">
+            <div className="border-b border-border pb-3 flex justify-between items-center">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Processing Queue
               </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/admin/processing')}
+                className="text-xs border-border bg-card hover:bg-accent text-foreground"
+              >
+                View queue
+              </Button>
             </div>
 
             <div className="border border-border rounded-lg bg-card p-4">

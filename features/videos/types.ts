@@ -369,6 +369,7 @@ export interface VideoTranscriptionArtifactDto {
 export interface VideoTranscriptionJob {
   jobKey: string | null;
   videoId: string;
+  videoTitle: string | null;
   language: string | null;
   status: string | null;
   source: string | null;
@@ -385,6 +386,7 @@ export interface VideoTranscriptionJob {
 export interface VideoTranscriptionJobDto {
   jobKey?: string | null;
   videoId?: string;
+  videoTitle?: string | null;
   language?: string | null;
   status?: string | null;
   source?: string | null;
