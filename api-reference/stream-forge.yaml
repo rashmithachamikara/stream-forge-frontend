@@ -998,6 +998,205 @@
                 },
             },
         },
+      "/api/v1/admin/processing/video-jobs":
+        {
+          "get":
+            {
+              "tags": ["AdminProcessing"],
+              "parameters":
+                [
+                  {
+                    "name": "status",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                    },
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                    },
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "type": "array",
+                                  "items":
+                                    {
+                                      "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/processing/video-jobs/{jobKey}":
+        {
+          "get":
+            {
+              "tags": ["AdminProcessing"],
+              "parameters":
+                [
+                  {
+                    "name": "jobKey",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/processing/video-jobs/{jobKey}/retry":
+        {
+          "post":
+            {
+              "tags": ["AdminProcessing"],
+              "parameters":
+                [
+                  {
+                    "name": "jobKey",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/admin/processing/video-jobs/{jobKey}/resync":
+        {
+          "post":
+            {
+              "tags": ["AdminProcessing"],
+              "parameters":
+                [
+                  {
+                    "name": "jobKey",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminVideoProcessingJobDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
       "/api/v1/admin/settings/transcription":
         {
           "get":
@@ -5941,6 +6140,35 @@
                   "beamSize": { "type": "integer", "format": "int32" },
                   "enableVad": { "type": "boolean" },
                   "enableWordTimestamps": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "AdminVideoProcessingJobDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "jobKey": { "type": "string", "nullable": true },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "videoTitle": { "type": "string", "nullable": true },
+                  "jobType": { "type": "string", "nullable": true },
+                  "status": { "type": "string", "nullable": true },
+                  "progress": { "type": "integer", "format": "int32" },
+                  "errorMessage": { "type": "string", "nullable": true },
+                  "createdAt": { "type": "string", "format": "date-time" },
+                  "startedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "completedAt":
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true,
+                    },
+                  "videoStatus": { "type": "string", "nullable": true },
                 },
               "additionalProperties": false,
             },
