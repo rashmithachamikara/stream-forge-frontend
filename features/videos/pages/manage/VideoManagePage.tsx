@@ -89,9 +89,15 @@ const getManageFormState = (video: Video): ManageFormState => ({
   allowBookmarks: video.allowBookmarks ?? true,
 });
 
-const buildRetryPayload = (transcription: VideoTranscription) => ({
-  language: transcription.language ?? null,
-  outputFormats: transcription.format ? [transcription.format] : null,
+const buildRetryPayload = (transcriptions: VideoTranscription[]) => ({
+  language: transcriptions[0]?.language ?? null,
+  outputFormats: Array.from(
+    new Set(
+      transcriptions
+        .map((transcription) => transcription.format)
+        .filter((format): format is string => Boolean(format))
+    )
+  ),
 });
 
 export default function VideoManagePage({ videoId }: { videoId: string }) {
@@ -111,6 +117,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [requestTranscriptionOpen, setRequestTranscriptionOpen] = useState(false);
   const [form, setForm] = useState<ManageFormState>({
     title: '',
     description: '',
@@ -222,10 +229,35 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     () => selectPrimaryTranscription(transcriptions, typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : 'en'),
     [transcriptions]
   );
+  const failedTranscriptions = useMemo(
+    () => transcriptions.filter((transcription) => normalizeTranscriptionStatus(transcription) === 'failure'),
+    [transcriptions]
+  );
+  const sharedFailureReason = useMemo(() => {
+    if (failedTranscriptions.length === 0) {
+      return null;
+    }
+
+    const failureReasons = Array.from(
+      new Set(
+        failedTranscriptions
+          .map((transcription) => transcription.failureReason?.trim() || transcription.liveStatus?.message?.trim())
+          .filter((reason): reason is string => Boolean(reason))
+      )
+    );
+
+    return failureReasons.length === 1
+      ? failureReasons[0]
+      : failedTranscriptions[0].failureReason ?? failedTranscriptions[0].liveStatus?.message ?? null;
+  }, [failedTranscriptions]);
   const isOwner = Boolean(user && video && user.id === video.uploaderId);
   const canRequestTranscription = Boolean(
     video &&
       video.status === 'Ready' &&
+      (user?.role === 'admin' || (user?.role === 'editor' && isOwner))
+  );
+  const canRetryFailedTranscriptions = Boolean(
+    failedTranscriptions.length > 0 &&
       (user?.role === 'admin' || (user?.role === 'editor' && isOwner))
   );
   const hasChanges = Boolean(
@@ -256,6 +288,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
 
     if (response.success && response.data) {
       setTranscriptions(response.data);
+      setRequestTranscriptionOpen(false);
     } else {
       setError(response.error ?? 'Failed to request transcription');
     }
@@ -263,15 +296,15 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     setIsRequestingTranscription(false);
   };
 
-  const retryTranscription = async (transcription: VideoTranscription) => {
-    if (!video) {
+  const retryTranscription = async (targetTranscriptions: VideoTranscription[]) => {
+    if (!video || targetTranscriptions.length === 0) {
       return;
     }
 
-    setRetryingTranscriptionId(transcription.id);
+    setRetryingTranscriptionId('batch');
     setError(null);
 
-    const response = await apiClient.requestVideoTranscription(video.id, buildRetryPayload(transcription));
+    const response = await apiClient.requestVideoTranscription(video.id, buildRetryPayload(targetTranscriptions));
 
     if (response.success && response.data) {
       setTranscriptions(response.data);
@@ -644,7 +677,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                       size="sm"
                       variant="outline"
                       className="gap-2"
-                      onClick={() => void requestTranscription()}
+                      onClick={() => setRequestTranscriptionOpen(true)}
                       disabled={isRequestingTranscription}
                     >
                       {isRequestingTranscription ? (
@@ -660,19 +693,39 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
               <CardContent className="space-y-4">
                 {primaryTranscription ? (
                   <div className="rounded-lg border bg-muted/20 p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="font-mono">
-                        Primary
-                      </Badge>
-                      <Badge variant="outline" className="font-mono">
-                        {getTranscriptionLanguageLabel(primaryTranscription.language)}
-                      </Badge>
-                      <Badge variant="outline" className="font-mono">
-                        {(primaryTranscription.format ?? 'TXT').toUpperCase()}
-                      </Badge>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="font-mono">
+                          Primary
+                        </Badge>
+                        <Badge variant="outline" className="font-mono">
+                          {getTranscriptionLanguageLabel(primaryTranscription.language)}
+                        </Badge>
+                        <Badge variant="outline" className="font-mono">
+                          {(primaryTranscription.format ?? 'TXT').toUpperCase()}
+                        </Badge>
+                      </div>
+                      {canRetryFailedTranscriptions ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => void retryTranscription(failedTranscriptions)}
+                          disabled={retryingTranscriptionId === 'batch'}
+                        >
+                          {retryingTranscriptionId === 'batch' ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          )}
+                          Retry failed
+                        </Button>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-sm text-foreground">
-                      {primaryTranscription.failureReason ||
+                      {sharedFailureReason ||
+                        primaryTranscription.failureReason ||
                         primaryTranscription.liveStatus?.message ||
                         primaryTranscription.status ||
                         'Available'}
@@ -708,9 +761,6 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                   <div className="space-y-3">
                     {transcriptions.map((transcription) => {
                       const uiStatus = normalizeTranscriptionStatus(transcription);
-                      const canRetry =
-                        uiStatus === 'failure' &&
-                        (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
 
                       return (
                         <div key={transcription.id} className="rounded-lg border p-3">
@@ -748,27 +798,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                                   </span>
                                 </p>
                               </div>
-                              {transcription.failureReason ? (
-                                <p className="text-xs text-destructive">{transcription.failureReason}</p>
-                              ) : null}
                             </div>
-                            {canRetry ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="gap-2"
-                                onClick={() => void retryTranscription(transcription)}
-                                disabled={retryingTranscriptionId === transcription.id}
-                              >
-                                {retryingTranscriptionId === transcription.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <RotateCcw className="h-3.5 w-3.5" />
-                                )}
-                                Retry
-                              </Button>
-                            ) : null}
                           </div>
                         </div>
                       );
@@ -818,6 +848,27 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
             <AlertDialogAction onClick={archiveVideo} disabled={isArchiving}>
               {isArchiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={requestTranscriptionOpen} onOpenChange={setRequestTranscriptionOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Request transcripts for this video?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This starts a transcription job for the current video and will generate the configured caption artifacts.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRequestingTranscription}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void requestTranscription()}
+              disabled={isRequestingTranscription}
+            >
+              {isRequestingTranscription ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Request transcripts
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
