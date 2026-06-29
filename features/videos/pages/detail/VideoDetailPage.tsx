@@ -141,6 +141,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [highlightedChunkId, setHighlightedChunkId] = useState<string | null>(null);
   const [requestedSeekTime, setRequestedSeekTime] = useState<number | null>(null);
+  const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
   const captionUrlsRef = useRef<string[]>([]);
 
   const resolvedView = React.useMemo(() => (user ? resolveActiveView(user.role, null) : null), [user]);
@@ -720,6 +721,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 onEnded={handlePlaylistVideoEnded}
                 autoPlay={isAutoplayLoaded && autoplay && !!playlistId}
                 requestedSeekTime={requestedSeekTime}
+                onPlaybackTimeChange={setCurrentPlaybackTime}
               />
             ) : (
               <div className="relative aspect-video w-full rounded-lg bg-card border border-border text-foreground flex flex-col items-center justify-center gap-4 p-6 text-center overflow-hidden">
@@ -1001,6 +1003,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 onDownloadTranscription={(transcription) => void handleDownloadTranscription(transcription)}
                 isOpen={isTranscriptOpen}
                 onClose={() => setIsTranscriptOpen(false)}
+                currentPlaybackTime={currentPlaybackTime}
               />
             )}
             {playlistId && playlist && (

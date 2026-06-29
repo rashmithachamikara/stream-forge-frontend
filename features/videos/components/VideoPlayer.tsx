@@ -47,6 +47,7 @@ interface VideoPlayerProps {
   onEnded?: () => void;
   autoPlay?: boolean;
   requestedSeekTime?: number | null;
+  onPlaybackTimeChange?: (time: number) => void;
 }
 
 type QualityOption = {
@@ -164,6 +165,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onEnded,
   autoPlay,
   requestedSeekTime = null,
+  onPlaybackTimeChange,
 }) => {
   const searchParams = useSearchParams();
   const tParam = searchParams?.get('t');
@@ -418,6 +420,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     lastPlaybackPositionRef.current = requestedSeekTime;
     setShowControls(true);
   }, [requestedSeekTime]);
+
+  useEffect(() => {
+    onPlaybackTimeChange?.(currentTime);
+  }, [currentTime, onPlaybackTimeChange]);
 
   useEffect(() => {
     captions.forEach((caption) => {

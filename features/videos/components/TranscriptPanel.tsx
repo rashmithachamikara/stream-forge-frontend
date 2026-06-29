@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Loader2, Search, Download, X } from 'lucide-react';
 import {
   TranscriptChunk,
@@ -33,7 +34,10 @@ type TranscriptPanelProps = {
   onDownloadTranscription: (transcription: VideoTranscription) => void;
   isOpen: boolean;
   onClose: () => void;
+  currentPlaybackTime: number;
 };
+
+const TRANSCRIPT_AUTOSCROLL_STORAGE_KEY = 'streamforge_transcript_autoscroll';
 
 export function TranscriptPanel({
   transcriptions,
@@ -51,7 +55,18 @@ export function TranscriptPanel({
   onDownloadTranscription,
   isOpen,
   onClose,
+  currentPlaybackTime,
 }: TranscriptPanelProps) {
+  const [autoScroll, setAutoScroll] = useState<boolean>(() => {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+
+    return window.localStorage.getItem(TRANSCRIPT_AUTOSCROLL_STORAGE_KEY) !== 'false';
+  });
+  const [manualHighlightChunkId, setManualHighlightChunkId] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const selectedTranscription =
     transcriptions.find((transcription) => transcription.id === selectedTranscriptionId) ?? null;
   const selectedStatus = selectedTranscription ? normalizeTranscriptionStatus(selectedTranscription) : null;
@@ -59,6 +74,63 @@ export function TranscriptPanel({
     selectedStatus === 'success'
       ? selectedTranscription
       : transcriptions.find((transcription) => normalizeTranscriptionStatus(transcription) === 'success') ?? null;
+  const activeChunkId = useMemo(() => {
+    const activeChunk = transcriptChunks.find(
+      (chunk) =>
+        currentPlaybackTime >= chunk.startSeconds &&
+        currentPlaybackTime < chunk.endSeconds
+    );
+
+    return activeChunk?.chunkId ?? null;
+  }, [currentPlaybackTime, transcriptChunks]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(TRANSCRIPT_AUTOSCROLL_STORAGE_KEY, String(autoScroll));
+  }, [autoScroll]);
+
+  useEffect(() => {
+    setManualHighlightChunkId(highlightedChunkId);
+  }, [highlightedChunkId]);
+
+  useEffect(() => {
+    if (!autoScroll || !activeChunkId) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    const row = rowRefs.current[activeChunkId];
+
+    if (!container || !row) {
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    const nextScrollTop =
+      container.scrollTop +
+      (rowRect.top - containerRect.top) -
+      container.clientHeight / 2 +
+      rowRect.height / 2;
+
+    container.scrollTo({
+      top: Math.max(0, nextScrollTop),
+      behavior: 'smooth',
+    });
+  }, [activeChunkId, autoScroll]);
+
+  useEffect(() => {
+    if (!autoScroll || !activeChunkId) {
+      return;
+    }
+
+    setManualHighlightChunkId((current) =>
+      current && current !== activeChunkId ? null : current
+    );
+  }, [activeChunkId, autoScroll]);
 
   return (
     <Card>
@@ -72,16 +144,26 @@ export function TranscriptPanel({
             <>
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Transcript</h3>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 w-7 p-0"
-                  onClick={onClose}
-                  aria-label="Close transcript"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground font-mono">Autoscroll</span>
+                    <Switch
+                      checked={autoScroll}
+                      onCheckedChange={setAutoScroll}
+                      className="scale-75 origin-left"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0"
+                    onClick={onClose}
+                    aria-label="Close transcript"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
@@ -171,7 +253,7 @@ export function TranscriptPanel({
               ) : null}
 
               <div className="rounded-lg border">
-                <div className="max-h-[30rem] overflow-y-auto">
+                <div ref={scrollContainerRef} className="max-h-[30rem] overflow-y-auto">
                   {isTranscriptLoading ? (
                     <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -181,10 +263,17 @@ export function TranscriptPanel({
                     transcriptChunks.map((chunk) => (
                       <button
                         key={chunk.chunkId}
+                        ref={(element) => {
+                          rowRefs.current[chunk.chunkId] = element;
+                        }}
                         type="button"
                         className={cn(
-                          'flex w-full gap-2.5 border-b px-3 py-2 text-left transition-colors last:border-b-0 hover:bg-accent/60',
-                          highlightedChunkId === chunk.chunkId && 'bg-primary/10'
+                          'flex w-full cursor-pointer gap-2.5 border-b px-3 py-2 text-left transition-colors last:border-b-0 hover:bg-accent/60',
+                          activeChunkId === chunk.chunkId && 'bg-primary/15',
+                          manualHighlightChunkId === chunk.chunkId &&
+                            activeChunkId !== chunk.chunkId &&
+                            autoScroll &&
+                            'bg-primary/10'
                         )}
                         onClick={() => onChunkSeek(chunk)}
                       >
