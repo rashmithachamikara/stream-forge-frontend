@@ -998,11 +998,11 @@
                 },
             },
         },
-      "/api/v1/admin/transcription/settings":
+      "/api/v1/admin/settings/transcription":
         {
           "get":
             {
-              "tags": ["AdminTranscriptionSettings"],
+              "tags": ["AdminSettings"],
               "responses":
                 {
                   "200":
@@ -1037,7 +1037,7 @@
             },
           "put":
             {
-              "tags": ["AdminTranscriptionSettings"],
+              "tags": ["AdminSettings"],
               "requestBody":
                 {
                   "content":

@@ -1344,7 +1344,7 @@ class ApiClient {
   async getAdminTranscriptionSettings(): Promise<ApiResponse<AdminTranscriptionSettings>> {
     try {
       const response = await this.requestRaw<AdminTranscriptionSettingsDto>(
-        `${API_V1_PREFIX}/admin/transcription/settings`
+        `${API_V1_PREFIX}/admin/settings/transcription`
       );
 
       return {
@@ -1364,7 +1364,7 @@ class ApiClient {
   ): Promise<ApiResponse<AdminTranscriptionSettings>> {
     try {
       const response = await this.requestRaw<AdminTranscriptionSettingsDto>(
-        `${API_V1_PREFIX}/admin/transcription/settings`,
+        `${API_V1_PREFIX}/admin/settings/transcription`,
         {
           method: 'PUT',
           body: JSON.stringify(payload),
