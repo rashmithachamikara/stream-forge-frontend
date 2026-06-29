@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
+import { apiClient } from '@/shared/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,20 +23,12 @@ import {
   Trash2,
   Save,
   CheckCircle,
-  Download,
+  Loader2,
   Eye,
   EyeOff,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-
-interface AIModel {
-  id: string;
-  name: string;
-  provider: string;
-  status: 'installed' | 'available' | 'installing';
-  size: string;
-  capabilities: string[];
-}
+import { UpdateAdminTranscriptionSettingsRequest } from '@/features/admin/types';
 
 interface APIKey {
   id: string;
@@ -57,38 +50,37 @@ const SECTIONS = [
 
 type SectionId = typeof SECTIONS[number]['id'];
 
+const normalizeOutputFormats = (formats: string[] | null | undefined) =>
+  (formats ?? []).map((format) => format.toUpperCase());
+
+const serializeOutputFormats = (formats: string[] | null | undefined) =>
+  (formats ?? []).map((format) => format.toLowerCase());
+
+const TRANSCRIPTION_PROVIDER_OPTIONS = [
+  { value: 'local-faster-whisper', label: 'Local Whisper' },
+] as const;
+
+const LOCAL_WHISPER_MODEL_OPTIONS = [
+  'tiny',
+  'base',
+  'small',
+  'medium',
+  'large-v3',
+] as const;
+
+const LOCAL_WHISPER_DEVICE_OPTIONS = ['cpu', 'cuda'] as const;
+const LOCAL_WHISPER_COMPUTE_TYPE_OPTIONS = ['int8', 'float16', 'float32'] as const;
+
 export default function AdminSettingsPage() {
   const [active, setActive] = useState<SectionId>('ai');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [showApiKeys, setShowApiKeys] = useState<{ [key: string]: boolean }>({});
-
-  // AI Models State
-  const [aiModels, setAiModels] = useState<AIModel[]>([
-    {
-      id: '1',
-      name: 'Whisper Large V3',
-      provider: 'OpenAI',
-      status: 'installed',
-      size: '1.5 GB',
-      capabilities: ['Transcription', 'Translation'],
-    },
-    {
-      id: '2',
-      name: 'Wav2Vec 2.0',
-      provider: 'Meta',
-      status: 'available',
-      size: '360 MB',
-      capabilities: ['Transcription'],
-    },
-    {
-      id: '3',
-      name: 'Azure Speech',
-      provider: 'Microsoft',
-      status: 'installed',
-      size: 'Cloud API',
-      capabilities: ['Transcription', 'Translation', 'Speaker Recognition'],
-    },
-  ]);
+  const [transcriptionSettings, setTranscriptionSettings] =
+    useState<UpdateAdminTranscriptionSettingsRequest | null>(null);
+  const [savedTranscriptionSettings, setSavedTranscriptionSettings] =
+    useState<UpdateAdminTranscriptionSettingsRequest | null>(null);
+  const [transcriptionSettingsError, setTranscriptionSettingsError] = useState<string | null>(null);
+  const [isTranscriptionSettingsLoading, setIsTranscriptionSettingsLoading] = useState(true);
 
   // API Keys State
   const [apiKeys, setApiKeys] = useState<APIKey[]>([
@@ -153,41 +145,87 @@ export default function AdminSettingsPage() {
     requireSpecialChar: true,
   });
 
-  const handleSaveSettings = () => {
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTranscriptionSettings = async () => {
+      setIsTranscriptionSettingsLoading(true);
+      const response = await apiClient.getAdminTranscriptionSettings();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (response.success && response.data) {
+        const nextSettings = {
+          enabled: response.data.enabled,
+          autoTranscribeOnReady: response.data.autoTranscribeOnReady,
+          provider: response.data.provider,
+          defaultLanguage: response.data.defaultLanguage,
+          outputFormats: normalizeOutputFormats(response.data.outputFormats),
+          model: response.data.model,
+          device: response.data.device,
+          computeType: response.data.computeType,
+          beamSize: response.data.beamSize,
+          enableVad: response.data.enableVad,
+          enableWordTimestamps: response.data.enableWordTimestamps,
+        };
+        setTranscriptionSettings(nextSettings);
+        setSavedTranscriptionSettings(nextSettings);
+        setTranscriptionSettingsError(null);
+      } else {
+        setTranscriptionSettingsError(response.error ?? 'Failed to load transcription settings');
+      }
+
+      setIsTranscriptionSettingsLoading(false);
+    };
+
+    void loadTranscriptionSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveSettings = async () => {
+    if (!transcriptionSettings) {
+      return;
+    }
+
     setSaveStatus('saving');
-    // Simulate API call
-    setTimeout(() => {
+    setTranscriptionSettingsError(null);
+
+    const response = await apiClient.updateAdminTranscriptionSettings({
+      ...transcriptionSettings,
+      outputFormats: serializeOutputFormats(transcriptionSettings.outputFormats),
+    });
+
+    if (response.success && response.data) {
+      const nextSettings = {
+        enabled: response.data.enabled,
+        autoTranscribeOnReady: response.data.autoTranscribeOnReady,
+        provider: response.data.provider,
+        defaultLanguage: response.data.defaultLanguage,
+        outputFormats: normalizeOutputFormats(response.data.outputFormats),
+        model: response.data.model,
+        device: response.data.device,
+        computeType: response.data.computeType,
+        beamSize: response.data.beamSize,
+        enableVad: response.data.enableVad,
+        enableWordTimestamps: response.data.enableWordTimestamps,
+      };
+      setTranscriptionSettings(nextSettings);
+      setSavedTranscriptionSettings(nextSettings);
       setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    }, 1000);
+      window.setTimeout(() => setSaveStatus('idle'), 2000);
+    } else {
+      setSaveStatus('idle');
+      setTranscriptionSettingsError(response.error ?? 'Failed to save transcription settings');
+    }
   };
 
   const toggleApiKeyVisibility = (id: string) => {
     setShowApiKeys((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleInstallModel = (modelId: string) => {
-    setAiModels(
-      aiModels.map((model) =>
-        model.id === modelId ? { ...model, status: 'installing' as const } : model
-      )
-    );
-    // Simulate installation
-    setTimeout(() => {
-      setAiModels(
-        aiModels.map((model) =>
-          model.id === modelId ? { ...model, status: 'installed' as const } : model
-        )
-      );
-    }, 2000);
-  };
-
-  const handleUninstallModel = (modelId: string) => {
-    setAiModels(
-      aiModels.map((model) =>
-        model.id === modelId ? { ...model, status: 'available' as const } : model
-      )
-    );
   };
 
   const handleAddApiKey = () => {
@@ -215,6 +253,30 @@ export default function AdminSettingsPage() {
     );
   };
 
+  const toggleOutputFormat = (format: string) => {
+    setTranscriptionSettings((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const alreadySelected = current.outputFormats?.includes(format) ?? false;
+      return {
+        ...current,
+        outputFormats: alreadySelected
+          ? current.outputFormats.filter((item) => item !== format)
+          : [...(current.outputFormats ?? []), format],
+      };
+    });
+  };
+
+  const hasPendingTranscriptionChanges = useMemo(() => {
+    if (!transcriptionSettings || !savedTranscriptionSettings) {
+      return false;
+    }
+
+    return JSON.stringify(transcriptionSettings) !== JSON.stringify(savedTranscriptionSettings);
+  }, [savedTranscriptionSettings, transcriptionSettings]);
+
   return (
     <DashboardLayout title="Admin Settings" requiredRoles={['admin']}>
       <div className="space-y-8">
@@ -224,28 +286,36 @@ export default function AdminSettingsPage() {
             <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Admin · Settings</p>
             <h1 className="text-2xl font-bold tracking-tight mt-1 text-foreground">Platform settings</h1>
           </div>
-          <Button
-            onClick={handleSaveSettings}
-            disabled={saveStatus === 'saving'}
-            variant="default"
-          >
-            {saveStatus === 'saving' ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : saveStatus === 'saved' ? (
-              <>
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                Saved
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                Save Changes
-              </>
-            )}
-          </Button>
+          {active === 'ai' ? (
+            <Button
+              onClick={() => void handleSaveSettings()}
+              disabled={
+                saveStatus === 'saving' ||
+                isTranscriptionSettingsLoading ||
+                !transcriptionSettings ||
+                !hasPendingTranscriptionChanges
+              }
+              variant="default"
+              className="gap-2"
+            >
+              {saveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          ) : null}
         </div>
 
         {/* Layout container */}
@@ -274,127 +344,287 @@ export default function AdminSettingsPage() {
           <div className="min-w-0 space-y-6">
             {active === 'ai' && (
               <>
-                {/* AI Models Card */}
                 <Card className="bg-card border border-border rounded-lg p-5">
                   <CardHeader className="p-0 mb-4">
                     <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
                       <Cpu className="w-4 h-4 text-primary shrink-0" />
-                      AI Models for Transcription
+                      Transcription Settings
                     </CardTitle>
                     <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
-                      Install and manage AI models for automatic transcript generation
+                      Configure transcript generation defaults and worker behavior.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="p-0 space-y-3">
-                    {aiModels.map((model) => (
-                      <div
-                        key={model.id}
-                        className="flex items-start gap-4 p-4 border border-border rounded-md bg-muted/30"
-                      >
-                        <div className="p-3 bg-primary/10 rounded-lg shrink-0">
-                          <Cpu className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-xs text-foreground truncate">{model.name}</h4>
-                            <Badge
-                              className="text-[9px] px-1.5 py-0.5 font-mono"
-                              variant={
-                                model.status === 'installed'
-                                  ? 'default'
-                                  : model.status === 'installing'
-                                  ? 'secondary'
-                                  : 'outline'
-                              }
-                            >
-                              {model.status === 'installed'
-                                ? 'Installed'
-                                : model.status === 'installing'
-                                ? 'Installing...'
-                                : 'Available'}
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mb-2 font-mono">
-                            {model.provider} • {model.size}
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {model.capabilities.map((cap) => (
-                              <Badge key={cap} variant="outline" className="text-[9px] px-1.5 py-0">
-                                {cap}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="shrink-0">
-                          {model.status === 'installed' ? (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleUninstallModel(model.id)}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Uninstall
-                            </Button>
-                          ) : model.status === 'available' ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleInstallModel(model.id)}
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              Install
-                            </Button>
-                          ) : (
-                            <Button variant="outline" size="sm" disabled>
-                              <div className="w-3.5 h-3.5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
-                              Installing
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Transcription Settings Card */}
-                <Card className="bg-card border border-border rounded-lg p-5">
-                  <CardHeader className="p-0 mb-4">
-                    <CardTitle className="text-sm font-semibold text-foreground">Transcription Settings</CardTitle>
-                  </CardHeader>
                   <CardContent className="p-0 space-y-4">
-                    <div className="flex items-center justify-between py-2 border-b border-border">
-                      <div className="min-w-0">
-                        <Label className="text-xs font-semibold text-foreground">Auto-generate Transcripts</Label>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Automatically transcribe uploaded videos
-                        </p>
+                    {transcriptionSettingsError ? (
+                      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                        {transcriptionSettingsError}
                       </div>
-                      <Switch defaultChecked className="cursor-pointer" />
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border">
-                      <div className="min-w-0">
-                        <Label className="text-xs font-semibold text-foreground">Language Detection</Label>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Automatically detect video language
-                        </p>
+                    ) : null}
+
+                    {isTranscriptionSettingsLoading || !transcriptionSettings ? (
+                      <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading transcription settings...
                       </div>
-                      <Switch defaultChecked className="cursor-pointer" />
-                    </div>
-                    <div className="space-y-1.5 pt-2">
-                      <Label className="text-xs font-semibold text-foreground">Default Language</Label>
-                      <Select defaultValue="en">
-                        <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="es">Spanish</SelectItem>
-                          <SelectItem value="fr">French</SelectItem>
-                          <SelectItem value="de">German</SelectItem>
-                          <SelectItem value="ja">Japanese</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="rounded-md border border-border bg-muted/20 p-4">
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-foreground">Global</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              Shared transcription behavior across all providers.
+                            </p>
+                          </div>
+
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <Label className="text-xs font-semibold text-foreground">Enabled</Label>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                  Master switch for the transcription pipeline.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={transcriptionSettings.enabled}
+                                onCheckedChange={(checked) =>
+                                  setTranscriptionSettings((current) =>
+                                    current ? { ...current, enabled: checked } : current
+                                  )
+                                }
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <Label className="text-xs font-semibold text-foreground">Auto-transcribe on ready</Label>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">
+                                  Start transcript generation when a video finishes transcoding.
+                                </p>
+                              </div>
+                              <Switch
+                                checked={transcriptionSettings.autoTranscribeOnReady}
+                                onCheckedChange={(checked) =>
+                                  setTranscriptionSettings((current) =>
+                                    current ? { ...current, autoTranscribeOnReady: checked } : current
+                                  )
+                                }
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Provider</Label>
+                              <Select
+                                value={transcriptionSettings.provider ?? 'local-faster-whisper'}
+                                onValueChange={(value) =>
+                                  setTranscriptionSettings((current) =>
+                                    current ? { ...current, provider: value } : current
+                                  )
+                                }
+                              >
+                                <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {TRANSCRIPTION_PROVIDER_OPTIONS.map((provider) => (
+                                    <SelectItem key={provider.value} value={provider.value}>
+                                      {provider.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Default Language</Label>
+                              <Select
+                                value={transcriptionSettings.defaultLanguage ?? 'auto'}
+                                onValueChange={(value) =>
+                                  setTranscriptionSettings((current) =>
+                                    current
+                                      ? {
+                                          ...current,
+                                          defaultLanguage: value,
+                                        }
+                                      : current
+                                  )
+                                }
+                              >
+                                <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="auto">Auto</SelectItem>
+                                  <SelectItem value="en">English</SelectItem>
+                                  <SelectItem value="es">Spanish</SelectItem>
+                                  <SelectItem value="fr">French</SelectItem>
+                                  <SelectItem value="de">German</SelectItem>
+                                  <SelectItem value="ja">Japanese</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Output Formats</Label>
+                              <div className="flex flex-wrap gap-2">
+                                {['VTT', 'SRT'].map((format) => {
+                                  const isSelected = transcriptionSettings.outputFormats?.includes(format);
+                                  return (
+                                    <Button
+                                      key={format}
+                                      type="button"
+                                      size="sm"
+                                      variant={isSelected ? 'default' : 'outline'}
+                                      onClick={() => toggleOutputFormat(format)}
+                                    >
+                                      {format}
+                                    </Button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {transcriptionSettings.provider === 'local-faster-whisper' ? (
+                          <div className="rounded-md border border-border bg-muted/20 p-4">
+                            <div className="mb-4">
+                              <p className="text-xs font-semibold text-foreground">Local Whisper</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                Provider-specific options for the local Faster-Whisper worker.
+                              </p>
+                            </div>
+
+                            <div className="grid gap-4 lg:grid-cols-2">
+                              <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-foreground">Model</Label>
+                                <Select
+                                  value={transcriptionSettings.model ?? 'small'}
+                                  onValueChange={(value) =>
+                                    setTranscriptionSettings((current) =>
+                                      current ? { ...current, model: value } : current
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {LOCAL_WHISPER_MODEL_OPTIONS.map((model) => (
+                                      <SelectItem key={model} value={model}>
+                                        {model}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-foreground">Device</Label>
+                                <Select
+                                  value={transcriptionSettings.device ?? 'cpu'}
+                                  onValueChange={(value) =>
+                                    setTranscriptionSettings((current) =>
+                                      current ? { ...current, device: value } : current
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {LOCAL_WHISPER_DEVICE_OPTIONS.map((device) => (
+                                      <SelectItem key={device} value={device}>
+                                        {device}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-foreground">Compute Type</Label>
+                                <Select
+                                  value={transcriptionSettings.computeType ?? 'int8'}
+                                  onValueChange={(value) =>
+                                    setTranscriptionSettings((current) =>
+                                      current ? { ...current, computeType: value } : current
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {LOCAL_WHISPER_COMPUTE_TYPE_OPTIONS.map((computeType) => (
+                                      <SelectItem key={computeType} value={computeType}>
+                                        {computeType}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold text-foreground">Beam Size</Label>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max="20"
+                                  value={transcriptionSettings.beamSize}
+                                  onChange={(event) =>
+                                    setTranscriptionSettings((current) =>
+                                      current
+                                        ? {
+                                            ...current,
+                                            beamSize: Math.min(20, Math.max(1, Number(event.target.value) || 1)),
+                                          }
+                                        : current
+                                    )
+                                  }
+                                  className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                              <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background/60 px-3 py-3">
+                                <div>
+                                  <Label className="text-xs font-semibold text-foreground">Voice activity detection</Label>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                                    Trim long silences during transcription.
+                                  </p>
+                                </div>
+                                <Switch
+                                  checked={transcriptionSettings.enableVad}
+                                  onCheckedChange={(checked) =>
+                                    setTranscriptionSettings((current) =>
+                                      current ? { ...current, enableVad: checked } : current
+                                    )
+                                  }
+                                />
+                              </div>
+
+                              <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background/60 px-3 py-3">
+                                <div>
+                                  <Label className="text-xs font-semibold text-foreground">Word timestamps</Label>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                                    Include finer-grained word timings when supported.
+                                  </p>
+                                </div>
+                                <Switch
+                                  checked={transcriptionSettings.enableWordTimestamps}
+                                  onCheckedChange={(checked) =>
+                                    setTranscriptionSettings((current) =>
+                                      current ? { ...current, enableWordTimestamps: checked } : current
+                                    )
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </>

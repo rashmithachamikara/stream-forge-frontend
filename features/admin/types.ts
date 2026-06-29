@@ -190,3 +190,45 @@ export interface UserListFilters {
   page?: number;
   pageSize?: number;
 }
+
+export interface AdminTranscriptionSettings {
+  enabled: boolean;
+  autoTranscribeOnReady: boolean;
+  provider: string | null;
+  defaultLanguage: string | null;
+  outputFormats: string[];
+  model: string | null;
+  device: string | null;
+  computeType: string | null;
+  beamSize: number;
+  enableVad: boolean;
+  enableWordTimestamps: boolean;
+}
+
+export interface AdminTranscriptionSettingsDto {
+  enabled?: boolean;
+  autoTranscribeOnReady?: boolean;
+  provider?: string | null;
+  defaultLanguage?: string | null;
+  outputFormats?: string[] | null;
+  model?: string | null;
+  device?: string | null;
+  computeType?: string | null;
+  beamSize?: number;
+  enableVad?: boolean;
+  enableWordTimestamps?: boolean;
+}
+
+export interface UpdateAdminTranscriptionSettingsRequest {
+  enabled: boolean;
+  autoTranscribeOnReady: boolean;
+  provider?: string | null;
+  defaultLanguage?: string | null;
+  outputFormats?: string[] | null;
+  model?: string | null;
+  device?: string | null;
+  computeType?: string | null;
+  beamSize: number;
+  enableVad: boolean;
+  enableWordTimestamps: boolean;
+}

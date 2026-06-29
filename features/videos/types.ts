@@ -288,3 +288,180 @@ export interface UpdateBookmarkRequest {
   timestampSeconds: number;
   note?: string | null;
 }
+
+export type PersistedTranscriptionStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
+export type TranscriptionUiStatus = 'active' | 'success' | 'failure' | 'mixed';
+
+export interface TranscriptionLiveStatus {
+  status: string | null;
+  progressPercent: number;
+  stage: string | null;
+  message: string | null;
+  language: string | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  mediaDurationSeconds: number | null;
+  transcribedUntilSeconds: number | null;
+}
+
+export interface TranscriptionLiveStatusDto {
+  status?: string | null;
+  progressPercent?: number;
+  stage?: string | null;
+  message?: string | null;
+  language?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  mediaDurationSeconds?: number | null;
+  transcribedUntilSeconds?: number | null;
+}
+
+export interface VideoTranscription {
+  id: string;
+  videoId: string;
+  language: string | null;
+  format: string | null;
+  status: string | null;
+  source: string | null;
+  correlationId: string | null;
+  workerJobId: string | null;
+  model: string | null;
+  failureReason: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+  liveStatus: TranscriptionLiveStatus | null;
+}
+
+export interface VideoTranscriptionDto {
+  id?: string;
+  videoId?: string;
+  language?: string | null;
+  format?: string | null;
+  status?: string | null;
+  source?: string | null;
+  correlationId?: string | null;
+  workerJobId?: string | null;
+  model?: string | null;
+  failureReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string | null;
+  liveStatus?: TranscriptionLiveStatusDto | null;
+}
+
+export interface VideoTranscriptionArtifact {
+  id: string;
+  format: string | null;
+  status: string | null;
+  failureReason: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
+export interface VideoTranscriptionArtifactDto {
+  id?: string;
+  format?: string | null;
+  status?: string | null;
+  failureReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string | null;
+}
+
+export interface VideoTranscriptionJob {
+  jobKey: string | null;
+  videoId: string;
+  language: string | null;
+  status: string | null;
+  source: string | null;
+  correlationId: string | null;
+  workerJobId: string | null;
+  model: string | null;
+  failureReason: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+  liveStatus: TranscriptionLiveStatus | null;
+  artifacts: VideoTranscriptionArtifact[];
+}
+
+export interface VideoTranscriptionJobDto {
+  jobKey?: string | null;
+  videoId?: string;
+  language?: string | null;
+  status?: string | null;
+  source?: string | null;
+  correlationId?: string | null;
+  workerJobId?: string | null;
+  model?: string | null;
+  failureReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string | null;
+  liveStatus?: TranscriptionLiveStatusDto | null;
+  artifacts?: VideoTranscriptionArtifactDto[] | null;
+}
+
+export interface TranscriptChunk {
+  chunkId: string;
+  videoId: string;
+  transcriptionId: string;
+  language: string | null;
+  startSeconds: number;
+  endSeconds: number;
+  content: string | null;
+}
+
+export interface TranscriptChunkDto {
+  chunkId?: string;
+  videoId?: string;
+  transcriptionId?: string;
+  language?: string | null;
+  startSeconds?: number;
+  endSeconds?: number;
+  content?: string | null;
+}
+
+export interface TranscriptSearchResult {
+  chunkId: string;
+  videoId: string;
+  transcriptionId: string;
+  language: string | null;
+  startSeconds: number;
+  endSeconds: number;
+  content: string | null;
+}
+
+export interface TranscriptSearchResultDto {
+  chunkId?: string;
+  videoId?: string;
+  transcriptionId?: string;
+  language?: string | null;
+  startSeconds?: number;
+  endSeconds?: number;
+  content?: string | null;
+}
+
+export interface TranscriptSearchFilters {
+  q?: string;
+  language?: string;
+  page?: number;
+  pageSize?: number;
+  shareToken?: string;
+}
+
+export interface RequestVideoTranscriptionRequest {
+  language?: string | null;
+  outputFormats?: string[] | null;
+}
+
+export interface RequestVideoTranscriptionRequestDto {
+  language?: string | null;
+  outputFormats?: string[] | null;
+}
+
+export interface TranscriptionArtifactFile {
+  blob: Blob;
+  contentType: string | null;
+}
+
+export interface TranscriptionArtifactText {
+  content: string;
+  contentType: string | null;
+}

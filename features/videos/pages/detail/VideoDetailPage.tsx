@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
 import { CommentsSection } from '@/features/videos/components/CommentsSection';
+import { TranscriptPanel } from '@/features/videos/components/TranscriptPanel';
 import { apiClient } from '@/shared/lib/api';
 import { capitalize, cn } from '@/shared/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,7 +35,15 @@ import {
   BarChart2,
 } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
-import { ReactionSummary, ReactionType, Video, VideoProcessingStatus } from '@/features/videos/types';
+import {
+  ReactionSummary,
+  ReactionType,
+  TranscriptChunk,
+  TranscriptSearchResult,
+  Video,
+  VideoProcessingStatus,
+  VideoTranscription,
+} from '@/features/videos/types';
 import { useAuth } from '@/features/auth/AuthContext';
 import { InitialsAvatar } from '@/shared/components/InitialsAvatar';
 import { Playlist } from '@/features/playlists/types';
@@ -43,9 +52,26 @@ import { VideoStatusBadge } from '@/features/videos/components/VideoStatusBadge'
 import VideoStatsModal from '@/features/videos/components/VideoStatsModal';
 import { UserRole } from '@/features/auth/types';
 import { resolveActiveView, getAllowedViews, ACTIVE_VIEW_CHANGE_EVENT } from '@/shared/lib/viewMode';
+import {
+  buildTranscriptionDownloadName,
+  convertSrtToVtt,
+  getTranscriptionLanguageLabel,
+  isActiveTranscription,
+  normalizeTranscriptionStatus,
+  selectPrimaryTranscription,
+} from '@/features/videos/lib/transcriptions';
 
 const ACTIVE_PROCESSING_STATUSES = new Set(['Uploading', 'Processing']);
 const PROCESSING_POLL_INTERVAL_MS = 4000;
+const TRANSCRIPTION_POLL_INTERVAL_MS = 7000;
+
+type CaptionTrack = {
+  id: string;
+  label: string;
+  src: string;
+  srcLang: string;
+  isDefault?: boolean;
+};
 
 const formatTime = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -63,6 +89,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const playlistId = searchParams.get('playlistId');
+  const shareToken = searchParams.get('shareToken') ?? undefined;
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
   const [autoplay, setAutoplay] = useState(true);
@@ -90,20 +117,35 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const [processingStatus, setProcessingStatus] = useState<VideoProcessingStatus | null>(null);
   const [reactionSummary, setReactionSummary] = useState<ReactionSummary | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
+  const [transcriptions, setTranscriptions] = useState<VideoTranscription[]>([]);
+  const [selectedTranscriptionId, setSelectedTranscriptionId] = useState<string | null>(null);
+  const [transcriptChunks, setTranscriptChunks] = useState<TranscriptChunk[]>([]);
+  const [transcriptSearchQuery, setTranscriptSearchQuery] = useState('');
+  const [transcriptSearchResults, setTranscriptSearchResults] = useState<TranscriptSearchResult[]>([]);
+  const [captionTracks, setCaptionTracks] = useState<CaptionTrack[]>([]);
+  const [selectedCaptionId, setSelectedCaptionId] = useState<string | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBookmarkSaving, setIsBookmarkSaving] = useState(false);
   const [isReactionSaving, setIsReactionSaving] = useState(false);
+  const [isTranscriptLoading, setIsTranscriptLoading] = useState(false);
+  const [isTranscriptSearching, setIsTranscriptSearching] = useState(false);
   const [isPlaylistsLoading, setIsPlaylistsLoading] = useState(false);
   const [isPlaylistDialogOpen, setIsPlaylistDialogOpen] = useState(false);
   const [isPlaylistSaving, setIsPlaylistSaving] = useState(false);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(true);
+  const [isRequestingTranscription, setIsRequestingTranscription] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookmarkMessage, setBookmarkMessage] = useState<string | null>(null);
   const [playlistMessage, setPlaylistMessage] = useState<string | null>(null);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [highlightedChunkId, setHighlightedChunkId] = useState<string | null>(null);
+  const [requestedSeekTime, setRequestedSeekTime] = useState<number | null>(null);
+  const captionUrlsRef = useRef<string[]>([]);
 
   const resolvedView = React.useMemo(() => (user ? resolveActiveView(user.role, null) : null), [user]);
   const [activeView, setActiveView] = useState<UserRole | null>(resolvedView);
+  const browserLanguage = typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : 'en';
 
   useEffect(() => {
     const handleViewChange = (event: Event) => {
@@ -116,6 +158,34 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     window.addEventListener(ACTIVE_VIEW_CHANGE_EVENT, handleViewChange);
     return () => window.removeEventListener(ACTIVE_VIEW_CHANGE_EVENT, handleViewChange);
   }, [user]);
+
+  const requestSeek = useCallback((seconds: number) => {
+    setRequestedSeekTime(null);
+    window.requestAnimationFrame(() => {
+      setRequestedSeekTime(seconds);
+    });
+  }, []);
+
+  const applyLoadedTranscriptions = useCallback((nextTranscriptions: VideoTranscription[]) => {
+    setTranscriptions(nextTranscriptions);
+
+    if (nextTranscriptions.length === 0) {
+      setSelectedTranscriptionId(null);
+      setTranscriptChunks([]);
+      setTranscriptSearchResults([]);
+      return nextTranscriptions;
+    }
+
+    setSelectedTranscriptionId((current) => {
+      if (current && nextTranscriptions.some((transcription) => transcription.id === current)) {
+        return current;
+      }
+
+      return selectPrimaryTranscription(nextTranscriptions, browserLanguage)?.id ?? null;
+    });
+
+    return nextTranscriptions;
+  }, [browserLanguage]);
 
   const loadVideo = useCallback(async ({ showLoading = false }: { showLoading?: boolean } = {}) => {
     if (showLoading) {
@@ -163,6 +233,66 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     return videoResponse.data ?? null;
   }, [videoId, user]);
 
+  const loadTranscriptions = useCallback(async () => {
+    const response = await apiClient.getVideoTranscriptions(videoId, { shareToken });
+
+    if (response.success && response.data) {
+      return applyLoadedTranscriptions(response.data);
+    }
+
+    applyLoadedTranscriptions([]);
+    return [];
+  }, [applyLoadedTranscriptions, shareToken, videoId]);
+
+  const handleDownloadTranscription = useCallback(async (transcription: VideoTranscription) => {
+    if (!video) {
+      return;
+    }
+
+    const response = await apiClient.downloadVideoTranscriptionArtifact(video.id, transcription.id, { shareToken });
+    if (!response.success || !response.data) {
+      setError(response.error ?? 'Failed to download transcription');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(response.data.blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = buildTranscriptionDownloadName(video.title, transcription.language, transcription.format);
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+  }, [shareToken, video]);
+
+  const handleTranscriptSearch = useCallback(async () => {
+    if (!video || !transcriptSearchQuery.trim()) {
+      setTranscriptSearchResults([]);
+      return;
+    }
+
+    setIsTranscriptSearching(true);
+
+    const response = await apiClient.searchVideoTranscript(video.id, {
+      q: transcriptSearchQuery.trim(),
+      language:
+        transcriptions.find((transcription) => transcription.id === selectedTranscriptionId)?.language ?? undefined,
+      page: 1,
+      pageSize: 20,
+      shareToken,
+    });
+
+    if (response.success && response.data) {
+      setTranscriptSearchResults(response.data.items);
+      setIsTranscriptOpen(true);
+    } else {
+      setTranscriptSearchResults([]);
+      setError(response.error ?? 'Failed to search transcript');
+    }
+
+    setIsTranscriptSearching(false);
+  }, [selectedTranscriptionId, shareToken, transcriptSearchQuery, transcriptions, video]);
+
   useEffect(() => {
     if (!playlistId) {
       queueMicrotask(() => {
@@ -202,6 +332,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
     const loadInitialVideo = async () => {
       const loadedVideo = await loadVideo({ showLoading: true });
+      await loadTranscriptions();
 
       if (!isMounted || !loadedVideo?.status || !ACTIVE_PROCESSING_STATUSES.has(loadedVideo.status)) {
         return;
@@ -219,7 +350,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     return () => {
       isMounted = false;
     };
-  }, [loadVideo, videoId]);
+  }, [loadTranscriptions, loadVideo, videoId]);
 
   useEffect(() => {
     if (!video?.status || !ACTIVE_PROCESSING_STATUSES.has(video.status)) {
@@ -260,6 +391,129 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
       window.clearInterval(intervalId);
     };
   }, [loadVideo, video?.status, videoId]);
+
+  useEffect(() => {
+    if (!selectedTranscriptionId || !video) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadChunks = async () => {
+      setIsTranscriptLoading(true);
+      const response = await apiClient.getVideoTranscriptionChunks(video.id, selectedTranscriptionId, { shareToken });
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (response.success && response.data) {
+        setTranscriptChunks(response.data);
+      } else {
+        setTranscriptChunks([]);
+        setError(response.error ?? 'Failed to load transcript');
+      }
+
+      setIsTranscriptLoading(false);
+    };
+
+    void loadChunks();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedTranscriptionId, shareToken, video]);
+
+  useEffect(() => {
+    const completedTranscriptions = transcriptions.filter(
+      (transcription) => normalizeTranscriptionStatus(transcription) === 'success'
+    );
+
+    if (completedTranscriptions.length === 0 || !video) {
+      void Promise.resolve().then(() => {
+        captionUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+        captionUrlsRef.current = [];
+        setCaptionTracks([]);
+        setSelectedCaptionId(null);
+      });
+      return;
+    }
+
+    let isMounted = true;
+
+    const groupedByLanguage = new Map<string, VideoTranscription[]>();
+    completedTranscriptions.forEach((transcription) => {
+      const key = transcription.language?.toLowerCase() || 'auto';
+      const group = groupedByLanguage.get(key) ?? [];
+      group.push(transcription);
+      groupedByLanguage.set(key, group);
+    });
+
+    const loadCaptions = async () => {
+      const selectedArtifacts = Array.from(groupedByLanguage.values())
+        .map((group) => selectPrimaryTranscription(group, group[0]?.language ?? undefined))
+        .filter((value): value is VideoTranscription => Boolean(value));
+
+      const nextCaptionTracks: CaptionTrack[] = [];
+      const nextUrls: string[] = [];
+
+      for (const transcription of selectedArtifacts) {
+        const response = await apiClient.getVideoTranscriptionArtifactText(video.id, transcription.id, { shareToken });
+        if (!response.success || !response.data) {
+          continue;
+        }
+
+        const format = transcription.format?.toUpperCase() ?? 'VTT';
+        const content = format === 'SRT' ? convertSrtToVtt(response.data.content) : response.data.content;
+        const blob = new Blob([content], { type: 'text/vtt' });
+        const objectUrl = URL.createObjectURL(blob);
+        nextUrls.push(objectUrl);
+        nextCaptionTracks.push({
+          id: transcription.id,
+          label: getTranscriptionLanguageLabel(transcription.language),
+          src: objectUrl,
+          srcLang: transcription.language || 'en',
+        });
+      }
+
+      if (!isMounted) {
+        nextUrls.forEach((url) => URL.revokeObjectURL(url));
+        return;
+      }
+
+      captionUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      captionUrlsRef.current = nextUrls;
+      setCaptionTracks(nextCaptionTracks);
+      setSelectedCaptionId((current) => {
+        if (current && nextCaptionTracks.some((track) => track.id === current)) {
+          return current;
+        }
+
+        const primaryTrack = nextCaptionTracks.find((track) => track.id === selectedTranscriptionId);
+        return primaryTrack?.id ?? nextCaptionTracks[0]?.id ?? null;
+      });
+    };
+
+    void loadCaptions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedTranscriptionId, shareToken, transcriptions, video]);
+
+  useEffect(() => {
+    if (!transcriptions.some(isActiveTranscription)) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadTranscriptions();
+    }, TRANSCRIPTION_POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadTranscriptions, transcriptions]);
 
   const handleBookmarkAdd = async (timestamp: number, note?: string) => {
     if (!video) {
@@ -363,6 +617,36 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     setIsReactionSaving(false);
   };
 
+  const handleRequestTranscription = useCallback(async () => {
+    if (!video) {
+      return;
+    }
+
+    setIsRequestingTranscription(true);
+    setError(null);
+
+    const response = await apiClient.requestVideoTranscription(video.id, {
+      language: browserLanguage || null,
+      outputFormats: ['VTT', 'SRT'],
+    });
+
+    if (response.success && response.data) {
+      applyLoadedTranscriptions(response.data);
+      setIsTranscriptOpen(true);
+    } else {
+      setError(response.error ?? 'Failed to request transcription');
+    }
+
+    setIsRequestingTranscription(false);
+  }, [applyLoadedTranscriptions, browserLanguage, video]);
+
+  const handleTranscriptResultSeek = useCallback((result: TranscriptSearchResult) => {
+    setSelectedTranscriptionId(result.transcriptionId);
+    setHighlightedChunkId(result.chunkId);
+    setIsTranscriptOpen(true);
+    requestSeek(result.startSeconds);
+  }, [requestSeek]);
+
   const handlePlaylistVideoEnded = useCallback(() => {
     if (!autoplay || !playlistId || playlistVideos.length === 0) return;
 
@@ -377,6 +661,18 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const isDisliked = reactionSummary?.currentUserReaction === 'Dislike';
   const isOwner = !!(user && video && user.id === video.uploaderId);
   const canManageVideo = activeView !== 'viewer' && (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
+  const canRequestTranscription =
+    !!video &&
+    video.status === 'Ready' &&
+    activeView !== 'viewer' &&
+    (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
+
+  useEffect(() => {
+    return () => {
+      captionUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      captionUrlsRef.current = [];
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -423,10 +719,14 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 duration={video.duration}
                 authToken={token}
                 bookmarks={bookmarks}
+                captions={captionTracks}
+                selectedCaptionId={selectedCaptionId}
+                onCaptionChange={setSelectedCaptionId}
                 onBookmarkAdd={handleBookmarkAdd}
                 isBookmarkSaving={isBookmarkSaving}
                 onEnded={handlePlaylistVideoEnded}
                 autoPlay={isAutoplayLoaded && autoplay && !!playlistId}
+                requestedSeekTime={requestedSeekTime}
               />
             ) : (
               <div className="relative aspect-video w-full rounded-lg bg-card border border-border text-foreground flex flex-col items-center justify-center gap-4 p-6 text-center overflow-hidden">
@@ -661,6 +961,36 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 ))}
               </div>
             </div>
+
+            <TranscriptPanel
+              title={video.title}
+              transcriptions={transcriptions}
+              selectedTranscriptionId={selectedTranscriptionId}
+              onSelectTranscription={(transcriptionId) => {
+                setSelectedTranscriptionId(transcriptionId);
+                setHighlightedChunkId(null);
+                setTranscriptChunks([]);
+              }}
+              transcriptChunks={transcriptChunks}
+              isTranscriptLoading={isTranscriptLoading}
+              transcriptSearchQuery={transcriptSearchQuery}
+              onTranscriptSearchQueryChange={setTranscriptSearchQuery}
+              onTranscriptSearch={() => void handleTranscriptSearch()}
+              transcriptSearchResults={transcriptSearchResults}
+              isTranscriptSearching={isTranscriptSearching}
+              highlightedChunkId={highlightedChunkId}
+              onChunkSeek={(chunk) => {
+                setHighlightedChunkId(chunk.chunkId);
+                requestSeek(chunk.startSeconds);
+              }}
+              onSearchResultSeek={handleTranscriptResultSeek}
+              onDownloadTranscription={(transcription) => void handleDownloadTranscription(transcription)}
+              isOpen={isTranscriptOpen}
+              onOpenChange={setIsTranscriptOpen}
+              canRequestTranscription={canRequestTranscription}
+              onRequestTranscription={() => void handleRequestTranscription()}
+              isRequestingTranscription={isRequestingTranscription}
+            />
 
 
 

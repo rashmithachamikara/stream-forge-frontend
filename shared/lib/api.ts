@@ -15,11 +15,21 @@ import {
   CreateBookmarkRequest,
   CreateCommentRequest,
   CreateTagRequest,
+  RequestVideoTranscriptionRequest,
   ReactionSummary,
   ReactionSummaryDto,
   SetReactionRequest,
   TagSummaryDto,
   TagSummary,
+  TranscriptChunk,
+  TranscriptChunkDto,
+  TranscriptSearchFilters,
+  TranscriptSearchResult,
+  TranscriptSearchResultDto,
+  TranscriptionArtifactFile,
+  TranscriptionArtifactText,
+  TranscriptionLiveStatus,
+  TranscriptionLiveStatusDto,
   UpdateCategoryRequest,
   UpdateBookmarkRequest,
   UpdateCommentRequest,
@@ -30,11 +40,17 @@ import {
   VideoListFilters,
   VideoProcessingStatus,
   VideoProcessingStatusDto,
+  VideoTranscription,
+  VideoTranscriptionDto,
+  VideoTranscriptionJob,
+  VideoTranscriptionJobDto,
   VideoSummaryDto,
 } from '@/features/videos/types';
 import {
   ActiveViewers,
   ActiveViewersDto,
+  AdminTranscriptionSettings,
+  AdminTranscriptionSettingsDto,
   AnalyticsBreakdownItem,
   AnalyticsBreakdownKind,
   AnalyticsDateRange,
@@ -58,6 +74,7 @@ import {
   RecordAnalyticsEventResult,
   RecordAnalyticsEventResultDto,
   TagBreakdownItemDto,
+  UpdateAdminTranscriptionSettingsRequest,
   UserListFilters,
   UserProfile,
   UserProfileDto,
@@ -254,6 +271,94 @@ const mapVideoProcessingStatus = (status: VideoProcessingStatusDto): VideoProces
   errorMessage: status.errorMessage ?? null,
   startedAt: status.startedAt ? new Date(status.startedAt) : null,
   completedAt: status.completedAt ? new Date(status.completedAt) : null,
+});
+
+const mapTranscriptionLiveStatus = (
+  status: TranscriptionLiveStatusDto | null | undefined
+): TranscriptionLiveStatus | null => {
+  if (!status) {
+    return null;
+  }
+
+  return {
+    status: status.status ?? null,
+    progressPercent: status.progressPercent ?? 0,
+    stage: status.stage ?? null,
+    message: status.message ?? null,
+    language: status.language ?? null,
+    startedAt: status.startedAt ? new Date(status.startedAt) : null,
+    completedAt: status.completedAt ? new Date(status.completedAt) : null,
+    mediaDurationSeconds: status.mediaDurationSeconds ?? null,
+    transcribedUntilSeconds: status.transcribedUntilSeconds ?? null,
+  };
+};
+
+const mapVideoTranscription = (transcription: VideoTranscriptionDto): VideoTranscription => ({
+  id: transcription.id ?? '',
+  videoId: transcription.videoId ?? '',
+  language: transcription.language ?? null,
+  format: transcription.format ?? null,
+  status: transcription.status ?? null,
+  source: transcription.source ?? null,
+  correlationId: transcription.correlationId ?? null,
+  workerJobId: transcription.workerJobId ?? null,
+  model: transcription.model ?? null,
+  failureReason: transcription.failureReason ?? null,
+  createdAt: transcription.createdAt ? new Date(transcription.createdAt) : new Date(),
+  updatedAt: transcription.updatedAt ? new Date(transcription.updatedAt) : null,
+  liveStatus: mapTranscriptionLiveStatus(transcription.liveStatus),
+});
+
+const mapVideoTranscriptionJob = (job: VideoTranscriptionJobDto): VideoTranscriptionJob => ({
+  jobKey: job.jobKey ?? null,
+  videoId: job.videoId ?? '',
+  language: job.language ?? null,
+  status: job.status ?? null,
+  source: job.source ?? null,
+  correlationId: job.correlationId ?? null,
+  workerJobId: job.workerJobId ?? null,
+  model: job.model ?? null,
+  failureReason: job.failureReason ?? null,
+  createdAt: job.createdAt ? new Date(job.createdAt) : new Date(),
+  updatedAt: job.updatedAt ? new Date(job.updatedAt) : null,
+  liveStatus: mapTranscriptionLiveStatus(job.liveStatus),
+  artifacts: [],
+});
+
+const mapTranscriptChunk = (chunk: TranscriptChunkDto): TranscriptChunk => ({
+  chunkId: chunk.chunkId ?? '',
+  videoId: chunk.videoId ?? '',
+  transcriptionId: chunk.transcriptionId ?? '',
+  language: chunk.language ?? null,
+  startSeconds: chunk.startSeconds ?? 0,
+  endSeconds: chunk.endSeconds ?? 0,
+  content: chunk.content ?? null,
+});
+
+const mapTranscriptSearchResult = (result: TranscriptSearchResultDto): TranscriptSearchResult => ({
+  chunkId: result.chunkId ?? '',
+  videoId: result.videoId ?? '',
+  transcriptionId: result.transcriptionId ?? '',
+  language: result.language ?? null,
+  startSeconds: result.startSeconds ?? 0,
+  endSeconds: result.endSeconds ?? 0,
+  content: result.content ?? null,
+});
+
+const mapAdminTranscriptionSettings = (
+  settings: AdminTranscriptionSettingsDto
+): AdminTranscriptionSettings => ({
+  enabled: settings.enabled ?? false,
+  autoTranscribeOnReady: settings.autoTranscribeOnReady ?? false,
+  provider: settings.provider ?? null,
+  defaultLanguage: settings.defaultLanguage ?? null,
+  outputFormats: settings.outputFormats ?? [],
+  model: settings.model ?? null,
+  device: settings.device ?? null,
+  computeType: settings.computeType ?? null,
+  beamSize: settings.beamSize ?? 1,
+  enableVad: settings.enableVad ?? false,
+  enableWordTimestamps: settings.enableWordTimestamps ?? false,
 });
 
 const mapReactionSummary = (summary: ReactionSummaryDto): ReactionSummary => ({
@@ -608,6 +713,45 @@ class ApiClient {
     return data;
   }
 
+  private async requestResponse(path: string, options: RequestInit = {}): Promise<Response> {
+    const isFormData = options.body instanceof FormData;
+    const headers = new Headers(options.headers);
+
+    if (!isFormData && !headers.has('Content-Type') && options.body !== undefined) {
+      headers.set('Content-Type', 'application/json');
+    }
+
+    const activeToken = await this.getValidToken();
+    if (activeToken) {
+      headers.set('Authorization', `Bearer ${activeToken}`);
+    }
+
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Request failed';
+
+      try {
+        const data = await response.clone().json();
+        errorMessage = data?.error || data?.message || errorMessage;
+      } catch {
+        try {
+          const text = await response.clone().text();
+          if (text) {
+            errorMessage = text;
+          }
+        } catch {}
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return response;
+  }
+
   private async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     try {
       const data = await this.requestRaw<T>(path, options);
@@ -813,6 +957,213 @@ class ApiClient {
     }
   }
 
+  async getVideoTranscriptions(
+    videoId: string,
+    options: { shareToken?: string } = {}
+  ): Promise<ApiResponse<VideoTranscription[]>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'shareToken', options.shareToken);
+      const query = params.toString();
+      const response = await this.requestRaw<VideoTranscriptionDto[]>(
+        `${API_V1_PREFIX}/videos/${videoId}/transcriptions${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: response.map(mapVideoTranscription),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch video transcriptions',
+      };
+    }
+  }
+
+  async requestVideoTranscription(
+    videoId: string,
+    payload: RequestVideoTranscriptionRequest
+  ): Promise<ApiResponse<VideoTranscription[]>> {
+    try {
+      const response = await this.requestRaw<VideoTranscriptionDto[]>(
+        `${API_V1_PREFIX}/videos/${videoId}/transcriptions`,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }
+      );
+
+      return {
+        success: true,
+        data: response.map(mapVideoTranscription),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to request transcription',
+      };
+    }
+  }
+
+  async getVideoTranscriptionJobs(
+    videoId: string,
+    options: { shareToken?: string } = {}
+  ): Promise<ApiResponse<VideoTranscriptionJob[]>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'shareToken', options.shareToken);
+      const query = params.toString();
+      const response = await this.requestRaw<VideoTranscriptionJobDto[]>(
+        `${API_V1_PREFIX}/videos/${videoId}/transcription-jobs${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: response.map(mapVideoTranscriptionJob),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch transcription jobs',
+      };
+    }
+  }
+
+  async getVideoTranscriptionStatus(
+    videoId: string,
+    transcriptionId: string,
+    options: { shareToken?: string } = {}
+  ): Promise<ApiResponse<VideoTranscription>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'shareToken', options.shareToken);
+      const query = params.toString();
+      const response = await this.requestRaw<VideoTranscriptionDto>(
+        `${API_V1_PREFIX}/videos/${videoId}/transcriptions/${transcriptionId}/status${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: mapVideoTranscription(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch transcription status',
+      };
+    }
+  }
+
+  async getVideoTranscriptionChunks(
+    videoId: string,
+    transcriptionId: string,
+    options: { shareToken?: string } = {}
+  ): Promise<ApiResponse<TranscriptChunk[]>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'shareToken', options.shareToken);
+      const query = params.toString();
+      const response = await this.requestRaw<TranscriptChunkDto[]>(
+        `${API_V1_PREFIX}/videos/${videoId}/transcriptions/${transcriptionId}/chunks${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: response.map(mapTranscriptChunk),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch transcription chunks',
+      };
+    }
+  }
+
+  async searchVideoTranscript(
+    videoId: string,
+    filters: TranscriptSearchFilters = {}
+  ): Promise<ApiResponse<PaginatedResponse<TranscriptSearchResult>>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'q', filters.q);
+      appendQueryParam(params, 'language', filters.language);
+      appendQueryParam(params, 'page', filters.page ?? 1);
+      appendQueryParam(params, 'pageSize', filters.pageSize ?? 20);
+      appendQueryParam(params, 'shareToken', filters.shareToken);
+
+      const response = await this.requestRaw<PaginatedResponse<TranscriptSearchResultDto>>(
+        `${API_V1_PREFIX}/videos/${videoId}/transcript-search?${params.toString()}`
+      );
+
+      return {
+        success: true,
+        data: mapPagedResponse(response, mapTranscriptSearchResult),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to search transcript',
+      };
+    }
+  }
+
+  async getVideoTranscriptionArtifactText(
+    videoId: string,
+    transcriptionId: string,
+    options: { shareToken?: string } = {}
+  ): Promise<ApiResponse<TranscriptionArtifactText>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'shareToken', options.shareToken);
+      const query = params.toString();
+      const response = await this.requestResponse(
+        `${API_V1_PREFIX}/videos/${videoId}/transcriptions/${transcriptionId}/content${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: {
+          content: await response.text(),
+          contentType: response.headers.get('content-type'),
+        },
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch transcription artifact',
+      };
+    }
+  }
+
+  async downloadVideoTranscriptionArtifact(
+    videoId: string,
+    transcriptionId: string,
+    options: { shareToken?: string } = {}
+  ): Promise<ApiResponse<TranscriptionArtifactFile>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'shareToken', options.shareToken);
+      const query = params.toString();
+      const response = await this.requestResponse(
+        `${API_V1_PREFIX}/videos/${videoId}/transcriptions/${transcriptionId}/content${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: {
+          blob: await response.blob(),
+          contentType: response.headers.get('content-type'),
+        },
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to download transcription artifact',
+      };
+    }
+  }
+
   async getCategories(): Promise<ApiResponse<Category[]>> {
     try {
       const categories = await this.requestRaw<CategoryDto[]>(`${API_V1_PREFIX}/categories`);
@@ -986,6 +1337,48 @@ class ApiClient {
       return {
         success: false,
         error: 'Failed to fetch users',
+      };
+    }
+  }
+
+  async getAdminTranscriptionSettings(): Promise<ApiResponse<AdminTranscriptionSettings>> {
+    try {
+      const response = await this.requestRaw<AdminTranscriptionSettingsDto>(
+        `${API_V1_PREFIX}/admin/transcription/settings`
+      );
+
+      return {
+        success: true,
+        data: mapAdminTranscriptionSettings(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch transcription settings',
+      };
+    }
+  }
+
+  async updateAdminTranscriptionSettings(
+    payload: UpdateAdminTranscriptionSettingsRequest
+  ): Promise<ApiResponse<AdminTranscriptionSettings>> {
+    try {
+      const response = await this.requestRaw<AdminTranscriptionSettingsDto>(
+        `${API_V1_PREFIX}/admin/transcription/settings`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        }
+      );
+
+      return {
+        success: true,
+        data: mapAdminTranscriptionSettings(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to update transcription settings',
       };
     }
   }

@@ -8,6 +8,7 @@ import { AnalyticsEventType } from '@/features/admin/types';
 import { apiClient } from '@/shared/lib/api';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Kbd } from '@/components/ui/kbd';
+import { Switch } from '@/components/ui/switch';
 import {
   Play,
   Pause,
@@ -18,7 +19,18 @@ import {
   Settings,
   Share2,
   Bookmark,
+  ClosedCaption,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+
+type CaptionTrack = {
+  id: string;
+  label: string;
+  src: string;
+  srcLang: string;
+  isDefault?: boolean;
+};
 
 interface VideoPlayerProps {
   videoId?: string;
@@ -27,10 +39,14 @@ interface VideoPlayerProps {
   duration: number;
   authToken?: string | null;
   bookmarks?: BookmarkType[];
+  captions?: CaptionTrack[];
+  selectedCaptionId?: string | null;
+  onCaptionChange?: (captionId: string | null) => void;
   onBookmarkAdd?: (timestamp: number, note?: string) => void;
   isBookmarkSaving?: boolean;
   onEnded?: () => void;
   autoPlay?: boolean;
+  requestedSeekTime?: number | null;
 }
 
 type QualityOption = {
@@ -38,10 +54,48 @@ type QualityOption = {
   label: string;
 };
 
+type SettingsView = 'main' | 'captions';
+
+type CaptionColorOption = {
+  value: string;
+  label: string;
+};
+
+type CaptionPreferences = {
+  enabled: boolean;
+  language: string | null;
+  fontColor: string;
+  fontSize: number;
+  fontOpacity: number;
+  backgroundColor: string;
+  backgroundOpacity: number;
+  textShadowEnabled: boolean;
+};
+
+const DEFAULT_CAPTION_PREFERENCES: CaptionPreferences = {
+  enabled: false,
+  language: null,
+  fontColor: '#ffffff',
+  fontSize: 2,
+  fontOpacity: 1,
+  backgroundColor: '#000000',
+  backgroundOpacity: 0.7,
+  textShadowEnabled: false,
+};
+
+const CAPTION_COLOR_OPTIONS: CaptionColorOption[] = [
+  { value: '#ffffff', label: 'White' },
+  { value: '#000000', label: 'Black' },
+  { value: '#facc15', label: 'Yellow' },
+  { value: '#93c5fd', label: 'Blue' },
+  { value: '#86efac', label: 'Green' },
+];
+
 const ANALYTICS_TRACK_PAUSE = process.env.NEXT_PUBLIC_ANALYTICS_TRACK_PAUSE !== 'false';
 const ANALYTICS_TRACK_SEEK = process.env.NEXT_PUBLIC_ANALYTICS_TRACK_SEEK !== 'false';
 const ANALYTICS_TRACK_CLOSE = process.env.NEXT_PUBLIC_ANALYTICS_TRACK_CLOSE !== 'false';
 const ANALYTICS_PLAY_HEARTBEAT_MS = 10000;
+const CAPTION_PREFERENCES_STORAGE_KEY = 'streamforge_caption_preferences';
 
 const createAnalyticsSessionId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -63,6 +117,38 @@ const formatTime = (seconds: number) => {
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 };
 
+const hexToRgbString = (value: string) => {
+  const normalized = value.replace('#', '');
+  const padded = normalized.length === 3
+    ? normalized
+        .split('')
+        .map((character) => `${character}${character}`)
+        .join('')
+    : normalized;
+
+  const red = parseInt(padded.slice(0, 2), 16);
+  const green = parseInt(padded.slice(2, 4), 16);
+  const blue = parseInt(padded.slice(4, 6), 16);
+
+  return `${red}, ${green}, ${blue}`;
+};
+
+const getStoredCaptionPreferences = (): CaptionPreferences | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CAPTION_PREFERENCES_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as CaptionPreferences) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getInitialCaptionPreferences = () =>
+  getStoredCaptionPreferences() ?? DEFAULT_CAPTION_PREFERENCES;
+
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoId,
   hlsUrl,
@@ -70,10 +156,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   duration,
   authToken,
   bookmarks = [],
+  captions = [],
+  selectedCaptionId = null,
+  onCaptionChange,
   onBookmarkAdd,
   isBookmarkSaving = false,
   onEnded,
   autoPlay,
+  requestedSeekTime = null,
 }) => {
   const searchParams = useSearchParams();
   const tParam = searchParams?.get('t');
@@ -92,6 +182,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const watchedSinceLastEventRef = useRef(0);
   const lastPlaybackPositionRef = useRef(0);
   const isSeekingRef = useRef(false);
+  const captionTrackRefs = useRef<Record<string, HTMLTrackElement | null>>({});
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const bookmarkInputRef = useRef<HTMLInputElement>(null);
   const showBookmarksPanelRef = useRef(false);
   const handleAddBookmarkRef = useRef<() => void>(() => {});
@@ -111,6 +204,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [qualityOptions, setQualityOptions] = useState<QualityOption[]>([]);
   const [usesNativeHls, setUsesNativeHls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsView, setSettingsView] = useState<SettingsView>('main');
+  const [captionFontColor, setCaptionFontColor] = useState(() => getInitialCaptionPreferences().fontColor);
+  const [captionFontSize, setCaptionFontSize] = useState(() => getInitialCaptionPreferences().fontSize);
+  const [captionFontOpacity, setCaptionFontOpacity] = useState(() => getInitialCaptionPreferences().fontOpacity);
+  const [captionBackgroundColor, setCaptionBackgroundColor] = useState(() => getInitialCaptionPreferences().backgroundColor);
+  const [captionBackgroundOpacity, setCaptionBackgroundOpacity] = useState(() => getInitialCaptionPreferences().backgroundOpacity);
+  const [captionTextShadowEnabled, setCaptionTextShadowEnabled] = useState(() => getInitialCaptionPreferences().textShadowEnabled);
+  const [captionEnabledPreference, setCaptionEnabledPreference] = useState(() => getInitialCaptionPreferences().enabled);
+  const [preferredCaptionLanguage, setPreferredCaptionLanguage] = useState<string | null>(() => getInitialCaptionPreferences().language);
+  const captionPreferencesLoadedRef = useRef(true);
+
+  const activeCaptionTrack = captions.find((caption) => caption.id === selectedCaptionId) ?? null;
+  const defaultCaptionId = captions[0]?.id ?? null;
+  const preferredCaptionTrack =
+    captions.find((caption) => preferredCaptionLanguage && caption.srcLang === preferredCaptionLanguage) ?? null;
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [seekIndicator, setSeekIndicator] = useState<string | null>(null);
@@ -127,6 +235,81 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     volumeIndicatorRef.current = val;
     setVolumeIndicator(val);
   };
+
+  const resetCaptionPreferences = useCallback(() => {
+    setCaptionFontColor(DEFAULT_CAPTION_PREFERENCES.fontColor);
+    setCaptionFontSize(DEFAULT_CAPTION_PREFERENCES.fontSize);
+    setCaptionFontOpacity(DEFAULT_CAPTION_PREFERENCES.fontOpacity);
+    setCaptionBackgroundColor(DEFAULT_CAPTION_PREFERENCES.backgroundColor);
+    setCaptionBackgroundOpacity(DEFAULT_CAPTION_PREFERENCES.backgroundOpacity);
+    setCaptionTextShadowEnabled(DEFAULT_CAPTION_PREFERENCES.textShadowEnabled);
+  }, []);
+
+  const applyCaptionSelection = useCallback((captionId: string | null) => {
+    setCaptionEnabledPreference(captionId !== null);
+
+    if (captionId === null) {
+      onCaptionChange?.(null);
+      return;
+    }
+
+    const selectedTrack = captions.find((caption) => caption.id === captionId) ?? null;
+    if (selectedTrack) {
+      setPreferredCaptionLanguage(selectedTrack.srcLang);
+    }
+
+    onCaptionChange?.(captionId);
+  }, [captions, onCaptionChange]);
+
+  useEffect(() => {
+    if (!captionPreferencesLoadedRef.current || !onCaptionChange || captions.length === 0) {
+      return;
+    }
+
+    if (!captionEnabledPreference && selectedCaptionId !== null) {
+      onCaptionChange(null);
+      return;
+    }
+
+    if (captionEnabledPreference && selectedCaptionId === null) {
+      onCaptionChange(preferredCaptionTrack?.id ?? defaultCaptionId);
+    }
+  }, [
+    captionEnabledPreference,
+    captions.length,
+    defaultCaptionId,
+    onCaptionChange,
+    preferredCaptionTrack,
+    selectedCaptionId,
+  ]);
+
+  useEffect(() => {
+    if (!captionPreferencesLoadedRef.current || typeof window === 'undefined') {
+      return;
+    }
+
+    const preferences: CaptionPreferences = {
+      enabled: captionEnabledPreference,
+      language: preferredCaptionLanguage,
+      fontColor: captionFontColor,
+      fontSize: captionFontSize,
+      fontOpacity: captionFontOpacity,
+      backgroundColor: captionBackgroundColor,
+      backgroundOpacity: captionBackgroundOpacity,
+      textShadowEnabled: captionTextShadowEnabled,
+    };
+
+    window.localStorage.setItem(CAPTION_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+  }, [
+    captionBackgroundColor,
+    captionBackgroundOpacity,
+    captionEnabledPreference,
+    captionFontColor,
+    captionFontOpacity,
+    captionFontSize,
+    captionTextShadowEnabled,
+    preferredCaptionLanguage,
+  ]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -145,6 +328,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setQualityOptions([]);
     setUsesNativeHls(false);
     setShowSettings(false);
+    setSettingsView('main');
     setShowBookmarksPanel(false);
     analyticsSessionIdRef.current = createAnalyticsSessionId();
     watchedSinceLastEventRef.current = 0;
@@ -225,6 +409,28 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [startTime]);
 
   useEffect(() => {
+    if (!videoRef.current || requestedSeekTime === null || Number.isNaN(requestedSeekTime)) {
+      return;
+    }
+
+    videoRef.current.currentTime = requestedSeekTime;
+    setCurrentTime(requestedSeekTime);
+    lastPlaybackPositionRef.current = requestedSeekTime;
+    setShowControls(true);
+  }, [requestedSeekTime]);
+
+  useEffect(() => {
+    captions.forEach((caption) => {
+      const trackRef = captionTrackRefs.current[caption.id];
+      if (!trackRef) {
+        return;
+      }
+
+      trackRef.track.mode = selectedCaptionId === caption.id ? 'showing' : 'disabled';
+    });
+  }, [captions, selectedCaptionId]);
+
+  useEffect(() => {
     if (autoPlayRef.current && videoRef.current) {
       const handleCanPlay = () => {
         videoRef.current?.play().catch((err) => {
@@ -274,9 +480,31 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (!showSettings) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+
+      if (settingsMenuRef.current?.contains(target) || settingsButtonRef.current?.contains(target)) {
+        return;
+      }
+
+      setShowSettings(false);
+      setSettingsView('main');
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+    };
+  }, [showSettings]);
+
   const handleQualityChange = (value: string) => {
     setQuality(value);
-    setShowSettings(false);
 
     if (!hlsRef.current) {
       return;
@@ -584,6 +812,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setShowBookmarksPanel((prev) => !prev);
           handleMouseMove();
           break;
+        case 'c':
+        case 'C':
+          if (captions.length > 0) {
+            event.preventDefault();
+            const nextCaptionId = selectedCaptionId === null ? defaultCaptionId : null;
+            applyCaptionSelection(nextCaptionId);
+            handleMouseMove();
+          }
+          break;
         case '/':
           if (showBookmarksPanelRef.current) {
             event.preventDefault();
@@ -681,7 +918,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [duration, togglePlay, toggleMute, toggleFullscreen, handleMouseMove, startSeekIndicator, releaseSeekIndicator, startVolumeIndicator, releaseVolumeIndicator]);
+  }, [
+    applyCaptionSelection,
+    captions,
+    defaultCaptionId,
+    duration,
+    handleMouseMove,
+    releaseSeekIndicator,
+    releaseVolumeIndicator,
+    selectedCaptionId,
+    startSeekIndicator,
+    startVolumeIndicator,
+    toggleFullscreen,
+    toggleMute,
+    togglePlay,
+  ]);
 
   const displayDuration = mediaDuration > 0 ? mediaDuration : duration;
   const progressPercent = displayDuration > 0 ? (currentTime / displayDuration) * 100 : 0;
@@ -695,7 +946,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     >
       <video
         ref={videoRef}
-        className="w-full max-h-full bg-black object-contain fullscreen:h-full cursor-pointer"
+        className="streamforge-video-player w-full max-h-full bg-black object-contain fullscreen:h-full cursor-pointer"
         onClick={togglePlay}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={() => {
@@ -721,7 +972,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onSeeking={handleSeeking}
         onSeeked={handleSeeked}
         onEnded={handleEnded}
-      />
+      >
+        {captions.map((caption) => (
+          <track
+            key={caption.id}
+            ref={(element) => {
+              captionTrackRefs.current[caption.id] = element;
+            }}
+            kind="subtitles"
+            label={caption.label}
+            src={caption.src}
+            srcLang={caption.srcLang}
+            default={caption.isDefault}
+          />
+        ))}
+      </video>
 
       {seekIndicator && (
         <div className={`absolute inset-0 flex items-center pointer-events-none z-20 transition-all duration-150 ease-out ${
@@ -953,6 +1218,28 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </TooltipContent>
             </Tooltip>
 
+            {captions.length > 0 ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    aria-label="Closed captions"
+                    className={`h-8 w-8 rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0 ${
+                      activeCaptionTrack
+                        ? 'text-white bg-white/10'
+                        : 'text-white/90 hover:text-white'
+                    }`}
+                    onClick={() => applyCaptionSelection(selectedCaptionId === null ? defaultCaptionId : null)}
+                  >
+                    <ClosedCaption className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="center" className="flex items-center gap-1.5 font-sans">
+                  <span>Closed captions</span>
+                  <Kbd>C</Kbd>
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -970,9 +1257,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
+                    ref={settingsButtonRef}
                     className={`h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0 ${showSettings ? 'text-white bg-white/10' : ''}`}
                     onClick={() => {
                       setShowSettings((isOpen) => !isOpen);
+                      setSettingsView('main');
                       setShowControls(true);
                     }}
                   >
@@ -986,45 +1275,232 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
               {showSettings && (
                 <div
+                  ref={settingsMenuRef}
                   role="menu"
-                  className="absolute bottom-9 right-0 z-30 w-40 overflow-hidden rounded border border-border/60 bg-card/75 backdrop-blur-md text-foreground shadow-xl p-1"
+                  className="absolute bottom-9 right-0 z-30 w-48 overflow-hidden rounded border border-border/60 bg-card/90 backdrop-blur-md text-foreground shadow-xl p-1"
                 >
-                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">Quality</div>
-                  <div className="h-px bg-border/60 my-1" />
-                  <div className="space-y-0.5">
-                    {usesNativeHls ? (
-                      <button
-                        type="button"
-                        disabled
-                        className="flex w-full cursor-default items-center gap-2 rounded px-2 py-1 text-left text-xs text-muted-foreground/60 font-mono"
-                      >
-                        <span className="size-1.5 rounded-full bg-muted-foreground/50" />
-                        Native HLS
-                      </button>
-                    ) : (
-                      <>
+                  {settingsView === 'main' ? (
+                    <>
+                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">Quality</div>
+                      <div className="h-px bg-border/60 my-1" />
+                      <div className="space-y-0.5">
+                        {usesNativeHls ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="flex w-full cursor-default items-center gap-2 rounded px-2 py-1 text-left text-xs text-muted-foreground/60 font-mono"
+                          >
+                            <span className="size-1.5 rounded-full bg-muted-foreground/50" />
+                            Native HLS
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer font-mono bg-transparent border-0"
+                              onClick={() => handleQualityChange('auto')}
+                            >
+                              <span className={`size-1.5 rounded-full ${quality === 'auto' ? 'bg-primary' : 'bg-transparent'}`} />
+                              Auto
+                            </button>
+                            {qualityOptions.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer font-mono bg-transparent border-0"
+                                onClick={() => handleQualityChange(option.value)}
+                              >
+                                <span className={`size-1.5 rounded-full ${quality === option.value ? 'bg-primary' : 'bg-transparent'}`} />
+                                {option.label.split(' ')[0]}
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                      {captions.length > 0 ? (
+                        <>
+                          <div className="h-px bg-border/60 my-1" />
+                          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            Captions
+                          </div>
+                          <div className="space-y-0.5">
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer font-mono bg-transparent border-0"
+                              onClick={() => applyCaptionSelection(null)}
+                            >
+                              <span className={`size-1.5 rounded-full ${selectedCaptionId === null ? 'bg-primary' : 'bg-transparent'}`} />
+                              Off
+                            </button>
+                            {captions.map((caption) => (
+                              <button
+                                key={caption.id}
+                                type="button"
+                                className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer font-mono bg-transparent border-0"
+                                onClick={() => applyCaptionSelection(caption.id)}
+                              >
+                                <span className={`size-1.5 rounded-full ${selectedCaptionId === caption.id ? 'bg-primary' : 'bg-transparent'}`} />
+                                {caption.label}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer bg-transparent border-0"
+                              onClick={() => setSettingsView('captions')}
+                            >
+                              <span>Customize</span>
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-1 px-1 py-1">
                         <button
                           type="button"
-                          className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer font-mono bg-transparent border-0"
-                          onClick={() => handleQualityChange('auto')}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded text-foreground hover:bg-accent"
+                          onClick={() => setSettingsView('main')}
                         >
-                          <span className={`size-1.5 rounded-full ${quality === 'auto' ? 'bg-primary' : 'bg-transparent'}`} />
-                          Auto
+                          <ChevronLeft className="h-4 w-4" />
                         </button>
-                        {qualityOptions.map((option) => (
+                        <div className="text-xs font-semibold">Closed Captions</div>
+                      </div>
+                      <div className="h-px bg-border/60 my-1" />
+                      <div className="space-y-3 px-2 py-1">
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">Font Color</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {CAPTION_COLOR_OPTIONS.map((option) => (
+                              <button
+                                key={`font-${option.value}`}
+                                type="button"
+                                aria-label={option.label}
+                                className={`h-5 w-5 rounded border ${captionFontColor === option.value ? 'border-primary ring-1 ring-primary' : 'border-border'}`}
+                                style={{ backgroundColor: option.value }}
+                                onClick={() => setCaptionFontColor(option.value)}
+                              />
+                            ))}
+                            <label
+                              className={`relative flex h-5 w-5 cursor-pointer items-center justify-center overflow-hidden rounded border bg-[conic-gradient(from_180deg_at_50%_50%,#ff5f6d_0deg,#ffc371_72deg,#47cf73_144deg,#4facfe_216deg,#8b5cf6_288deg,#ff5f6d_360deg)] ${
+                                !CAPTION_COLOR_OPTIONS.some((option) => option.value === captionFontColor)
+                                  ? 'border-primary ring-1 ring-primary'
+                                  : 'border-border'
+                              }`}
+                              aria-label="Custom font color"
+                            >
+                              <input
+                                type="color"
+                                value={captionFontColor}
+                                onChange={(event) => setCaptionFontColor(event.target.value)}
+                                className="absolute inset-0 cursor-pointer opacity-0"
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            <span>Font Size</span>
+                            <span>{Math.round(captionFontSize * 10)}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.9"
+                            max="3"
+                            step="0.05"
+                            value={captionFontSize}
+                            onChange={(event) => setCaptionFontSize(Number(event.target.value))}
+                            className="w-full accent-primary"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            <span>Font Opacity</span>
+                            <span>{Math.round(captionFontOpacity * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0.2"
+                            max="1"
+                            step="0.05"
+                            value={captionFontOpacity}
+                            onChange={(event) => setCaptionFontOpacity(Number(event.target.value))}
+                            className="w-full accent-primary"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">Background Color</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {CAPTION_COLOR_OPTIONS.map((option) => (
+                              <button
+                                key={`bg-${option.value}`}
+                                type="button"
+                                aria-label={option.label}
+                                className={`h-5 w-5 rounded border ${captionBackgroundColor === option.value ? 'border-primary ring-1 ring-primary' : 'border-border'}`}
+                                style={{ backgroundColor: option.value }}
+                                onClick={() => setCaptionBackgroundColor(option.value)}
+                              />
+                            ))}
+                            <label
+                              className={`relative flex h-5 w-5 cursor-pointer items-center justify-center overflow-hidden rounded border bg-[conic-gradient(from_180deg_at_50%_50%,#ff5f6d_0deg,#ffc371_72deg,#47cf73_144deg,#4facfe_216deg,#8b5cf6_288deg,#ff5f6d_360deg)] ${
+                                !CAPTION_COLOR_OPTIONS.some((option) => option.value === captionBackgroundColor)
+                                  ? 'border-primary ring-1 ring-primary'
+                                  : 'border-border'
+                              }`}
+                              aria-label="Custom background color"
+                            >
+                              <input
+                                type="color"
+                                value={captionBackgroundColor}
+                                onChange={(event) => setCaptionBackgroundColor(event.target.value)}
+                                className="absolute inset-0 cursor-pointer opacity-0"
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            <span>Background Opacity</span>
+                            <span>{Math.round(captionBackgroundOpacity * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={captionBackgroundOpacity}
+                            onChange={(event) => setCaptionBackgroundOpacity(Number(event.target.value))}
+                            className="w-full accent-primary"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            Text shadow
+                          </div>
+                          <Switch
+                            checked={captionTextShadowEnabled}
+                            onCheckedChange={setCaptionTextShadowEnabled}
+                          />
+                        </div>
+
+                        <div className="pt-1">
                           <button
-                            key={option.value}
                             type="button"
-                            className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer font-mono bg-transparent border-0"
-                            onClick={() => handleQualityChange(option.value)}
+                            className="w-full rounded px-2 py-1.5 text-left text-xs text-foreground hover:bg-accent focus:bg-accent focus:outline-none cursor-pointer bg-transparent border-0"
+                            onClick={resetCaptionPreferences}
                           >
-                            <span className={`size-1.5 rounded-full ${quality === option.value ? 'bg-primary' : 'bg-transparent'}`} />
-                            {option.label.split(' ')[0]}
+                            Reset Caption Styles
                           </button>
-                        ))}
-                      </>
-                    )}
-                  </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -1046,6 +1522,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        .streamforge-video-player::cue {
+          color: rgba(${hexToRgbString(captionFontColor)}, ${captionFontOpacity});
+          font-size: min(${captionFontSize}vw, ${captionFontSize * 1.4}vh);
+          background-color: rgba(${hexToRgbString(captionBackgroundColor)}, ${captionBackgroundOpacity});
+          text-shadow: ${captionTextShadowEnabled ? '0 1px 2px rgba(0, 0, 0, 0.9)' : 'none'};
+        }
+
+        .streamforge-video-player::-webkit-media-text-track-display {
+          transform: translateY(-1vh);
+        }
+
+        :fullscreen .streamforge-video-player::-webkit-media-text-track-display {
+          transform: translateY(-1.5vh);
+        }
+      `}</style>
     </div>
   );
 };

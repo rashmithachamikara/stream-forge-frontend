@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
 import { capitalize } from '@/shared/lib/utils';
-import { Category, TagSummary, Video, VideoProcessingStatus } from '@/features/videos/types';
+import {
+  Category,
+  TagSummary,
+  Video,
+  VideoProcessingStatus,
+  VideoTranscription,
+} from '@/features/videos/types';
 import { VideoAccessGrantsCard } from '@/features/videos/components/VideoAccessGrantsCard';
+import { useAuth } from '@/features/auth/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,11 +51,21 @@ import {
   Eye,
   Clock,
   Calendar,
+  FileAudio,
+  RotateCcw,
 } from 'lucide-react';
 import { VideoVisibilityBadge } from '@/features/videos/components/VideoVisibilityBadge';
 import { VideoStatusBadge } from '@/features/videos/components/VideoStatusBadge';
+import {
+  formatTranscriptTimestamp,
+  getTranscriptionLanguageLabel,
+  isActiveTranscription,
+  normalizeTranscriptionStatus,
+  selectPrimaryTranscription,
+} from '@/features/videos/lib/transcriptions';
 
 const EDITABLE_VISIBILITY_OPTIONS = ['public', 'private', 'internal', 'restricted'] as const;
+const TRANSCRIPTION_POLL_INTERVAL_MS = 7000;
 
 type ManageFormState = {
   title: string;
@@ -72,16 +89,25 @@ const getManageFormState = (video: Video): ManageFormState => ({
   allowBookmarks: video.allowBookmarks ?? true,
 });
 
+const buildRetryPayload = (transcription: VideoTranscription) => ({
+  language: transcription.language ?? null,
+  outputFormats: transcription.format ? [transcription.format] : null,
+});
+
 export default function VideoManagePage({ videoId }: { videoId: string }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [video, setVideo] = useState<Video | null>(null);
   const [processingStatus, setProcessingStatus] = useState<VideoProcessingStatus | null>(null);
+  const [transcriptions, setTranscriptions] = useState<VideoTranscription[]>([]);
   const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
   const [availableTags, setAvailableTags] = useState<TagSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [isRequestingTranscription, setIsRequestingTranscription] = useState(false);
+  const [retryingTranscriptionId, setRetryingTranscriptionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -96,6 +122,18 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     allowBookmarks: true,
   });
 
+  const loadTranscriptions = useCallback(async () => {
+    const response = await apiClient.getVideoTranscriptions(videoId);
+
+    if (response.success && response.data) {
+      setTranscriptions(response.data);
+      return response.data;
+    }
+
+    setTranscriptions([]);
+    return [];
+  }, [videoId]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -107,6 +145,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
         apiClient.getVideoById(videoId),
         apiClient.getVideoProcessingStatus(videoId),
       ]);
+      await loadTranscriptions();
 
       if (!isMounted) {
         return;
@@ -133,7 +172,7 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     return () => {
       isMounted = false;
     };
-  }, [videoId]);
+  }, [loadTranscriptions, videoId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -164,7 +203,31 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!transcriptions.some(isActiveTranscription)) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadTranscriptions();
+    }, TRANSCRIPTION_POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [loadTranscriptions, transcriptions]);
+
   const savedForm = useMemo(() => (video ? getManageFormState(video) : null), [video]);
+  const primaryTranscription = useMemo(
+    () => selectPrimaryTranscription(transcriptions, typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : 'en'),
+    [transcriptions]
+  );
+  const isOwner = Boolean(user && video && user.id === video.uploaderId);
+  const canRequestTranscription = Boolean(
+    video &&
+      video.status === 'Ready' &&
+      (user?.role === 'admin' || (user?.role === 'editor' && isOwner))
+  );
   const hasChanges = Boolean(
     savedForm &&
       (form.title !== savedForm.title ||
@@ -177,6 +240,47 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
         form.allowLikes !== savedForm.allowLikes ||
         form.allowBookmarks !== savedForm.allowBookmarks)
   );
+
+  const requestTranscription = async () => {
+    if (!video) {
+      return;
+    }
+
+    setIsRequestingTranscription(true);
+    setError(null);
+
+    const response = await apiClient.requestVideoTranscription(video.id, {
+      language: typeof navigator !== 'undefined' ? navigator.language.split('-')[0] : 'en',
+      outputFormats: ['VTT', 'SRT'],
+    });
+
+    if (response.success && response.data) {
+      setTranscriptions(response.data);
+    } else {
+      setError(response.error ?? 'Failed to request transcription');
+    }
+
+    setIsRequestingTranscription(false);
+  };
+
+  const retryTranscription = async (transcription: VideoTranscription) => {
+    if (!video) {
+      return;
+    }
+
+    setRetryingTranscriptionId(transcription.id);
+    setError(null);
+
+    const response = await apiClient.requestVideoTranscription(video.id, buildRetryPayload(transcription));
+
+    if (response.success && response.data) {
+      setTranscriptions(response.data);
+    } else {
+      setError(response.error ?? 'Failed to retry transcription');
+    }
+
+    setRetryingTranscriptionId(null);
+  };
 
   const toggleTag = (tagId: string) => {
     setForm((current) => ({
@@ -523,6 +627,157 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                   <Badge variant="secondary" className="w-fit">
                     Active processing
                   </Badge>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle>Transcriptions</CardTitle>
+                    <CardDescription>Request transcripts, monitor status, and retry failed artifacts.</CardDescription>
+                  </div>
+                  {canRequestTranscription ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => void requestTranscription()}
+                      disabled={isRequestingTranscription}
+                    >
+                      {isRequestingTranscription ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <FileAudio className="h-3.5 w-3.5" />
+                      )}
+                      Request
+                    </Button>
+                  ) : null}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {primaryTranscription ? (
+                  <div className="rounded-lg border bg-muted/20 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="font-mono">
+                        Primary
+                      </Badge>
+                      <Badge variant="outline" className="font-mono">
+                        {getTranscriptionLanguageLabel(primaryTranscription.language)}
+                      </Badge>
+                      <Badge variant="outline" className="font-mono">
+                        {(primaryTranscription.format ?? 'TXT').toUpperCase()}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-foreground">
+                      {primaryTranscription.failureReason ||
+                        primaryTranscription.liveStatus?.message ||
+                        primaryTranscription.status ||
+                        'Available'}
+                    </p>
+                    {primaryTranscription.liveStatus?.transcribedUntilSeconds !== null &&
+                    primaryTranscription.liveStatus?.transcribedUntilSeconds !== undefined &&
+                    primaryTranscription.liveStatus.mediaDurationSeconds ? (
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Transcribing media</span>
+                          <span className="font-mono">
+                            {formatTranscriptTimestamp(primaryTranscription.liveStatus.transcribedUntilSeconds)} /{' '}
+                            {formatTranscriptTimestamp(primaryTranscription.liveStatus.mediaDurationSeconds)}
+                          </span>
+                        </div>
+                        <Progress
+                          value={
+                            Math.min(
+                              100,
+                              (primaryTranscription.liveStatus.transcribedUntilSeconds /
+                                primaryTranscription.liveStatus.mediaDurationSeconds) *
+                                100
+                            ) || 0
+                          }
+                          className="h-3"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {transcriptions.length > 0 ? (
+                  <div className="space-y-3">
+                    {transcriptions.map((transcription) => {
+                      const uiStatus = normalizeTranscriptionStatus(transcription);
+                      const canRetry =
+                        uiStatus === 'failure' &&
+                        (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
+
+                      return (
+                        <div key={transcription.id} className="rounded-lg border p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-sm font-semibold text-foreground">
+                                  {getTranscriptionLanguageLabel(transcription.language)}
+                                </span>
+                                <Badge variant="outline" className="font-mono">
+                                  {(transcription.format ?? 'TXT').toUpperCase()}
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    uiStatus === 'success'
+                                      ? 'border-green-500/25 bg-green-500/10 text-green-700 dark:text-green-300'
+                                      : uiStatus === 'failure'
+                                        ? 'border-destructive/25 bg-destructive/10 text-destructive'
+                                        : 'border-primary/25 bg-primary/10 text-primary'
+                                  }
+                                >
+                                  {transcription.liveStatus?.stage ||
+                                    transcription.liveStatus?.status ||
+                                    transcription.status ||
+                                    'Pending'}
+                                </Badge>
+                              </div>
+                              <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                                <p className="font-mono">ID {transcription.id}</p>
+                                <p>
+                                  Updated{' '}
+                                  <span className="font-mono">
+                                    {(transcription.updatedAt ?? transcription.createdAt).toLocaleString()}
+                                  </span>
+                                </p>
+                              </div>
+                              {transcription.failureReason ? (
+                                <p className="text-xs text-destructive">{transcription.failureReason}</p>
+                              ) : null}
+                            </div>
+                            {canRetry ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="gap-2"
+                                onClick={() => void retryTranscription(transcription)}
+                                disabled={retryingTranscriptionId === transcription.id}
+                              >
+                                {retryingTranscriptionId === transcription.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                )}
+                                Retry
+                              </Button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No transcription artifacts are available for this video yet.
+                  </p>
                 )}
               </CardContent>
             </Card>
