@@ -64,12 +64,14 @@ export function TranscriptPanel({
 
     return window.localStorage.getItem(TRANSCRIPT_AUTOSCROLL_STORAGE_KEY) !== 'false';
   });
-  const [manualHighlightChunkId, setManualHighlightChunkId] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const selectedTranscription =
     transcriptions.find((transcription) => transcription.id === selectedTranscriptionId) ?? null;
   const selectedStatus = selectedTranscription ? normalizeTranscriptionStatus(selectedTranscription) : null;
+  const showPendingTranscriptState =
+    transcriptions.length === 0 ||
+    (selectedStatus === 'active' && transcriptChunks.length === 0 && !isTranscriptLoading);
   const downloadableTranscription =
     selectedStatus === 'success'
       ? selectedTranscription
@@ -91,10 +93,6 @@ export function TranscriptPanel({
 
     window.localStorage.setItem(TRANSCRIPT_AUTOSCROLL_STORAGE_KEY, String(autoScroll));
   }, [autoScroll]);
-
-  useEffect(() => {
-    setManualHighlightChunkId(highlightedChunkId);
-  }, [highlightedChunkId]);
 
   useEffect(() => {
     if (!autoScroll || !activeChunkId) {
@@ -122,29 +120,15 @@ export function TranscriptPanel({
     });
   }, [activeChunkId, autoScroll]);
 
-  useEffect(() => {
-    if (!autoScroll || !activeChunkId) {
-      return;
-    }
-
-    setManualHighlightChunkId((current) =>
-      current && current !== activeChunkId ? null : current
-    );
-  }, [activeChunkId, autoScroll]);
-
   return (
     <Card>
       {isOpen ? (
         <CardContent className="space-y-4">
-          {transcriptions.length === 0 ? (
-            <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-              No transcription artifacts are available for this video yet.
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Transcript</h3>
-                <div className="flex items-center gap-2">
+          <>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Transcript</h3>
+              <div className="flex items-center gap-2">
+                {!showPendingTranscriptState ? (
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-muted-foreground font-mono">Autoscroll</span>
                     <Switch
@@ -153,19 +137,26 @@ export function TranscriptPanel({
                       className="scale-75 origin-left"
                     />
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0"
-                    onClick={onClose}
-                    aria-label="Close transcript"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={onClose}
+                  aria-label="Close transcript"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
               </div>
+            </div>
 
+            {showPendingTranscriptState ? (
+              <p className="text-sm text-muted-foreground">
+                Transcript generation is still in progress.
+              </p>
+            ) : (
+              <>
               <div className="flex flex-col gap-2 md:flex-row md:items-center">
                 <div className="relative flex-1">
                   <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
@@ -246,10 +237,6 @@ export function TranscriptPanel({
                 <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
                   {selectedTranscription?.failureReason || 'Transcript generation failed for this artifact.'}
                 </div>
-              ) : selectedStatus === 'active' && transcriptChunks.length === 0 && !isTranscriptLoading ? (
-                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm text-foreground">
-                  Transcript generation is still in progress. Rows will appear here once chunks are ready.
-                </div>
               ) : null}
 
               <div className="rounded-lg border">
@@ -270,7 +257,7 @@ export function TranscriptPanel({
                         className={cn(
                           'flex w-full cursor-pointer gap-2.5 border-b px-3 py-2 text-left transition-colors last:border-b-0 hover:bg-accent/60',
                           activeChunkId === chunk.chunkId && 'bg-primary/15',
-                          manualHighlightChunkId === chunk.chunkId &&
+                          highlightedChunkId === chunk.chunkId &&
                             activeChunkId !== chunk.chunkId &&
                             autoScroll &&
                             'bg-primary/10'
@@ -292,8 +279,9 @@ export function TranscriptPanel({
                   )}
                 </div>
               </div>
-            </>
-          )}
+              </>
+            )}
+          </>
         </CardContent>
       ) : null}
     </Card>

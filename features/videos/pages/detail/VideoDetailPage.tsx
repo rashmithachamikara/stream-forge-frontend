@@ -167,10 +167,20 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     });
   }, []);
 
+  const handleTranscriptSearchQueryChange = useCallback((value: string) => {
+    setTranscriptSearchQuery(value);
+
+    if (!value.trim()) {
+      setTranscriptSearchResults([]);
+      setIsTranscriptSearching(false);
+    }
+  }, []);
+
   const applyLoadedTranscriptions = useCallback((nextTranscriptions: VideoTranscription[]) => {
     setTranscriptions(nextTranscriptions);
 
     if (nextTranscriptions.length === 0) {
+      setIsTranscriptOpen(false);
       setSelectedTranscriptionId(null);
       setTranscriptChunks([]);
       setTranscriptSearchResults([]);
@@ -300,8 +310,6 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     }
 
     if (!transcriptSearchQuery.trim()) {
-      setTranscriptSearchResults([]);
-      setIsTranscriptSearching(false);
       return;
     }
 
@@ -659,6 +667,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const isDisliked = reactionSummary?.currentUserReaction === 'Dislike';
   const isOwner = !!(user && video && user.id === video.uploaderId);
   const canManageVideo = activeView !== 'viewer' && (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
+  const hasTranscriptions = transcriptions.length > 0;
 
   useEffect(() => {
     return () => {
@@ -898,17 +907,19 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                       </DialogContent>
                     </Dialog>
                   )}
-                  <button
-                    onClick={() => setIsTranscriptOpen((current) => !current)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium cursor-pointer ${
-                      isTranscriptOpen ? `${selectedActionButtonClass} font-semibold` : ''
-                    } ${
-                      isTranscriptOpen ? '' : 'bg-transparent text-foreground'
-                    }`}
-                  >
-                    <FileText className="size-3.5" />
-                    Transcript
-                  </button>
+                  {hasTranscriptions ? (
+                    <button
+                      onClick={() => setIsTranscriptOpen((current) => !current)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium cursor-pointer ${
+                        isTranscriptOpen ? `${selectedActionButtonClass} font-semibold` : ''
+                      } ${
+                        isTranscriptOpen ? '' : 'bg-transparent text-foreground'
+                      }`}
+                    >
+                      <FileText className="size-3.5" />
+                      Transcript
+                    </button>
+                  ) : null}
                   <button
                     disabled={isProcessing || isVideoDeleted}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -983,14 +994,14 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
           </div>
 
           <aside className="space-y-6">
-            {isTranscriptOpen && (
+            {hasTranscriptions && isTranscriptOpen && (
               <TranscriptPanel
                 transcriptions={transcriptions}
                 selectedTranscriptionId={selectedTranscriptionId}
                 transcriptChunks={transcriptChunks}
                 isTranscriptLoading={isTranscriptLoading}
                 transcriptSearchQuery={transcriptSearchQuery}
-                onTranscriptSearchQueryChange={setTranscriptSearchQuery}
+                onTranscriptSearchQueryChange={handleTranscriptSearchQueryChange}
                 onTranscriptSearch={() => void handleTranscriptSearch()}
                 transcriptSearchResults={transcriptSearchResults}
                 isTranscriptSearching={isTranscriptSearching}
