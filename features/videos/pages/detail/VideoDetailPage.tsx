@@ -33,6 +33,7 @@ import {
   AlertCircle,
   Trash2,
   BarChart2,
+  FileText,
 } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
 import {
@@ -133,8 +134,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const [isPlaylistsLoading, setIsPlaylistsLoading] = useState(false);
   const [isPlaylistDialogOpen, setIsPlaylistDialogOpen] = useState(false);
   const [isPlaylistSaving, setIsPlaylistSaving] = useState(false);
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState(true);
-  const [isRequestingTranscription, setIsRequestingTranscription] = useState(false);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookmarkMessage, setBookmarkMessage] = useState<string | null>(null);
   const [playlistMessage, setPlaylistMessage] = useState<string | null>(null);
@@ -292,6 +292,26 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
     setIsTranscriptSearching(false);
   }, [selectedTranscriptionId, shareToken, transcriptSearchQuery, transcriptions, video]);
+
+  useEffect(() => {
+    if (!isTranscriptOpen) {
+      return;
+    }
+
+    if (!transcriptSearchQuery.trim()) {
+      setTranscriptSearchResults([]);
+      setIsTranscriptSearching(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void handleTranscriptSearch();
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [handleTranscriptSearch, isTranscriptOpen, transcriptSearchQuery]);
 
   useEffect(() => {
     if (!playlistId) {
@@ -617,29 +637,6 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     setIsReactionSaving(false);
   };
 
-  const handleRequestTranscription = useCallback(async () => {
-    if (!video) {
-      return;
-    }
-
-    setIsRequestingTranscription(true);
-    setError(null);
-
-    const response = await apiClient.requestVideoTranscription(video.id, {
-      language: browserLanguage || null,
-      outputFormats: ['VTT', 'SRT'],
-    });
-
-    if (response.success && response.data) {
-      applyLoadedTranscriptions(response.data);
-      setIsTranscriptOpen(true);
-    } else {
-      setError(response.error ?? 'Failed to request transcription');
-    }
-
-    setIsRequestingTranscription(false);
-  }, [applyLoadedTranscriptions, browserLanguage, video]);
-
   const handleTranscriptResultSeek = useCallback((result: TranscriptSearchResult) => {
     setSelectedTranscriptionId(result.transcriptionId);
     setHighlightedChunkId(result.chunkId);
@@ -661,11 +658,6 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const isDisliked = reactionSummary?.currentUserReaction === 'Dislike';
   const isOwner = !!(user && video && user.id === video.uploaderId);
   const canManageVideo = activeView !== 'viewer' && (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
-  const canRequestTranscription =
-    !!video &&
-    video.status === 'Ready' &&
-    activeView !== 'viewer' &&
-    (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
 
   useEffect(() => {
     return () => {
@@ -706,6 +698,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const isVideoDeleted = video.status === 'Deleted';
   const isProcessing = video.status ? ACTIVE_PROCESSING_STATUSES.has(video.status) : false;
   const processingProgress = processingStatus?.progress ?? 0;
+  const selectedActionButtonClass = 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15';
 
   return (
     <DashboardLayout title="Watch Video" allowGuests={true}>
@@ -824,8 +817,10 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                         onClick={() => void handleReaction('Like')}
                         disabled={isGuest || isReactionSaving || isProcessing || isVideoDeleted}
                         title={isGuest ? 'Sign in to like this video' : undefined}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
-                          isLiked ? 'bg-accent font-semibold' : 'bg-transparent'
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                          isLiked ? `${selectedActionButtonClass} font-semibold` : 'bg-transparent'
+                        } ${
+                          isLiked ? '' : 'text-foreground'
                         }`}
                       >
                         <ThumbsUp className={`size-3.5 ${isLiked ? 'fill-current' : ''}`} />
@@ -835,8 +830,10 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                         onClick={() => void handleReaction('Dislike')}
                         disabled={isGuest || isReactionSaving || isProcessing || isVideoDeleted}
                         title={isGuest ? 'Sign in to dislike this video' : undefined}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
-                          isDisliked ? 'bg-accent font-semibold' : 'bg-transparent'
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                          isDisliked ? `${selectedActionButtonClass} font-semibold` : 'bg-transparent'
+                        } ${
+                          isDisliked ? '' : 'text-foreground'
                         }`}
                       >
                         <ThumbsDown className={`size-3.5 ${isDisliked ? 'fill-current' : ''}`} />
@@ -900,6 +897,17 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     </Dialog>
                   )}
                   <button
+                    onClick={() => setIsTranscriptOpen((current) => !current)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium cursor-pointer ${
+                      isTranscriptOpen ? `${selectedActionButtonClass} font-semibold` : ''
+                    } ${
+                      isTranscriptOpen ? '' : 'bg-transparent text-foreground'
+                    }`}
+                  >
+                    <FileText className="size-3.5" />
+                    Transcript
+                  </button>
+                  <button
                     disabled={isProcessing || isVideoDeleted}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -962,38 +970,6 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               </div>
             </div>
 
-            <TranscriptPanel
-              title={video.title}
-              transcriptions={transcriptions}
-              selectedTranscriptionId={selectedTranscriptionId}
-              onSelectTranscription={(transcriptionId) => {
-                setSelectedTranscriptionId(transcriptionId);
-                setHighlightedChunkId(null);
-                setTranscriptChunks([]);
-              }}
-              transcriptChunks={transcriptChunks}
-              isTranscriptLoading={isTranscriptLoading}
-              transcriptSearchQuery={transcriptSearchQuery}
-              onTranscriptSearchQueryChange={setTranscriptSearchQuery}
-              onTranscriptSearch={() => void handleTranscriptSearch()}
-              transcriptSearchResults={transcriptSearchResults}
-              isTranscriptSearching={isTranscriptSearching}
-              highlightedChunkId={highlightedChunkId}
-              onChunkSeek={(chunk) => {
-                setHighlightedChunkId(chunk.chunkId);
-                requestSeek(chunk.startSeconds);
-              }}
-              onSearchResultSeek={handleTranscriptResultSeek}
-              onDownloadTranscription={(transcription) => void handleDownloadTranscription(transcription)}
-              isOpen={isTranscriptOpen}
-              onOpenChange={setIsTranscriptOpen}
-              canRequestTranscription={canRequestTranscription}
-              onRequestTranscription={() => void handleRequestTranscription()}
-              isRequestingTranscription={isRequestingTranscription}
-            />
-
-
-
             {video.allowComments !== false && !isProcessing && !isVideoDeleted && (
               <CommentsSection
                 videoId={video.id}
@@ -1005,6 +981,28 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
           </div>
 
           <aside className="space-y-6">
+            {isTranscriptOpen && (
+              <TranscriptPanel
+                transcriptions={transcriptions}
+                selectedTranscriptionId={selectedTranscriptionId}
+                transcriptChunks={transcriptChunks}
+                isTranscriptLoading={isTranscriptLoading}
+                transcriptSearchQuery={transcriptSearchQuery}
+                onTranscriptSearchQueryChange={setTranscriptSearchQuery}
+                onTranscriptSearch={() => void handleTranscriptSearch()}
+                transcriptSearchResults={transcriptSearchResults}
+                isTranscriptSearching={isTranscriptSearching}
+                highlightedChunkId={highlightedChunkId}
+                onChunkSeek={(chunk) => {
+                  setHighlightedChunkId(chunk.chunkId);
+                  requestSeek(chunk.startSeconds);
+                }}
+                onSearchResultSeek={handleTranscriptResultSeek}
+                onDownloadTranscription={(transcription) => void handleDownloadTranscription(transcription)}
+                isOpen={isTranscriptOpen}
+                onClose={() => setIsTranscriptOpen(false)}
+              />
+            )}
             {playlistId && playlist && (
               <div className="bg-card border border-border rounded-lg p-4 space-y-3">
                 <div className="border-b border-border pb-2 space-y-2">
