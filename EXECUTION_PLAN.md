@@ -29,4 +29,4 @@
 - [ ] Replace the interim `hls.js` bearer-header playback workaround with a proper media-auth solution such as signed playback URLs or cookie-backed protected media access.
 - [ ] Bookmarks Page: Category filtering, sorting and grouping by video are implemented on the client side (frontend). Needs native category filtering and grouping support from backend API later.
 - [ ] Transcription UI should mirror the current video-processing UX where useful: initial status fetch plus polling on active states, with richer live progress/status support once the new transcription live-status fields are fully wired across watch/manage/admin surfaces.
-- [ ] Add a later Processing phase/subphase for unified transcode + transcription operational tracking, with admin-wide visibility and editor-scoped visibility from the editor portal.
+- [ ] Extend the new admin `Processing` surface with editor-scoped visibility from the editor portal, limited to each editor's own videos and jobs.

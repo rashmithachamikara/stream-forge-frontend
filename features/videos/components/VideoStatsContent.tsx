@@ -41,6 +41,13 @@ const formatDuration = (seconds: number) => {
   return `${s}s`;
 };
 
+const getLastThirtyDayRange = () => {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(to.getDate() - 30);
+  return { from, to };
+};
+
 export default function VideoStatsContent({ videoId }: VideoStatsContentProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,11 +63,12 @@ export default function VideoStatsContent({ videoId }: VideoStatsContentProps) {
       setError(null);
 
       try {
+        const dateRange = getLastThirtyDayRange();
         // Fetch all 3 data endpoints in parallel
         const [summaryRes, engagementRes, timeSeriesRes] = await Promise.all([
-          apiClient.getVideoAnalyticsSummary(videoId, { range: '30d' }),
-          apiClient.getVideoEngagementSummary(videoId, { range: '30d' }),
-          apiClient.getVideoAnalyticsTimeseries(videoId, { range: '30d' }),
+          apiClient.getVideoAnalyticsSummary(videoId, dateRange),
+          apiClient.getVideoEngagementSummary(videoId, dateRange),
+          apiClient.getVideoAnalyticsTimeseries(videoId, dateRange),
         ]);
 
         if (!active) return;

@@ -49,8 +49,12 @@ import {
 import {
   ActiveViewers,
   ActiveViewersDto,
+  AdminTranscriptionJobStatus,
   AdminTranscriptionSettings,
   AdminTranscriptionSettingsDto,
+  AdminVideoJobStatus,
+  AdminVideoProcessingJob,
+  AdminVideoProcessingJobDto,
   AnalyticsBreakdownItem,
   AnalyticsBreakdownKind,
   AnalyticsDateRange,
@@ -322,7 +326,14 @@ const mapVideoTranscriptionJob = (job: VideoTranscriptionJobDto): VideoTranscrip
   createdAt: job.createdAt ? new Date(job.createdAt) : new Date(),
   updatedAt: job.updatedAt ? new Date(job.updatedAt) : null,
   liveStatus: mapTranscriptionLiveStatus(job.liveStatus),
-  artifacts: [],
+  artifacts: (job.artifacts ?? []).map((artifact) => ({
+    id: artifact.id ?? '',
+    format: artifact.format ?? null,
+    status: artifact.status ?? null,
+    failureReason: artifact.failureReason ?? null,
+    createdAt: artifact.createdAt ? new Date(artifact.createdAt) : new Date(),
+    updatedAt: artifact.updatedAt ? new Date(artifact.updatedAt) : null,
+  })),
 });
 
 const mapTranscriptChunk = (chunk: TranscriptChunkDto): TranscriptChunk => ({
@@ -359,6 +370,22 @@ const mapAdminTranscriptionSettings = (
   beamSize: settings.beamSize ?? 1,
   enableVad: settings.enableVad ?? false,
   enableWordTimestamps: settings.enableWordTimestamps ?? false,
+});
+
+const mapAdminVideoProcessingJob = (
+  job: AdminVideoProcessingJobDto
+): AdminVideoProcessingJob => ({
+  jobKey: job.jobKey ?? null,
+  videoId: job.videoId ?? '',
+  videoTitle: job.videoTitle ?? null,
+  jobType: job.jobType ?? null,
+  status: job.status ?? null,
+  progress: job.progress ?? 0,
+  errorMessage: job.errorMessage ?? null,
+  createdAt: job.createdAt ? new Date(job.createdAt) : new Date(),
+  startedAt: job.startedAt ? new Date(job.startedAt) : null,
+  completedAt: job.completedAt ? new Date(job.completedAt) : null,
+  videoStatus: job.videoStatus ?? null,
 });
 
 const mapReactionSummary = (summary: ReactionSummaryDto): ReactionSummary => ({
@@ -759,7 +786,7 @@ class ApiClient {
         success: true,
         data,
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Request failed',
@@ -781,7 +808,7 @@ class ApiClient {
         success: true,
         data: session,
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Invalid email or password',
@@ -802,7 +829,7 @@ class ApiClient {
         success: true,
         data: session,
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to refresh session',
@@ -821,7 +848,7 @@ class ApiClient {
         success: true,
         data: mapAuthUser(user),
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch user',
@@ -1191,7 +1218,7 @@ class ApiClient {
         success: true,
         data: mapCategory(response),
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create category',
@@ -1210,7 +1237,7 @@ class ApiClient {
         success: true,
         data: mapCategory(response),
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update category',
@@ -1228,7 +1255,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to delete category',
@@ -1270,7 +1297,7 @@ class ApiClient {
         success: true,
         data: mapTagSummary(response),
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create tag',
@@ -1289,7 +1316,7 @@ class ApiClient {
         success: true,
         data: mapTagSummary(response),
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update tag',
@@ -1307,7 +1334,7 @@ class ApiClient {
         success: true,
         data: undefined,
       };
-    } catch {
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to delete tag',
@@ -1379,6 +1406,164 @@ class ApiClient {
       return {
         success: false,
         error: 'Failed to update transcription settings',
+      };
+    }
+  }
+
+  async getAdminTranscriptionJobs(
+    filters: { status?: AdminTranscriptionJobStatus | 'all' } = {}
+  ): Promise<ApiResponse<VideoTranscriptionJob[]>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'status', filters.status && filters.status !== 'all' ? filters.status : undefined);
+      const query = params.toString();
+      const response = await this.requestRaw<VideoTranscriptionJobDto[]>(
+        `${API_V1_PREFIX}/admin/processing/transcription-jobs${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: response.map(mapVideoTranscriptionJob),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch transcription jobs',
+      };
+    }
+  }
+
+  async getAdminTranscriptionJob(jobKey: string): Promise<ApiResponse<VideoTranscriptionJob>> {
+    try {
+      const response = await this.requestRaw<VideoTranscriptionJobDto>(
+        `${API_V1_PREFIX}/admin/processing/transcription-jobs/${jobKey}`
+      );
+
+      return {
+        success: true,
+        data: mapVideoTranscriptionJob(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch transcription job',
+      };
+    }
+  }
+
+  async retryAdminTranscriptionJob(jobKey: string): Promise<ApiResponse<VideoTranscriptionJob>> {
+    try {
+      const response = await this.requestRaw<VideoTranscriptionJobDto>(
+        `${API_V1_PREFIX}/admin/processing/transcription-jobs/${jobKey}/retry`,
+        { method: 'POST' }
+      );
+
+      return {
+        success: true,
+        data: mapVideoTranscriptionJob(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to retry transcription job',
+      };
+    }
+  }
+
+  async resyncAdminTranscriptionJob(jobKey: string): Promise<ApiResponse<VideoTranscriptionJob>> {
+    try {
+      const response = await this.requestRaw<VideoTranscriptionJobDto>(
+        `${API_V1_PREFIX}/admin/processing/transcription-jobs/${jobKey}/resync`,
+        { method: 'POST' }
+      );
+
+      return {
+        success: true,
+        data: mapVideoTranscriptionJob(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to resync transcription job',
+      };
+    }
+  }
+
+  async getAdminVideoProcessingJobs(
+    filters: { status?: AdminVideoJobStatus | 'all' } = {}
+  ): Promise<ApiResponse<AdminVideoProcessingJob[]>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'status', filters.status && filters.status !== 'all' ? filters.status : undefined);
+      const query = params.toString();
+      const response = await this.requestRaw<AdminVideoProcessingJobDto[]>(
+        `${API_V1_PREFIX}/admin/processing/video-jobs${query ? `?${query}` : ''}`
+      );
+
+      return {
+        success: true,
+        data: response.map(mapAdminVideoProcessingJob),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch video processing jobs',
+      };
+    }
+  }
+
+  async getAdminVideoProcessingJob(jobKey: string): Promise<ApiResponse<AdminVideoProcessingJob>> {
+    try {
+      const response = await this.requestRaw<AdminVideoProcessingJobDto>(
+        `${API_V1_PREFIX}/admin/processing/video-jobs/${jobKey}`
+      );
+
+      return {
+        success: true,
+        data: mapAdminVideoProcessingJob(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to fetch video processing job',
+      };
+    }
+  }
+
+  async retryAdminVideoProcessingJob(jobKey: string): Promise<ApiResponse<AdminVideoProcessingJob>> {
+    try {
+      const response = await this.requestRaw<AdminVideoProcessingJobDto>(
+        `${API_V1_PREFIX}/admin/processing/video-jobs/${jobKey}/retry`,
+        { method: 'POST' }
+      );
+
+      return {
+        success: true,
+        data: mapAdminVideoProcessingJob(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to retry video processing job',
+      };
+    }
+  }
+
+  async resyncAdminVideoProcessingJob(jobKey: string): Promise<ApiResponse<AdminVideoProcessingJob>> {
+    try {
+      const response = await this.requestRaw<AdminVideoProcessingJobDto>(
+        `${API_V1_PREFIX}/admin/processing/video-jobs/${jobKey}/resync`,
+        { method: 'POST' }
+      );
+
+      return {
+        success: true,
+        data: mapAdminVideoProcessingJob(response),
+      };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to resync video processing job',
       };
     }
   }

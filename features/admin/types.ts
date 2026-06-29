@@ -232,3 +232,34 @@ export interface UpdateAdminTranscriptionSettingsRequest {
   enableVad: boolean;
   enableWordTimestamps: boolean;
 }
+
+export type AdminVideoJobStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
+export type AdminTranscriptionJobStatus = AdminVideoJobStatus | 'Partial';
+
+export interface AdminVideoProcessingJob {
+  jobKey: string | null;
+  videoId: string;
+  videoTitle: string | null;
+  jobType: string | null;
+  status: string | null;
+  progress: number;
+  errorMessage: string | null;
+  createdAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  videoStatus: string | null;
+}
+
+export interface AdminVideoProcessingJobDto {
+  jobKey?: string | null;
+  videoId?: string;
+  videoTitle?: string | null;
+  jobType?: string | null;
+  status?: string | null;
+  progress?: number;
+  errorMessage?: string | null;
+  createdAt?: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  videoStatus?: string | null;
+}

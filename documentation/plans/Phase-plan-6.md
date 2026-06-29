@@ -262,16 +262,16 @@ Add frontend-safe types for:
 
 ## Deferred Processing Surface
 
-- A dedicated `Processing` page/surface is intentionally deferred to a later phase/subphase
+- A dedicated admin-wide `Processing` page is now a follow-up implementation track rather than part of the original Phase 6 scope
 - When that later work happens:
-  - admins should get a `Processing` sidebar item
+  - admins should get a `Processing` navigation entry
   - editors should get a reachable processing surface in the editor portal as a `Processing` tab
   - editor visibility should be limited to their own videos
 - Unified transcode + transcription job tracking should be designed there, not forced into this phase
 - That later phase should cover:
-  - grouped transcription job views
+  - grouped transcription job views where needed beyond the admin page baseline
   - mixed `Partial` state presentation
-  - transcode + transcription coordination in one operational surface
+  - transcode + transcription coordination refinements in one operational surface
   - editor-scoped processing visibility
 
 ## Test Plan

@@ -60,6 +60,7 @@ const navItems: NavItem[] = [
   { label: 'Analytics', href: '/admin/analytics', roles: ['admin'], activePatterns: ['/admin/analytics'] },
   { label: 'Users', href: '/admin/users', roles: ['admin'], activePatterns: ['/admin/users'] },
   { label: 'Taxonomy', href: '/admin/taxonomy', roles: ['admin'], activePatterns: ['/admin/taxonomy'] },
+  { label: 'Processing', href: '/admin/processing', roles: ['admin'], activePatterns: ['/admin/processing'] },
   { label: 'Settings', href: '/admin/settings', roles: ['admin'], activePatterns: ['/admin/settings'] },
 ];
 

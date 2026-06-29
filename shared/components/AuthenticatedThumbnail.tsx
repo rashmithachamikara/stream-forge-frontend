@@ -22,9 +22,10 @@ export function AuthenticatedThumbnail({
   const [blobState, setBlobState] = useState<{ src: string; url: string } | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const isProtected = Boolean(src && isProtectedThumbnailUrl(src) && token);
+  const blobUrl = blobState?.url ?? null;
 
   const resolvedSrc =
-    (isProtected && blobState?.src === src ? blobState.url : null) ??
+    (isProtected && blobState?.src === src ? blobUrl : null) ??
     (!src
       ? fallbackSrc
       : !isProtected

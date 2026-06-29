@@ -260,11 +260,12 @@ export default function AdminSettingsPage() {
       }
 
       const alreadySelected = current.outputFormats?.includes(format) ?? false;
+      const currentOutputFormats = current.outputFormats ?? [];
       return {
         ...current,
         outputFormats: alreadySelected
-          ? current.outputFormats.filter((item) => item !== format)
-          : [...(current.outputFormats ?? []), format],
+          ? currentOutputFormats.filter((item) => item !== format)
+          : [...currentOutputFormats, format],
       };
     });
   };
