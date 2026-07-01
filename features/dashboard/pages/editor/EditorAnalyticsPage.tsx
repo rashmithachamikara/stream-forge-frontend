@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
@@ -306,8 +307,9 @@ export default function EditorAnalyticsDashboard() {
       link.download = `my-video-analytics-${dateRange.start}-${dateRange.end}.csv`;
       link.click();
       URL.revokeObjectURL(url);
+      toast.success('Analytics CSV exported successfully');
     } else {
-      setError(response.error ?? 'Failed to download analytics export');
+      toast.error(response.error ?? 'Failed to download analytics export');
     }
 
     setIsExporting(false);

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import { Button } from '@/components/ui/button';
@@ -112,8 +113,9 @@ export default function NotificationsPage() {
         current.map((item) => (item.id === notification.id ? { ...item, isRead: nextReadState } : item))
       );
       await refreshUnreadCount();
+      toast.success(nextReadState ? 'Notification marked as read' : 'Notification marked as unread');
     } else {
-      setError(response.error ?? 'Failed to update notification status');
+      toast.error(response.error ?? 'Failed to update notification status');
     }
   };
 
@@ -123,8 +125,9 @@ export default function NotificationsPage() {
     if (response.success) {
       setNotifications((current) => current.filter((item) => item.id !== notificationId));
       await refreshUnreadCount();
+      toast.success('Notification deleted');
     } else {
-      setError(response.error ?? 'Failed to delete notification');
+      toast.error(response.error ?? 'Failed to delete notification');
     }
   };
 
@@ -134,8 +137,9 @@ export default function NotificationsPage() {
     if (response.success) {
       setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
       setUnreadCount(0);
+      toast.success('All notifications marked as read');
     } else {
-      setError(response.error ?? 'Failed to mark all notifications as read');
+      toast.error(response.error ?? 'Failed to mark all notifications as read');
     }
   };
 
@@ -144,8 +148,9 @@ export default function NotificationsPage() {
 
     if (response.success) {
       setNotifications((current) => current.filter((item) => !item.isRead));
+      toast.success('Read notifications cleared');
     } else {
-      setError(response.error ?? 'Failed to clear read notifications');
+      toast.error(response.error ?? 'Failed to clear read notifications');
     }
   };
 

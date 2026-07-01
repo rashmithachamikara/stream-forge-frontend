@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { VideoPlayer } from '@/features/videos/components/VideoPlayer';
@@ -123,6 +124,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const [transcriptChunks, setTranscriptChunks] = useState<TranscriptChunk[]>([]);
   const [transcriptSearchQuery, setTranscriptSearchQuery] = useState('');
   const [transcriptSearchResults, setTranscriptSearchResults] = useState<TranscriptSearchResult[]>([]);
+  const [hasCompletedTranscriptSearch, setHasCompletedTranscriptSearch] = useState(false);
   const [captionTracks, setCaptionTracks] = useState<CaptionTrack[]>([]);
   const [selectedCaptionId, setSelectedCaptionId] = useState<string | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -136,8 +138,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const [isPlaylistSaving, setIsPlaylistSaving] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [bookmarkMessage, setBookmarkMessage] = useState<string | null>(null);
-  const [playlistMessage, setPlaylistMessage] = useState<string | null>(null);
+
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [highlightedChunkId, setHighlightedChunkId] = useState<string | null>(null);
   const [requestedSeekTime, setRequestedSeekTime] = useState<number | null>(null);
@@ -169,6 +170,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
   const handleTranscriptSearchQueryChange = useCallback((value: string) => {
     setTranscriptSearchQuery(value);
+    setHasCompletedTranscriptSearch(false);
 
     if (!value.trim()) {
       setTranscriptSearchResults([]);
@@ -262,7 +264,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
     const response = await apiClient.downloadVideoTranscriptionArtifact(video.id, transcription.id, { shareToken });
     if (!response.success || !response.data) {
-      setError(response.error ?? 'Failed to download transcription');
+      toast.error(response.error ?? 'Failed to download transcription');
       return;
     }
 
@@ -279,6 +281,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const handleTranscriptSearch = useCallback(async () => {
     if (!video || !transcriptSearchQuery.trim()) {
       setTranscriptSearchResults([]);
+      setHasCompletedTranscriptSearch(false);
       return;
     }
 
@@ -295,10 +298,12 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
     if (response.success && response.data) {
       setTranscriptSearchResults(response.data.items);
+      setHasCompletedTranscriptSearch(true);
       setIsTranscriptOpen(true);
     } else {
       setTranscriptSearchResults([]);
-      setError(response.error ?? 'Failed to search transcript');
+      setHasCompletedTranscriptSearch(true);
+      toast.error(response.error ?? 'Failed to search transcript');
     }
 
     setIsTranscriptSearching(false);
@@ -550,7 +555,6 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     }
 
     setIsBookmarkSaving(true);
-    setBookmarkMessage(null);
 
     const response = await apiClient.createBookmark(video.id, {
       timestampSeconds: Math.floor(timestamp),
@@ -559,9 +563,9 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
     if (response.success && response.data) {
       setBookmarks((current) => [response.data!, ...current.filter((bookmark) => bookmark.id !== response.data?.id)]);
-      setBookmarkMessage('Bookmark saved.');
+      toast.success('Bookmark saved successfully');
     } else {
-      setError(response.error ?? 'Failed to save bookmark');
+      toast.error(response.error ?? 'Failed to save bookmark');
     }
 
     setIsBookmarkSaving(false);
@@ -599,8 +603,6 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
     }
 
     setIsPlaylistSaving(true);
-    setPlaylistMessage(null);
-    setError(null);
 
     const response = await apiClient.addVideoToPlaylist(playlistId, {
       videoId: video.id,
@@ -615,10 +617,10 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
             : playlist
         )
       );
-      setPlaylistMessage(`Added to ${targetPlaylist?.name ?? 'playlist'}.`);
+      toast.success(`Added to ${targetPlaylist?.name ?? 'playlist'}`);
       setIsPlaylistDialogOpen(false);
     } else {
-      setError(response.error ?? 'Failed to add video to playlist');
+      toast.error(response.error ?? 'Failed to add video to playlist');
     }
 
     setIsPlaylistSaving(false);
@@ -639,8 +641,11 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
 
     if (response.success && response.data) {
       setReactionSummary(response.data);
+      toast.success(
+        nextReaction === 'Like' ? 'Liked video' : 'Disliked video'
+      );
     } else {
-      setError(response.error ?? 'Failed to update reaction');
+      toast.error(response.error ?? 'Failed to update reaction');
     }
 
     setIsReactionSaving(false);
@@ -953,17 +958,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
               </p>
             </div>
 
-            {bookmarkMessage && (
-              <Card className="border-chart-5/30 bg-chart-5/10">
-                <CardContent className="py-3 text-sm text-foreground">{bookmarkMessage}</CardContent>
-              </Card>
-            )}
 
-            {playlistMessage && (
-              <Card className="border-chart-5/30 bg-chart-5/10">
-                <CardContent className="py-3 text-sm text-foreground">{playlistMessage}</CardContent>
-              </Card>
-            )}
 
             <div className="space-y-4 text-foreground">
               <p className="text-sm leading-relaxed">{video.description}</p>
@@ -1005,6 +1000,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 onTranscriptSearch={() => void handleTranscriptSearch()}
                 transcriptSearchResults={transcriptSearchResults}
                 isTranscriptSearching={isTranscriptSearching}
+                hasCompletedTranscriptSearch={hasCompletedTranscriptSearch}
                 highlightedChunkId={highlightedChunkId}
                 onChunkSeek={(chunk) => {
                   setHighlightedChunkId(chunk.chunkId);

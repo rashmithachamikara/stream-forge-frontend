@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import { Button } from '@/components/ui/button';
@@ -93,8 +94,9 @@ export default function BookmarksPage() {
 
     if (response.success) {
       setBookmarks((current) => current.filter((item) => item.id !== bookmark.id));
+      toast.success('Bookmark deleted successfully');
     } else {
-      setError(response.error ?? 'Failed to delete bookmark');
+      toast.error(response.error ?? 'Failed to delete bookmark');
     }
   };
 

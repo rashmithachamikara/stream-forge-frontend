@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +23,6 @@ import {
   Plus,
   Trash2,
   Save,
-  CheckCircle,
   Loader2,
   Eye,
   EyeOff,
@@ -200,6 +200,8 @@ export default function AdminSettingsPage() {
       outputFormats: serializeOutputFormats(transcriptionSettings.outputFormats),
     });
 
+    setSaveStatus('idle');
+
     if (response.success && response.data) {
       const nextSettings = {
         enabled: response.data.enabled,
@@ -216,11 +218,9 @@ export default function AdminSettingsPage() {
       };
       setTranscriptionSettings(nextSettings);
       setSavedTranscriptionSettings(nextSettings);
-      setSaveStatus('saved');
-      window.setTimeout(() => setSaveStatus('idle'), 2000);
+      toast.success('Transcription settings saved successfully');
     } else {
-      setSaveStatus('idle');
-      setTranscriptionSettingsError(response.error ?? 'Failed to save transcription settings');
+      toast.error(response.error ?? 'Failed to save transcription settings');
     }
   };
 
@@ -303,11 +303,6 @@ export default function AdminSettingsPage() {
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Saving...
-                </>
-              ) : saveStatus === 'saved' ? (
-                <>
-                  <CheckCircle className="w-4 h-4 text-emerald-500" />
-                  Saved
                 </>
               ) : (
                 <>

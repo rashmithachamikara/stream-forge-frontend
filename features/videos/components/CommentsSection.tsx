@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { apiClient } from '@/shared/lib/api';
 import { Comment } from '@/features/videos/types';
 import { Button } from '@/components/ui/button';
@@ -191,8 +192,9 @@ export function CommentsSection({
         setNewComment('');
         setComments((current) => [createdComment, ...current]);
       }
+      toast.success('Comment posted successfully');
     } else {
-      setError(response.error ?? 'Failed to create comment');
+      toast.error(response.error ?? 'Failed to create comment');
     }
 
     setIsSubmitting(false);
@@ -228,8 +230,9 @@ export function CommentsSection({
       });
       setEditingCommentId(null);
       setEditingDraft('');
+      toast.success('Comment updated');
     } else {
-      setError(response.error ?? 'Failed to update comment');
+      toast.error(response.error ?? 'Failed to update comment');
     }
 
     setIsSubmitting(false);
@@ -260,9 +263,10 @@ export function CommentsSection({
         return nextState;
       });
       setIsSubmitting(false);
+      toast.success('Comment deleted');
       return true;
     } else {
-      setError(response.error ?? 'Failed to delete comment');
+      toast.error(response.error ?? 'Failed to delete comment');
     }
 
     setIsSubmitting(false);

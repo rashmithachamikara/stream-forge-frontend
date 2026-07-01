@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
@@ -258,11 +259,12 @@ export default function PlaylistsPage() {
       setIsCreateOpen(false);
       setSelectedPlaylist(created);
       setPlaylistVideosPageNumber(1);
+      toast.success('Playlist created successfully');
       React.startTransition(() => {
         router.replace(`/playlists?playlistId=${created.id}`);
       });
     } else {
-      setError(response.error ?? 'Failed to create playlist');
+      toast.error(response.error ?? 'Failed to create playlist');
     }
 
     setIsSubmitting(false);
@@ -306,8 +308,9 @@ export default function PlaylistsPage() {
       }
       setIsEditOpen(false);
       setEditingPlaylist(null);
+      toast.success('Playlist updated successfully');
     } else {
-      setError(response.error ?? 'Failed to update playlist');
+      toast.error(response.error ?? 'Failed to update playlist');
     }
 
     setIsSubmitting(false);
@@ -343,8 +346,9 @@ export default function PlaylistsPage() {
       }
       setIsDeleteOpen(false);
       setPlaylistToDelete(null);
+      toast.success('Playlist deleted successfully');
     } else {
-      setError(response.error ?? 'Failed to delete playlist');
+      toast.error(response.error ?? 'Failed to delete playlist');
     }
 
     setIsSubmitting(false);
@@ -354,9 +358,10 @@ export default function PlaylistsPage() {
     const response = await apiClient.removeVideoFromPlaylist(playlistId, videoId);
 
     if (!response.success) {
-      setError(response.error ?? 'Failed to remove video from playlist');
+      toast.error(response.error ?? 'Failed to remove video from playlist');
       return;
     }
+    toast.success('Video removed from playlist');
 
     setPlaylistVideosPage((current) => {
       if (!current) {

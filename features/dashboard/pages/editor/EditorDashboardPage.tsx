@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -231,8 +232,9 @@ export default function EditorDashboard() {
       );
       setEditDialogOpen(false);
       void loadStats();
+      toast.success('Video updated successfully');
     } else {
-      setError(response.error || 'Failed to update video');
+      toast.error(response.error || 'Failed to update video');
     }
     setIsSubmitting(false);
   };
@@ -248,8 +250,9 @@ export default function EditorDashboard() {
       setTotalCount(Math.max(0, totalCount - 1));
       setDeleteDialogOpen(false);
       void loadStats();
+      toast.success('Video deleted successfully');
     } else {
-      setError(response.error || 'Failed to delete video');
+      toast.error(response.error || 'Failed to delete video');
     }
     setIsSubmitting(false);
   };

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { apiClient } from '@/shared/lib/api';
 import {
@@ -219,7 +220,6 @@ export default function ProcessingPage() {
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [activeActionKey, setActiveActionKey] = useState<string | null>(null);
 
   // New pagination, filtering, and sorting states
@@ -492,7 +492,6 @@ export default function ProcessingPage() {
 
     const actionKey = `${pendingAction.kind}:${pendingAction.action}:${pendingAction.jobKey}`;
     setActiveActionKey(actionKey);
-    setActionError(null);
 
     if (pendingAction.kind === 'video') {
       const response =
@@ -508,9 +507,10 @@ export default function ProcessingPage() {
         ) {
           setVideoJobDetail(response.data);
         }
+        toast.success(`Successfully triggered ${pendingAction.action} for video job`);
         setPendingAction(null);
       } else {
-        setActionError(
+        toast.error(
           response.error ??
             `Failed to ${pendingAction.action} ${pendingAction.label.toLowerCase()}`
         );
@@ -529,9 +529,10 @@ export default function ProcessingPage() {
         ) {
           setTranscriptionJobDetail(response.data);
         }
+        toast.success(`Successfully triggered ${pendingAction.action} for transcription job`);
         setPendingAction(null);
       } else {
-        setActionError(
+        toast.error(
           response.error ??
             `Failed to ${pendingAction.action} ${pendingAction.label.toLowerCase()}`
         );
@@ -558,11 +559,7 @@ export default function ProcessingPage() {
           </h1>
         </div>
 
-        {actionError ? (
-          <div className="rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {actionError}
-          </div>
-        ) : null}
+
 
         <Tabs
           value={activeTab}

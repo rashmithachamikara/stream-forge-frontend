@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
@@ -289,8 +290,9 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     if (response.success && response.data) {
       setTranscriptions(response.data);
       setRequestTranscriptionOpen(false);
+      toast.success('Transcription requested successfully');
     } else {
-      setError(response.error ?? 'Failed to request transcription');
+      toast.error(response.error ?? 'Failed to request transcription');
     }
 
     setIsRequestingTranscription(false);
@@ -308,8 +310,9 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
 
     if (response.success && response.data) {
       setTranscriptions(response.data);
+      toast.success('Transcription retry initiated');
     } else {
-      setError(response.error ?? 'Failed to retry transcription');
+      toast.error(response.error ?? 'Failed to retry transcription');
     }
 
     setRetryingTranscriptionId(null);
@@ -344,8 +347,9 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     if (response.success && response.data) {
       setVideo(response.data);
       setForm(getManageFormState(response.data));
+      toast.success('Changes saved successfully');
     } else {
-      setError(response.error ?? 'Failed to save changes');
+      toast.error(response.error ?? 'Failed to save changes');
     }
 
     setIsSaving(false);
@@ -367,9 +371,10 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
     const response = await apiClient.deleteVideo(video.id);
 
     if (response.success) {
+      toast.success('Video deleted successfully');
       router.push('/videos');
     } else {
-      setError(response.error ?? 'Failed to delete video');
+      toast.error(response.error ?? 'Failed to delete video');
       setIsDeleting(false);
     }
   };
@@ -388,8 +393,9 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
         setVideo(refreshed.data);
       }
       setArchiveOpen(false);
+      toast.success('Video archived successfully');
     } else {
-      setError(response.error ?? 'Failed to archive video');
+      toast.error(response.error ?? 'Failed to archive video');
     }
 
     setIsArchiving(false);

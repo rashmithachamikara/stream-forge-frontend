@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { apiClient } from '@/shared/lib/api';
 import { AccessGrant, AccessGrantPermission } from '@/features/videos/types';
 import { UserProfile } from '@/features/admin/types';
@@ -69,7 +70,6 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [lastShareToken, setLastShareToken] = useState<string | null>(null);
   const [deactivatePendingId, setDeactivatePendingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<AccessStatusFilter>('all');
@@ -152,7 +152,7 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
 
   const copyShareToken = async (value: string) => {
     await navigator.clipboard.writeText(value);
-    setSuccessMessage('Share token copied to clipboard.');
+    toast.success('Share token copied to clipboard');
   };
 
   const handleCreateGrant = async (event: React.FormEvent) => {
@@ -168,7 +168,6 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
 
     setIsSubmitting(true);
     setError(null);
-    setSuccessMessage(null);
 
     const response = await apiClient.createVideoAccessGrant(videoId, {
       userId: userId || undefined,
@@ -180,12 +179,12 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
     if (response.success && response.data) {
       const createdGrant = response.data;
       setGrants((current) => [createdGrant, ...current.filter((grant) => grant.id !== createdGrant.id)]);
-      setSuccessMessage('Access grant created successfully.');
+      toast.success('Access grant created successfully');
       setLastShareToken(createdGrant.shareToken);
       setForm(DEFAULT_FORM);
       setIsDialogOpen(false);
     } else {
-      setError(response.error ?? 'Failed to create access grant');
+      toast.error(response.error ?? 'Failed to create access grant');
     }
 
     setIsSubmitting(false);
@@ -198,7 +197,6 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
 
     setDeactivatePendingId(grant.id);
     setError(null);
-    setSuccessMessage(null);
 
     const response = await apiClient.deleteVideoAccessGrant(videoId, grant.id);
 
@@ -210,9 +208,9 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
           current.map((item) => (item.id === grant.id ? { ...item, isActive: false } : item))
         );
       }
-      setSuccessMessage('Access grant deactivated.');
+      toast.success('Access grant deactivated successfully');
     } else {
-      setError(response.error ?? 'Failed to deactivate access grant');
+      toast.error(response.error ?? 'Failed to deactivate access grant');
     }
 
     setDeactivatePendingId(null);
@@ -353,11 +351,7 @@ export function VideoAccessGrantsCard({ videoId, canManageAccess }: { videoId: s
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {successMessage && (
-          <div className="rounded-md border border-chart-5/30 bg-chart-5/10 px-3 py-2 text-sm text-foreground">
-            {successMessage}
-          </div>
-        )}
+
         {lastShareToken && (
           <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
             <div className="mb-2 flex items-center gap-2 font-medium">

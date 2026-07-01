@@ -241,9 +241,11 @@ Shadows:
 - `bg-popover border border-border rounded-md shadow-lg py-1`
 - Items: `px-3 py-1.5 text-xs hover:bg-accent`
 
-### Notifications
+### Notifications & Toasts
 - Unread indicator: 6px `bg-primary rounded-full` dot to the left of content
 - Bell shows a 6px primary dot when unread count > 0 (no number badge)
+- **Toast Notifications (Sonner)**: Use Sonner for transient success/error/warning alerts instead of static, layout-shifting error panels or brief button label transitions.
+  - Toasts must map success, error, and warning states to the platform's color formulas (`bg-*/10`, `text-*`, `border-*/20`) and target icon colors.
 
 ### Player (watch page)
 - Full-width 16:9 video frame with `bg-black rounded-lg overflow-hidden`
