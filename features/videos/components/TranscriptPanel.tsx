@@ -28,6 +28,7 @@ type TranscriptPanelProps = {
   onTranscriptSearch: () => void;
   transcriptSearchResults: TranscriptSearchResult[];
   isTranscriptSearching: boolean;
+  hasCompletedTranscriptSearch: boolean;
   highlightedChunkId: string | null;
   onChunkSeek: (chunk: Pick<TranscriptChunk, 'chunkId' | 'startSeconds'>) => void;
   onSearchResultSeek: (result: TranscriptSearchResult) => void;
@@ -39,6 +40,25 @@ type TranscriptPanelProps = {
 
 const TRANSCRIPT_AUTOSCROLL_STORAGE_KEY = 'streamforge_transcript_autoscroll';
 
+const TranscriptSearchLoadingState = () => (
+  <div className="space-y-2">
+    {Array.from({ length: 3 }).map((_, index) => (
+      <div
+        key={index}
+        className="rounded-md border bg-background px-3 py-2"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="h-3 w-12 animate-pulse rounded bg-muted" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 export function TranscriptPanel({
   transcriptions,
   selectedTranscriptionId,
@@ -49,6 +69,7 @@ export function TranscriptPanel({
   onTranscriptSearch,
   transcriptSearchResults,
   isTranscriptSearching,
+  hasCompletedTranscriptSearch,
   highlightedChunkId,
   onChunkSeek,
   onSearchResultSeek,
@@ -76,6 +97,10 @@ export function TranscriptPanel({
     selectedStatus === 'success'
       ? selectedTranscription
       : transcriptions.find((transcription) => normalizeTranscriptionStatus(transcription) === 'success') ?? null;
+  const isTranscriptSearchPending =
+    transcriptSearchQuery.trim().length > 0 &&
+    !hasCompletedTranscriptSearch &&
+    !isTranscriptSearching;
   const activeChunkId = useMemo(() => {
     const activeChunk = transcriptChunks.find(
       (chunk) =>
@@ -174,11 +199,6 @@ export function TranscriptPanel({
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  {isTranscriptSearching ? (
-                    <div className="flex items-center gap-1 px-1.5 text-[10px] text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    </div>
-                  ) : null}
                   {downloadableTranscription ? (
                     <Button
                       type="button"
@@ -199,16 +219,21 @@ export function TranscriptPanel({
                 <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-semibold text-foreground">Search results</p>
-                    {isTranscriptSearching ? (
-                      <span className="text-[11px] text-muted-foreground">Searching…</span>
-                    ) : (
+                    {isTranscriptSearching || isTranscriptSearchPending ? (
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span>Searching</span>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      </div>
+                    ) : hasCompletedTranscriptSearch ? (
                       <span className="font-mono text-[11px] text-muted-foreground">
                         {transcriptSearchResults.length} matches
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
-                    {transcriptSearchResults.length > 0 ? (
+                    {isTranscriptSearching || isTranscriptSearchPending ? (
+                      <TranscriptSearchLoadingState />
+                    ) : transcriptSearchResults.length > 0 ? (
                       transcriptSearchResults.map((result) => (
                         <button
                           key={`${result.transcriptionId}-${result.chunkId}`}
@@ -226,9 +251,9 @@ export function TranscriptPanel({
                           </div>
                         </button>
                       ))
-                    ) : (
+                    ) : hasCompletedTranscriptSearch && !isTranscriptSearching ? (
                       <p className="text-xs text-muted-foreground">No matches found.</p>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               ) : null}
