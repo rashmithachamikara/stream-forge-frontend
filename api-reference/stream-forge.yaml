@@ -1413,6 +1413,106 @@
                 },
             },
         },
+      "/api/v1/admin/settings/rag":
+        {
+          "get":
+            {
+              "tags": ["AdminSettings"],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminRagSettingsDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminRagSettingsDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminRagSettingsDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+          "put":
+            {
+              "tags": ["AdminSettings"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateAdminRagSettingsRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateAdminRagSettingsRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/UpdateAdminRagSettingsRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminRagSettingsDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminRagSettingsDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/AdminRagSettingsDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
       "/api/v1/auth/register":
         {
           "post":
@@ -3831,6 +3931,211 @@
               "responses": { "200": { "description": "OK" } },
             },
         },
+      "/api/v1/transcript-semantic-search":
+        {
+          "get":
+            {
+              "tags": ["TranscriptSearch"],
+              "parameters":
+                [
+                  {
+                    "name": "q",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "language",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "videoIds",
+                    "in": "query",
+                    "schema":
+                      {
+                        "type": "array",
+                        "items": { "type": "string", "format": "uuid" },
+                      },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CrossVideoTranscriptSemanticSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CrossVideoTranscriptSemanticSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CrossVideoTranscriptSemanticSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/transcript-hybrid-search":
+        {
+          "get":
+            {
+              "tags": ["TranscriptSearch"],
+              "parameters":
+                [
+                  {
+                    "name": "q",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "language",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "videoIds",
+                    "in": "query",
+                    "schema":
+                      {
+                        "type": "array",
+                        "items": { "type": "string", "format": "uuid" },
+                      },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CrossVideoTranscriptHybridSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CrossVideoTranscriptHybridSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/CrossVideoTranscriptHybridSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/questions":
+        {
+          "post":
+            {
+              "tags": ["TranscriptSearch"],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AskQuestionAcrossVideosRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AskQuestionAcrossVideosRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AskQuestionAcrossVideosRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/GroundedQuestionAnswerDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/GroundedQuestionAnswerDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/GroundedQuestionAnswerDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
       "/api/v1/uploads/sessions":
         {
           "post":
@@ -6164,6 +6469,229 @@
                 },
             },
         },
+      "/api/v1/videos/{videoId}/transcript-semantic-search":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "q",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "language",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptSemanticSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptSemanticSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptSemanticSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/transcript-hybrid-search":
+        {
+          "get":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "q",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "language",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "pageSize",
+                    "in": "query",
+                    "schema": { "type": "integer", "format": "int32" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptHybridSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptHybridSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/TranscriptHybridSearchResultDtoPagedResponseDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+      "/api/v1/videos/{videoId}/questions":
+        {
+          "post":
+            {
+              "tags": ["VideoTranscriptions"],
+              "parameters":
+                [
+                  {
+                    "name": "videoId",
+                    "in": "path",
+                    "required": true,
+                    "schema": { "type": "string", "format": "uuid" },
+                  },
+                  {
+                    "name": "shareToken",
+                    "in": "query",
+                    "schema": { "type": "string" },
+                  },
+                ],
+              "requestBody":
+                {
+                  "content":
+                    {
+                      "application/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AskVideoQuestionRequestDto",
+                            },
+                        },
+                      "text/json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AskVideoQuestionRequestDto",
+                            },
+                        },
+                      "application/*+json":
+                        {
+                          "schema":
+                            {
+                              "$ref": "#/components/schemas/AskVideoQuestionRequestDto",
+                            },
+                        },
+                    },
+                },
+              "responses":
+                {
+                  "200":
+                    {
+                      "description": "OK",
+                      "content":
+                        {
+                          "text/plain":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/GroundedQuestionAnswerDto",
+                                },
+                            },
+                          "application/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/GroundedQuestionAnswerDto",
+                                },
+                            },
+                          "text/json":
+                            {
+                              "schema":
+                                {
+                                  "$ref": "#/components/schemas/GroundedQuestionAnswerDto",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
     },
   "components":
     {
@@ -6232,6 +6760,44 @@
                   "videoId": { "type": "string", "format": "uuid" },
                   "orderIndex":
                     { "type": "integer", "format": "int32", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "AdminRagSettingsDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "enabled": { "type": "boolean" },
+                  "semanticSearchEnabled": { "type": "boolean" },
+                  "videoQuestionsEnabled": { "type": "boolean" },
+                  "crossVideoQuestionsEnabled": { "type": "boolean" },
+                  "embeddingProvider": { "type": "string", "nullable": true },
+                  "embeddingModel": { "type": "string", "nullable": true },
+                  "embeddingBatchSize":
+                    { "type": "integer", "format": "int32" },
+                  "retrievalDefaultMode":
+                    { "type": "string", "nullable": true },
+                  "semanticTopK": { "type": "integer", "format": "int32" },
+                  "fullTextTopK": { "type": "integer", "format": "int32" },
+                  "hybridSemanticWeight":
+                    { "type": "number", "format": "double" },
+                  "hybridLexicalWeight":
+                    { "type": "number", "format": "double" },
+                  "hybridMaxCandidates":
+                    { "type": "integer", "format": "int32" },
+                  "qaProvider": { "type": "string", "nullable": true },
+                  "qaMaxContextChunks":
+                    { "type": "integer", "format": "int32" },
+                  "qaMaxCitations": { "type": "integer", "format": "int32" },
+                  "qaTemperature": { "type": "number", "format": "double" },
+                  "qaMaxOutputTokens": { "type": "integer", "format": "int32" },
+                  "geminiApiKey":
+                    { "$ref": "#/components/schemas/SystemSecretStatusDto" },
+                  "grokApiKey":
+                    { "$ref": "#/components/schemas/SystemSecretStatusDto" },
+                  "groqApiKey":
+                    { "$ref": "#/components/schemas/SystemSecretStatusDto" },
                 },
               "additionalProperties": false,
             },
@@ -6413,6 +6979,32 @@
                 {
                   "periodStart": { "type": "string", "format": "date-time" },
                   "viewCount": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
+          "AskQuestionAcrossVideosRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "question": { "type": "string", "nullable": true },
+                  "language": { "type": "string", "nullable": true },
+                  "videoIds":
+                    {
+                      "type": "array",
+                      "items": { "type": "string", "format": "uuid" },
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "AskVideoQuestionRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "question": { "type": "string", "nullable": true },
+                  "language": { "type": "string", "nullable": true },
                 },
               "additionalProperties": false,
             },
@@ -6693,6 +7285,90 @@
                 },
               "additionalProperties": false,
             },
+          "CrossVideoTranscriptHybridSearchResultDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "chunkId": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "videoTitle": { "type": "string", "nullable": true },
+                  "transcriptionId": { "type": "string", "format": "uuid" },
+                  "language": { "type": "string", "nullable": true },
+                  "startSeconds": { "type": "number", "format": "double" },
+                  "endSeconds": { "type": "number", "format": "double" },
+                  "content": { "type": "string", "nullable": true },
+                  "score": { "type": "number", "format": "double" },
+                  "lexicalScore":
+                    { "type": "number", "format": "double", "nullable": true },
+                  "semanticScore":
+                    { "type": "number", "format": "double", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "CrossVideoTranscriptHybridSearchResultDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/CrossVideoTranscriptHybridSearchResultDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "CrossVideoTranscriptSemanticSearchResultDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "chunkId": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "videoTitle": { "type": "string", "nullable": true },
+                  "transcriptionId": { "type": "string", "format": "uuid" },
+                  "language": { "type": "string", "nullable": true },
+                  "startSeconds": { "type": "number", "format": "double" },
+                  "endSeconds": { "type": "number", "format": "double" },
+                  "content": { "type": "string", "nullable": true },
+                  "score": { "type": "number", "format": "double" },
+                },
+              "additionalProperties": false,
+            },
+          "CrossVideoTranscriptSemanticSearchResultDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/CrossVideoTranscriptSemanticSearchResultDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "DeviceBreakdownItemDto":
             {
               "type": "object",
@@ -6700,6 +7376,42 @@
                 {
                   "deviceType": { "type": "string", "nullable": true },
                   "viewerCount": { "type": "integer", "format": "int32" },
+                },
+              "additionalProperties": false,
+            },
+          "GroundedQuestionAnswerDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "question": { "type": "string", "nullable": true },
+                  "retrievalMode": { "type": "string", "nullable": true },
+                  "answer": { "type": "string", "nullable": true },
+                  "usedChunkCount": { "type": "integer", "format": "int32" },
+                  "citations":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/GroundedQuestionCitationDto",
+                        },
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
+          "GroundedQuestionCitationDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "videoTitle": { "type": "string", "nullable": true },
+                  "transcriptionId": { "type": "string", "format": "uuid" },
+                  "chunkId": { "type": "string", "format": "uuid" },
+                  "startSeconds": { "type": "number", "format": "double" },
+                  "endSeconds": { "type": "number", "format": "double" },
+                  "content": { "type": "string", "nullable": true },
                 },
               "additionalProperties": false,
             },
@@ -6963,6 +7675,16 @@
                 },
               "additionalProperties": false,
             },
+          "SystemSecretStatusDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "isConfigured": { "type": "boolean" },
+                  "maskedValue": { "type": "string", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
           "TagBreakdownItemDto":
             {
               "type": "object",
@@ -7020,6 +7742,49 @@
                 },
               "additionalProperties": false,
             },
+          "TranscriptHybridSearchResultDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "chunkId": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "transcriptionId": { "type": "string", "format": "uuid" },
+                  "language": { "type": "string", "nullable": true },
+                  "startSeconds": { "type": "number", "format": "double" },
+                  "endSeconds": { "type": "number", "format": "double" },
+                  "content": { "type": "string", "nullable": true },
+                  "score": { "type": "number", "format": "double" },
+                  "lexicalScore":
+                    { "type": "number", "format": "double", "nullable": true },
+                  "semanticScore":
+                    { "type": "number", "format": "double", "nullable": true },
+                },
+              "additionalProperties": false,
+            },
+          "TranscriptHybridSearchResultDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/TranscriptHybridSearchResultDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
           "TranscriptSearchResultDto":
             {
               "type": "object",
@@ -7046,6 +7811,45 @@
                       "items":
                         {
                           "$ref": "#/components/schemas/TranscriptSearchResultDto",
+                        },
+                      "nullable": true,
+                    },
+                  "page": { "type": "integer", "format": "int32" },
+                  "pageSize": { "type": "integer", "format": "int32" },
+                  "totalCount": { "type": "integer", "format": "int32" },
+                  "totalPages": { "type": "integer", "format": "int32" },
+                  "hasNextPage": { "type": "boolean" },
+                  "hasPreviousPage": { "type": "boolean" },
+                },
+              "additionalProperties": false,
+            },
+          "TranscriptSemanticSearchResultDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "chunkId": { "type": "string", "format": "uuid" },
+                  "videoId": { "type": "string", "format": "uuid" },
+                  "transcriptionId": { "type": "string", "format": "uuid" },
+                  "language": { "type": "string", "nullable": true },
+                  "startSeconds": { "type": "number", "format": "double" },
+                  "endSeconds": { "type": "number", "format": "double" },
+                  "content": { "type": "string", "nullable": true },
+                  "score": { "type": "number", "format": "double" },
+                },
+              "additionalProperties": false,
+            },
+          "TranscriptSemanticSearchResultDtoPagedResponseDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "items":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/TranscriptSemanticSearchResultDto",
                         },
                       "nullable": true,
                     },
@@ -7127,6 +7931,44 @@
               "type": "object",
               "properties":
                 { "unreadCount": { "type": "integer", "format": "int32" } },
+              "additionalProperties": false,
+            },
+          "UpdateAdminRagSettingsRequestDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "enabled": { "type": "boolean" },
+                  "semanticSearchEnabled": { "type": "boolean" },
+                  "videoQuestionsEnabled": { "type": "boolean" },
+                  "crossVideoQuestionsEnabled": { "type": "boolean" },
+                  "embeddingProvider": { "type": "string", "nullable": true },
+                  "embeddingModel": { "type": "string", "nullable": true },
+                  "embeddingBatchSize":
+                    { "type": "integer", "format": "int32" },
+                  "retrievalDefaultMode":
+                    { "type": "string", "nullable": true },
+                  "semanticTopK": { "type": "integer", "format": "int32" },
+                  "fullTextTopK": { "type": "integer", "format": "int32" },
+                  "hybridSemanticWeight":
+                    { "type": "number", "format": "double" },
+                  "hybridLexicalWeight":
+                    { "type": "number", "format": "double" },
+                  "hybridMaxCandidates":
+                    { "type": "integer", "format": "int32" },
+                  "qaProvider": { "type": "string", "nullable": true },
+                  "qaMaxContextChunks":
+                    { "type": "integer", "format": "int32" },
+                  "qaMaxCitations": { "type": "integer", "format": "int32" },
+                  "qaTemperature": { "type": "number", "format": "double" },
+                  "qaMaxOutputTokens": { "type": "integer", "format": "int32" },
+                  "geminiApiKey": { "type": "string", "nullable": true },
+                  "clearGeminiApiKey": { "type": "boolean" },
+                  "grokApiKey": { "type": "string", "nullable": true },
+                  "clearGrokApiKey": { "type": "boolean" },
+                  "groqApiKey": { "type": "string", "nullable": true },
+                  "clearGroqApiKey": { "type": "boolean" },
+                },
               "additionalProperties": false,
             },
           "UpdateAdminTranscriptionSettingsRequestDto":
