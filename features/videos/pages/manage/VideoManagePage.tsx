@@ -54,6 +54,8 @@ import {
   Calendar,
   FileAudio,
   RotateCcw,
+  AlertCircle,
+  CircleCheck,
 } from 'lucide-react';
 import { VideoVisibilityBadge } from '@/features/videos/components/VideoVisibilityBadge';
 import { VideoStatusBadge } from '@/features/videos/components/VideoStatusBadge';
@@ -648,16 +650,49 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                 {processingStatus ? (
                   <>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>{processingStatus.jobType || 'Video processing'}</span>
-                        <span>{processingStatus.progress !== null ? `${processingStatus.progress}%` : 'Pending'}</span>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="font-mono">[TASK: {processingStatus.jobType || 'Video processing'}]</span>
+                        <span className="font-mono font-semibold text-foreground">
+                          {processingStatus.progress !== null ? `${processingStatus.progress}%` : 'Pending'}
+                        </span>
                       </div>
-                      <Progress value={processingProgress} className="h-3" />
+                      <Progress value={processingProgress} className="h-2" />
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      <p>Status: {processingStatus.jobStatus || processingStatus.videoStatus}</p>
-                      {processingStatus.errorMessage && <p className="mt-2 text-destructive">{processingStatus.errorMessage}</p>}
-                    </div>
+                    
+                    {processingStatus.jobStatus === 'Failed' || processingStatus.errorMessage ? (
+                      <div className="rounded-md border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-xs text-destructive flex items-start gap-2">
+                        <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-semibold font-mono tracking-tight text-[10px] uppercase">
+                            Processing Failed
+                          </p>
+                          <p className="font-mono text-[10px] leading-normal break-all">
+                            {processingStatus.errorMessage || 'An unknown error occurred during transcoding.'}
+                          </p>
+                        </div>
+                      </div>
+                    ) : processingStatus.jobStatus === 'Completed' || video.status === 'Ready' ? (
+                      <div className="rounded-md border border-success/20 bg-success/5 px-3 py-2.5 text-xs text-success flex items-start gap-2">
+                        <CircleCheck className="size-4 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-semibold font-mono tracking-tight text-[10px] uppercase">
+                            Transcoding Complete
+                          </p>
+                          <p className="text-[10px] leading-normal text-muted-foreground">
+                            Video stream has been processed and is ready for playback.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          <span className="font-semibold text-foreground font-mono tracking-tight text-[10px] uppercase">
+                            {processingStatus.jobStatus || 'Processing...'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">No active processing job is currently associated with this video.</p>
@@ -729,13 +764,53 @@ export default function VideoManagePage({ videoId }: { videoId: string }) {
                         </Button>
                       ) : null}
                     </div>
-                    <p className="mt-2 text-sm text-foreground">
-                      {sharedFailureReason ||
-                        primaryTranscription.failureReason ||
-                        primaryTranscription.liveStatus?.message ||
-                        primaryTranscription.status ||
-                        'Available'}
-                    </p>
+                    {sharedFailureReason ||
+                    primaryTranscription.failureReason ||
+                    primaryTranscription.liveStatus?.status === 'failed' ||
+                    primaryTranscription.status === 'Failed' ? (
+                      <div className="mt-3 rounded-md border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-xs text-destructive flex items-start gap-2">
+                        <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-semibold font-mono tracking-tight text-[10px] uppercase">
+                            Transcription Failed
+                          </p>
+                          <p className="font-mono text-[10px] leading-normal break-all">
+                            {sharedFailureReason ||
+                              primaryTranscription.failureReason ||
+                              primaryTranscription.liveStatus?.message ||
+                              'An unknown error occurred during transcription.'}
+                          </p>
+                        </div>
+                      </div>
+                    ) : primaryTranscription.status === 'Processing' ||
+                      primaryTranscription.liveStatus?.status === 'queued' ||
+                      primaryTranscription.liveStatus?.status === 'running' ? (
+                      <div className="mt-3 rounded-md border border-border bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                          <span className="font-semibold text-foreground font-mono tracking-tight text-[10px] uppercase">
+                            Transcribing...
+                          </span>
+                        </div>
+                        {primaryTranscription.liveStatus?.message && (
+                          <p className="pl-4 border-l border-border text-xs leading-relaxed text-muted-foreground font-mono text-[10px]">
+                            {primaryTranscription.liveStatus.message}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-md border border-success/20 bg-success/5 px-3 py-2.5 text-xs text-success flex items-start gap-2">
+                        <CircleCheck className="size-4 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-semibold font-mono tracking-tight text-[10px] uppercase">
+                            Transcription Complete
+                          </p>
+                          <p className="text-[10px] leading-normal text-muted-foreground">
+                            Captions are processed and available for playback.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {primaryTranscription.liveStatus?.transcribedUntilSeconds !== null &&
                     primaryTranscription.liveStatus?.transcribedUntilSeconds !== undefined &&
                     primaryTranscription.liveStatus.mediaDurationSeconds ? (
