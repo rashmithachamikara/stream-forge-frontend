@@ -12,6 +12,9 @@ COPY sdk/js-sdk/tsconfig.json ./
 COPY sdk/js-sdk/src ./src
 RUN npm install && npm run build
 
+# Create compatibility symlink for any old package-lock.json sibling relative path references
+RUN mkdir -p /stream-forge-backend/sdk && ln -s /app/sdk/js-sdk /stream-forge-backend/sdk/js-sdk
+
 # Copy the frontend dependencies
 WORKDIR /app
 COPY package*.json ./
@@ -22,8 +25,9 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 
-# Copy SDK and node_modules from deps stage
+# Copy SDK, node_modules, and symlinks from deps stage
 COPY --from=deps /app/sdk/js-sdk /app/sdk/js-sdk
+COPY --from=deps /stream-forge-backend /stream-forge-backend
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -45,8 +49,9 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy built artifacts and configurations
+# Copy built artifacts, compatibility layouts, and configurations
 COPY --from=builder /app/sdk/js-sdk ./sdk/js-sdk
+COPY --from=builder /stream-forge-backend /stream-forge-backend
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/public ./public
