@@ -274,6 +274,18 @@ export interface SystemSecretStatusDto {
   maskedValue?: string | null;
 }
 
+export interface QaProviderModelCatalog {
+  provider: string | null;
+  defaultModel: string | null;
+  models: string[] | null;
+}
+
+export interface QaProviderModelCatalogDto {
+  provider?: string | null;
+  defaultModel?: string | null;
+  models?: string[] | null;
+}
+
 export interface AdminRagSettings {
   enabled: boolean;
   semanticSearchEnabled: boolean;
@@ -289,10 +301,14 @@ export interface AdminRagSettings {
   hybridLexicalWeight: number;
   hybridMaxCandidates: number;
   qaProvider: string | null;
+  geminiQaModel: string | null;
+  grokQaModel: string | null;
+  groqQaModel: string | null;
   qaMaxContextChunks: number;
   qaMaxCitations: number;
   qaTemperature: number;
   qaMaxOutputTokens: number;
+  qaModelCatalog: QaProviderModelCatalog[] | null;
   geminiApiKey: SystemSecretStatus;
   grokApiKey: SystemSecretStatus;
   groqApiKey: SystemSecretStatus;
@@ -313,10 +329,14 @@ export interface AdminRagSettingsDto {
   hybridLexicalWeight?: number;
   hybridMaxCandidates?: number;
   qaProvider?: string | null;
+  geminiQaModel?: string | null;
+  grokQaModel?: string | null;
+  groqQaModel?: string | null;
   qaMaxContextChunks?: number;
   qaMaxCitations?: number;
   qaTemperature?: number;
   qaMaxOutputTokens?: number;
+  qaModelCatalog?: QaProviderModelCatalogDto[] | null;
   geminiApiKey?: SystemSecretStatusDto;
   grokApiKey?: SystemSecretStatusDto;
   groqApiKey?: SystemSecretStatusDto;
@@ -337,6 +357,9 @@ export interface UpdateAdminRagSettingsRequest {
   hybridLexicalWeight: number;
   hybridMaxCandidates: number;
   qaProvider?: string | null;
+  geminiQaModel?: string | null;
+  grokQaModel?: string | null;
+  groqQaModel?: string | null;
   qaMaxContextChunks: number;
   qaMaxCitations: number;
   qaTemperature: number;

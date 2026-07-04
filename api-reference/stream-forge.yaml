@@ -6787,11 +6787,23 @@
                   "hybridMaxCandidates":
                     { "type": "integer", "format": "int32" },
                   "qaProvider": { "type": "string", "nullable": true },
+                  "geminiQaModel": { "type": "string", "nullable": true },
+                  "grokQaModel": { "type": "string", "nullable": true },
+                  "groqQaModel": { "type": "string", "nullable": true },
                   "qaMaxContextChunks":
                     { "type": "integer", "format": "int32" },
                   "qaMaxCitations": { "type": "integer", "format": "int32" },
                   "qaTemperature": { "type": "number", "format": "double" },
                   "qaMaxOutputTokens": { "type": "integer", "format": "int32" },
+                  "qaModelCatalog":
+                    {
+                      "type": "array",
+                      "items":
+                        {
+                          "$ref": "#/components/schemas/QaProviderModelCatalogDto",
+                        },
+                      "nullable": true,
+                    },
                   "geminiApiKey":
                     { "$ref": "#/components/schemas/SystemSecretStatusDto" },
                   "grokApiKey":
@@ -7534,6 +7546,22 @@
             },
           "PlaylistVisibility":
             { "enum": ["Public", "Private"], "type": "string" },
+          "QaProviderModelCatalogDto":
+            {
+              "type": "object",
+              "properties":
+                {
+                  "provider": { "type": "string", "nullable": true },
+                  "defaultModel": { "type": "string", "nullable": true },
+                  "models":
+                    {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "nullable": true,
+                    },
+                },
+              "additionalProperties": false,
+            },
           "RankedVideoAnalyticsDto":
             {
               "type": "object",
@@ -7957,6 +7985,9 @@
                   "hybridMaxCandidates":
                     { "type": "integer", "format": "int32" },
                   "qaProvider": { "type": "string", "nullable": true },
+                  "geminiQaModel": { "type": "string", "nullable": true },
+                  "grokQaModel": { "type": "string", "nullable": true },
+                  "groqQaModel": { "type": "string", "nullable": true },
                   "qaMaxContextChunks":
                     { "type": "integer", "format": "int32" },
                   "qaMaxCitations": { "type": "integer", "format": "int32" },

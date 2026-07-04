@@ -58,6 +58,58 @@ const normalizeOutputFormats = (formats: string[] | null | undefined) =>
 const serializeOutputFormats = (formats: string[] | null | undefined) =>
   (formats ?? []).map((format) => format.toLowerCase());
 
+const modelDisplayLabels: Record<string, string> = {
+  // Gemini
+  'gemini-2.5-flash': 'Gemini 2.5 Flash',
+  'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
+  'gemini-3.5-flash': 'Gemini 3.5 Flash',
+  'gemini-2.5-pro': 'Gemini 2.5 Pro',
+  'gemini-3-flash': 'Gemini 3 Flash',
+  // Grok
+  'grok-3-mini': 'Grok 3 Mini',
+  'grok-3': 'Grok 3',
+  // Groq
+  'llama-3.1-8b-instant': 'Llama 3.1 8B Instant',
+  'llama-3.3-70b-versatile': 'Llama 3.3 70B Versatile',
+  'openai/gpt-oss-120b': 'GPT OSS 120B',
+  'openai/gpt-oss-20b': 'GPT OSS 20B',
+  'qwen/qwen3-32b': 'Qwen 3 32B',
+  'qwen/qwen3.6-27b': 'Qwen 3.6 27B',
+};
+
+const getModelLabel = (modelId: string) => modelDisplayLabels[modelId] || modelId;
+
+const DEFAULT_QA_CATALOG = [
+  {
+    provider: 'gemini',
+    defaultModel: 'gemini-3.1-flash-lite',
+    models: [
+      'gemini-2.5-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-3.5-flash',
+      'gemini-2.5-pro',
+      'gemini-3-flash'
+    ]
+  },
+  {
+    provider: 'grok',
+    defaultModel: 'grok-3-mini',
+    models: ['grok-3-mini', 'grok-3']
+  },
+  {
+    provider: 'groq',
+    defaultModel: 'llama-3.3-70b-versatile',
+    models: [
+      'llama-3.1-8b-instant',
+      'llama-3.3-70b-versatile',
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'qwen/qwen3-32b',
+      'qwen/qwen3.6-27b'
+    ]
+  }
+];
+
 const TRANSCRIPTION_PROVIDER_OPTIONS = [
   { value: 'local-faster-whisper', label: 'Local Whisper' },
 ] as const;
@@ -245,6 +297,9 @@ export default function AdminSettingsPage() {
       hybridLexicalWeight: ragSettings.hybridLexicalWeight,
       hybridMaxCandidates: ragSettings.hybridMaxCandidates,
       qaProvider: ragSettings.qaProvider,
+      geminiQaModel: ragSettings.geminiQaModel,
+      grokQaModel: ragSettings.grokQaModel,
+      groqQaModel: ragSettings.groqQaModel,
       qaMaxContextChunks: ragSettings.qaMaxContextChunks,
       qaMaxCitations: ragSettings.qaMaxCitations,
       qaTemperature: ragSettings.qaTemperature,
@@ -825,17 +880,13 @@ export default function AdminSettingsPage() {
                             <div className="space-y-1.5">
                               <Label className="text-xs font-semibold text-foreground">Embedding Provider</Label>
                               <Select
-                                value={ragSettings.embeddingProvider ?? 'gemini'}
+                                value={ragSettings.embeddingProvider ?? 'local'}
                                 onValueChange={(val) => setRagSettings(current => current ? { ...current, embeddingProvider: val } : current)}
                               >
                                 <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="gemini">Gemini</SelectItem>
-                                  <SelectItem value="groq">Groq</SelectItem>
-                                  <SelectItem value="grok">Grok</SelectItem>
-                                  <SelectItem value="openai">OpenAI</SelectItem>
                                   <SelectItem value="local">Local</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -971,6 +1022,146 @@ export default function AdminSettingsPage() {
                                 </SelectContent>
                               </Select>
                             </div>
+
+                            {/* Provider Specific Configuration */}
+                            {(() => {
+                              const catalog = ragSettings.qaModelCatalog && ragSettings.qaModelCatalog.length > 0
+                                ? ragSettings.qaModelCatalog
+                                : DEFAULT_QA_CATALOG;
+                              const providerCatalog = catalog.find(item => item.provider === ragSettings.qaProvider);
+                              const showConfig = ragSettings.qaProvider === 'gemini' || ragSettings.qaProvider === 'grok' || ragSettings.qaProvider === 'groq';
+
+                              if (!showConfig) return null;
+
+                              return (
+                                <div className="lg:col-span-2 p-3 rounded-md border border-border bg-muted/30 space-y-4 my-2">
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    {ragSettings.qaProvider === 'gemini' ? 'Gemini' : ragSettings.qaProvider === 'grok' ? 'Grok' : 'Groq'} Configuration
+                                  </p>
+                                  <div className="grid gap-4 md:grid-cols-2">
+                                    {/* Model Selector */}
+                                    {providerCatalog && providerCatalog.models && providerCatalog.models.length > 0 && (
+                                      <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold text-foreground">Active Model</Label>
+                                        <Select
+                                          value={
+                                            (ragSettings.qaProvider === 'gemini'
+                                              ? ragSettings.geminiQaModel
+                                              : ragSettings.qaProvider === 'grok'
+                                              ? ragSettings.grokQaModel
+                                              : ragSettings.groqQaModel) ?? (providerCatalog.defaultModel || '')
+                                          }
+                                          onValueChange={(val) => {
+                                            setRagSettings(current => {
+                                              if (!current) return current;
+                                              if (current.qaProvider === 'gemini') {
+                                                return { ...current, geminiQaModel: val };
+                                              } else if (current.qaProvider === 'grok') {
+                                                return { ...current, grokQaModel: val };
+                                              } else if (current.qaProvider === 'groq') {
+                                                return { ...current, groqQaModel: val };
+                                              }
+                                              return current;
+                                            });
+                                          }}
+                                        >
+                                          <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                            <SelectValue placeholder="Select model..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {providerCatalog.models.map(model => (
+                                              <SelectItem key={model} value={model}>
+                                                {getModelLabel(model)}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
+
+                                    {/* API Key */}
+                                    {ragSettings.qaProvider === 'gemini' && (
+                                      <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center">
+                                          <Label className="text-xs font-semibold text-foreground">Gemini API Key</Label>
+                                          {ragSettings.geminiApiKey.isConfigured && (
+                                            <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
+                                          )}
+                                        </div>
+                                        <Input
+                                          type="password"
+                                          placeholder={ragSettings.geminiApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
+                                          onChange={(e) => setRagSettings(current => {
+                                            if (!current) return current;
+                                            return {
+                                              ...current,
+                                              geminiApiKey: {
+                                                isConfigured: current.geminiApiKey.isConfigured,
+                                                maskedValue: e.target.value || (current.geminiApiKey.isConfigured ? '••••••••••••••••' : null)
+                                              }
+                                            };
+                                          })}
+                                          className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                                        />
+                                      </div>
+                                    )}
+
+                                    {ragSettings.qaProvider === 'grok' && (
+                                      <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center">
+                                          <Label className="text-xs font-semibold text-foreground">Grok API Key</Label>
+                                          {ragSettings.grokApiKey.isConfigured && (
+                                            <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
+                                          )}
+                                        </div>
+                                        <Input
+                                          type="password"
+                                          placeholder={ragSettings.grokApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
+                                          onChange={(e) => setRagSettings(current => {
+                                            if (!current) return current;
+                                            return {
+                                              ...current,
+                                              grokApiKey: {
+                                                isConfigured: current.grokApiKey.isConfigured,
+                                                maskedValue: e.target.value || (current.grokApiKey.isConfigured ? '••••••••••••••••' : null)
+                                              }
+                                            };
+                                          })}
+                                          className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                                        />
+                                      </div>
+                                    )}
+
+                                    {ragSettings.qaProvider === 'groq' && (
+                                      <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center">
+                                          <Label className="text-xs font-semibold text-foreground">Groq API Key</Label>
+                                          {ragSettings.groqApiKey.isConfigured && (
+                                            <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
+                                          )}
+                                        </div>
+                                        <Input
+                                          type="password"
+                                          placeholder={ragSettings.groqApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
+                                          onChange={(e) => setRagSettings(current => {
+                                            if (!current) return current;
+                                            return {
+                                              ...current,
+                                              groqApiKey: {
+                                                isConfigured: current.groqApiKey.isConfigured,
+                                                maskedValue: e.target.value || (current.groqApiKey.isConfigured ? '••••••••••••••••' : null)
+                                              }
+                                            };
+                                          })}
+                                          className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
                             <div className="space-y-1.5">
                               <Label className="text-xs font-semibold text-foreground">Max Context Chunks</Label>
                               <Input
@@ -1008,87 +1199,6 @@ export default function AdminSettingsPage() {
                                 value={ragSettings.qaTemperature}
                                 onChange={(e) => setRagSettings(current => current ? { ...current, qaTemperature: parseFloat(e.target.value) } : current)}
                                 className="w-full h-8"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* API keys */}
-                        <div className="rounded-md border border-border bg-muted/20 p-4">
-                          <div className="mb-4">
-                            <p className="text-xs font-semibold text-foreground">Provider API Keys</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">Enter credentials for external generative services. Configured keys are masked.</p>
-                          </div>
-                          <div className="space-y-4">
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between items-center">
-                                <Label className="text-xs font-semibold text-foreground">Gemini API Key</Label>
-                                {ragSettings.geminiApiKey.isConfigured && (
-                                  <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
-                                )}
-                              </div>
-                              <Input
-                                type="password"
-                                placeholder={ragSettings.geminiApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
-                                onChange={(e) => setRagSettings(current => {
-                                  if (!current) return current;
-                                  return {
-                                    ...current,
-                                    geminiApiKey: {
-                                      isConfigured: current.geminiApiKey.isConfigured,
-                                      maskedValue: e.target.value || (current.geminiApiKey.isConfigured ? '••••••••••••••••' : null)
-                                    }
-                                  };
-                                })}
-                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
-                              />
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between items-center">
-                                <Label className="text-xs font-semibold text-foreground">Groq API Key</Label>
-                                {ragSettings.groqApiKey.isConfigured && (
-                                  <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
-                                )}
-                              </div>
-                              <Input
-                                type="password"
-                                placeholder={ragSettings.groqApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
-                                onChange={(e) => setRagSettings(current => {
-                                  if (!current) return current;
-                                  return {
-                                    ...current,
-                                    groqApiKey: {
-                                      isConfigured: current.groqApiKey.isConfigured,
-                                      maskedValue: e.target.value || (current.groqApiKey.isConfigured ? '••••••••••••••••' : null)
-                                    }
-                                  };
-                                })}
-                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
-                              />
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between items-center">
-                                <Label className="text-xs font-semibold text-foreground">Grok API Key</Label>
-                                {ragSettings.grokApiKey.isConfigured && (
-                                  <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
-                                )}
-                              </div>
-                              <Input
-                                type="password"
-                                placeholder={ragSettings.grokApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
-                                onChange={(e) => setRagSettings(current => {
-                                  if (!current) return current;
-                                  return {
-                                    ...current,
-                                    grokApiKey: {
-                                      isConfigured: current.grokApiKey.isConfigured,
-                                      maskedValue: e.target.value || (current.grokApiKey.isConfigured ? '••••••••••••••••' : null)
-                                    }
-                                  };
-                                })}
-                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
                               />
                             </div>
                           </div>

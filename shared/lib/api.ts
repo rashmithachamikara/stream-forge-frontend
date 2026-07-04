@@ -91,6 +91,8 @@ import {
   SystemSecretStatus,
   SystemSecretStatusDto,
   UpdateAdminRagSettingsRequest,
+  QaProviderModelCatalog,
+  QaProviderModelCatalogDto,
 } from '@/features/admin/types';
 import {
   AddPlaylistVideoRequest,
@@ -371,6 +373,14 @@ const mapSystemSecretStatus = (status?: SystemSecretStatusDto | null): SystemSec
   maskedValue: status?.maskedValue ?? null,
 });
 
+const mapQaProviderModelCatalog = (
+  catalog?: QaProviderModelCatalogDto | null
+): QaProviderModelCatalog => ({
+  provider: catalog?.provider ?? null,
+  defaultModel: catalog?.defaultModel ?? null,
+  models: catalog?.models ?? null,
+});
+
 const mapAdminRagSettings = (settings: AdminRagSettingsDto): AdminRagSettings => ({
   enabled: settings.enabled ?? false,
   semanticSearchEnabled: settings.semanticSearchEnabled ?? false,
@@ -386,10 +396,16 @@ const mapAdminRagSettings = (settings: AdminRagSettingsDto): AdminRagSettings =>
   hybridLexicalWeight: settings.hybridLexicalWeight ?? 0.5,
   hybridMaxCandidates: settings.hybridMaxCandidates ?? 0,
   qaProvider: settings.qaProvider ?? null,
+  geminiQaModel: settings.geminiQaModel ?? null,
+  grokQaModel: settings.grokQaModel ?? null,
+  groqQaModel: settings.groqQaModel ?? null,
   qaMaxContextChunks: settings.qaMaxContextChunks ?? 0,
   qaMaxCitations: settings.qaMaxCitations ?? 0,
   qaTemperature: settings.qaTemperature ?? 0.0,
   qaMaxOutputTokens: settings.qaMaxOutputTokens ?? 0,
+  qaModelCatalog: settings.qaModelCatalog
+    ? settings.qaModelCatalog.map(mapQaProviderModelCatalog)
+    : null,
   geminiApiKey: mapSystemSecretStatus(settings.geminiApiKey),
   grokApiKey: mapSystemSecretStatus(settings.grokApiKey),
   groqApiKey: mapSystemSecretStatus(settings.groqApiKey),
