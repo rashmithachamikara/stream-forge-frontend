@@ -12,38 +12,23 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Cpu,
-  KeyRound,
   Video,
   HardDrive,
   Shield,
   FileText,
-  Copy,
-  Plus,
-  Trash2,
   Save,
   Loader2,
-  Eye,
-  EyeOff,
   Brain,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { UpdateAdminTranscriptionSettingsRequest, AdminRagSettings, UpdateAdminRagSettingsRequest } from '@/features/admin/types';
 
-interface APIKey {
-  id: string;
-  name: string;
-  service: string;
-  key: string;
-  isActive: boolean;
-  lastUsed?: string;
-}
-
 const SECTIONS = [
   { id: 'ai', label: 'AI & Transcription', icon: Cpu },
   { id: 'rag', label: 'RAG & LLM', icon: Brain },
-  { id: 'api', label: 'API Keys', icon: KeyRound },
   { id: 'processing', label: 'Video Processing', icon: Video },
   { id: 'storage', label: 'Storage & CDN', icon: HardDrive },
   { id: 'security', label: 'Security', icon: Shield },
@@ -126,9 +111,22 @@ const LOCAL_WHISPER_DEVICE_OPTIONS = ['cpu', 'cuda'] as const;
 const LOCAL_WHISPER_COMPUTE_TYPE_OPTIONS = ['int8', 'float16', 'float32'] as const;
 
 export default function AdminSettingsPage() {
-  const [active, setActive] = useState<SectionId>('ai');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL query param synchronization for tab selection (derived state, no state hook)
+  const activeTabFromUrl = searchParams.get('tab') as SectionId | null;
+  const active = activeTabFromUrl && SECTIONS.some(s => s.id === activeTabFromUrl)
+    ? activeTabFromUrl
+    : 'ai';
+
+  const setActive = (tabId: SectionId) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', tabId);
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [showApiKeys, setShowApiKeys] = useState<{ [key: string]: boolean }>({});
   const [transcriptionSettings, setTranscriptionSettings] =
     useState<UpdateAdminTranscriptionSettingsRequest | null>(null);
   const [savedTranscriptionSettings, setSavedTranscriptionSettings] =
@@ -141,29 +139,6 @@ export default function AdminSettingsPage() {
   const [savedRagSettings, setSavedRagSettings] = useState<AdminRagSettings | null>(null);
   const [isRagSettingsLoading, setIsRagSettingsLoading] = useState(true);
   const [ragSettingsError, setRagSettingsError] = useState<string | null>(null);
-
-  // API Keys State
-  const [apiKeys, setApiKeys] = useState<APIKey[]>([
-    {
-      id: '1',
-      name: 'OpenAI API',
-      service: 'OpenAI',
-      key: 'sk-proj-xxxxxxxxxxxxxxxxxxxxx',
-      isActive: true,
-      lastUsed: '2024-02-20',
-    },
-    {
-      id: '2',
-      name: 'Azure Speech Services',
-      service: 'Azure',
-      key: 'xxxxxxxxxxxxxxxxxxxxxxxxxx',
-      isActive: true,
-      lastUsed: '2024-02-19',
-    },
-  ]);
-
-  const [newApiKey, setNewApiKey] = useState({ name: '', service: '', key: '' });
-  const [showNewApiKeyForm, setShowNewApiKeyForm] = useState(false);
 
   // Video Settings State
   const [videoSettings, setVideoSettings] = useState({
@@ -257,8 +232,14 @@ export default function AdminSettingsPage() {
       if (!isMounted) return;
 
       if (response.success && response.data) {
-        setRagSettings(response.data);
-        setSavedRagSettings(response.data);
+        const mappedData = {
+          ...response.data,
+          embeddingProvider: (response.data.embeddingProvider === 'local' || !response.data.embeddingProvider)
+            ? 'local-sentence-transformer'
+            : response.data.embeddingProvider
+        };
+        setRagSettings(mappedData);
+        setSavedRagSettings(mappedData);
         setRagSettingsError(null);
       } else {
         setRagSettingsError(response.error ?? 'Failed to load RAG settings');
@@ -287,7 +268,10 @@ export default function AdminSettingsPage() {
       semanticSearchEnabled: ragSettings.semanticSearchEnabled,
       videoQuestionsEnabled: ragSettings.videoQuestionsEnabled,
       crossVideoQuestionsEnabled: ragSettings.crossVideoQuestionsEnabled,
-      embeddingProvider: ragSettings.embeddingProvider,
+      embeddingProvider:
+        ragSettings.embeddingProvider === 'local' || !ragSettings.embeddingProvider
+          ? 'local-sentence-transformer'
+          : ragSettings.embeddingProvider,
       embeddingModel: ragSettings.embeddingModel,
       embeddingBatchSize: ragSettings.embeddingBatchSize,
       retrievalDefaultMode: ragSettings.retrievalDefaultMode,
@@ -314,8 +298,14 @@ export default function AdminSettingsPage() {
     setSaveStatus('idle');
 
     if (response.success && response.data) {
-      setRagSettings(response.data);
-      setSavedRagSettings(response.data);
+      const mappedData = {
+        ...response.data,
+        embeddingProvider: (response.data.embeddingProvider === 'local' || !response.data.embeddingProvider)
+          ? 'local-sentence-transformer'
+          : response.data.embeddingProvider
+      };
+      setRagSettings(mappedData);
+      setSavedRagSettings(mappedData);
       toast.success('RAG settings saved successfully');
     } else {
       toast.error(response.error ?? 'Failed to save RAG settings');
@@ -366,34 +356,7 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const toggleApiKeyVisibility = (id: string) => {
-    setShowApiKeys((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
 
-  const handleAddApiKey = () => {
-    if (newApiKey.name && newApiKey.service && newApiKey.key) {
-      const newKey: APIKey = {
-        id: String(apiKeys.length + 1),
-        ...newApiKey,
-        isActive: true,
-      };
-      setApiKeys([...apiKeys, newKey]);
-      setNewApiKey({ name: '', service: '', key: '' });
-      setShowNewApiKeyForm(false);
-    }
-  };
-
-  const handleDeleteApiKey = (id: string) => {
-    setApiKeys(apiKeys.filter((key) => key.id !== id));
-  };
-
-  const toggleApiKeyStatus = (id: string) => {
-    setApiKeys(
-      apiKeys.map((key) =>
-        key.id === id ? { ...key, isActive: !key.isActive } : key
-      )
-    );
-  };
 
   const toggleOutputFormat = (format: string) => {
     setTranscriptionSettings((current) => {
@@ -880,14 +843,18 @@ export default function AdminSettingsPage() {
                             <div className="space-y-1.5">
                               <Label className="text-xs font-semibold text-foreground">Embedding Provider</Label>
                               <Select
-                                value={ragSettings.embeddingProvider ?? 'local'}
+                                value={
+                                  ragSettings.embeddingProvider === 'local' || !ragSettings.embeddingProvider
+                                    ? 'local-sentence-transformer'
+                                    : ragSettings.embeddingProvider
+                                }
                                 onValueChange={(val) => setRagSettings(current => current ? { ...current, embeddingProvider: val } : current)}
                               >
                                 <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="local">Local</SelectItem>
+                                  <SelectItem value="local-sentence-transformer">Local</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -1210,167 +1177,6 @@ export default function AdminSettingsPage() {
               </>
             )}
 
-            {active === 'api' && (
-              <Card className="bg-card border border-border rounded-lg p-5">
-                <CardHeader className="p-0 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                        <KeyRound className="w-4 h-4 text-primary shrink-0" />
-                        API Keys
-                      </CardTitle>
-                      <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
-                        Manage API keys for external services
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setShowNewApiKeyForm(!showNewApiKeyForm)}
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Key
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0 space-y-4">
-                  {showNewApiKeyForm && (
-                    <div className="p-4 border border-border rounded-md bg-muted/30 space-y-4">
-                      <h4 className="font-semibold text-xs text-foreground">Add New API Key</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-medium text-muted-foreground mb-1.5">Name</Label>
-                          <Input
-                            placeholder="e.g., OpenAI API"
-                            value={newApiKey.name}
-                            onChange={(e) =>
-                              setNewApiKey({ ...newApiKey, name: e.target.value })
-                            }
-                            className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-medium text-muted-foreground mb-1.5">Service</Label>
-                          <Select
-                            value={newApiKey.service}
-                            onValueChange={(value) =>
-                              setNewApiKey({ ...newApiKey, service: value })
-                            }
-                          >
-                            <SelectTrigger className="w-full text-xs h-9 cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
-                              <SelectValue placeholder="Select service" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="OpenAI">OpenAI</SelectItem>
-                              <SelectItem value="Azure">Azure</SelectItem>
-                              <SelectItem value="Google">Google Cloud</SelectItem>
-                              <SelectItem value="AWS">AWS</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium text-muted-foreground mb-1.5">API Key</Label>
-                        <Input
-                          type="password"
-                          placeholder="Enter your API key"
-                          value={newApiKey.key}
-                          onChange={(e) =>
-                            setNewApiKey({ ...newApiKey, key: e.target.value })
-                          }
-                          className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={handleAddApiKey} variant="default">
-                          Add API Key
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setShowNewApiKeyForm(false);
-                            setNewApiKey({ name: '', service: '', key: '' });
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {apiKeys.map((apiKey) => (
-                    <div
-                      key={apiKey.id}
-                      className="flex items-start gap-4 p-4 border border-border rounded-md bg-muted/10"
-                    >
-                      <div className="p-3 bg-primary/10 rounded-lg shrink-0">
-                        <KeyRound className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <h4 className="font-semibold text-xs text-foreground truncate">{apiKey.name}</h4>
-                          <Badge variant={apiKey.isActive ? 'default' : 'secondary'} className="text-[9px] px-1.5 py-0.5 font-mono">
-                            {apiKey.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mb-2 font-mono">
-                          {apiKey.service}
-                          {apiKey.lastUsed && ` • Last used: ${apiKey.lastUsed}`}
-                        </p>
-                        <div className="flex items-center gap-1.5">
-                          <code className="text-[10px] bg-muted px-2 py-1 rounded font-mono text-foreground select-all">
-                            {showApiKeys[apiKey.id]
-                              ? apiKey.key
-                              : apiKey.key.slice(0, 12) + '•••••••••'}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => toggleApiKeyVisibility(apiKey.id)}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            {showApiKeys[apiKey.id] ? (
-                              <EyeOff className="w-3.5 h-3.5" />
-                            ) : (
-                              <Eye className="w-3.5 h-3.5" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => {
-                              navigator.clipboard.writeText(apiKey.key);
-                              alert('Key copied to clipboard!');
-                            }}
-                            className="text-muted-foreground hover:text-foreground"
-                            title="Copy to clipboard"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <Switch
-                          checked={apiKey.isActive}
-                          onCheckedChange={() => toggleApiKeyStatus(apiKey.id)}
-                          className="cursor-pointer"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => handleDeleteApiKey(apiKey.id)}
-                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
 
             {active === 'processing' && (
               <>
