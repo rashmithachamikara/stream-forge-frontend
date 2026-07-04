@@ -4,6 +4,8 @@ import React from 'react';
 import { Header } from './Header';
 import { ProtectedRoute } from './ProtectedRoute';
 import { UserRole } from '@/features/auth/types';
+import { GlobalAiDrawer } from './GlobalAiDrawer';
+import { useAuth } from '@/features/auth/AuthContext';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -18,6 +20,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   requiredRoles,
   allowGuests = false,
 }) => {
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header title={title} />
@@ -30,6 +33,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </ProtectedRoute>
         )}
       </main>
+      <GlobalAiDrawer userId={user?.id} />
     </div>
   );
 };

@@ -7,7 +7,8 @@ import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { AuthenticatedThumbnail } from '@/shared/components/AuthenticatedThumbnail';
 import { apiClient } from '@/shared/lib/api';
-import { Video, AdminVideoProcessingJob } from '@/features/videos/types';
+import { Video } from '@/features/videos/types';
+import { AdminVideoProcessingJob } from '@/features/admin/types';
 
 interface QueueItem {
   id: string;
@@ -116,7 +117,7 @@ export default function AdminDashboard() {
           const items = procRes.data.items.map((job: AdminVideoProcessingJob) => ({
             id: job.jobKey ?? job.videoId,
             title: job.videoTitle ?? 'Untitled video',
-            status: job.status,
+            status: job.status ?? 'Unknown',
             progress: job.progress,
           }));
           setProcessingVideos(items);

@@ -26,6 +26,7 @@ import {
   Sun,
   Upload,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { UserRole } from '@/features/auth/types';
 import { apiClient } from '@/shared/lib/api';
@@ -280,6 +281,19 @@ export const Header: React.FC<HeaderProps> = () => {
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
+            )}
+
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-7 w-7 text-primary hover:text-primary/80 relative cursor-pointer"
+                aria-label="Ask AI"
+                title="Ask AI"
+                onClick={() => window.dispatchEvent(new CustomEvent('streamforge_open_global_ai_drawer'))}
+              >
+                <Sparkles className="size-3.5" />
+              </Button>
             )}
 
             <Button

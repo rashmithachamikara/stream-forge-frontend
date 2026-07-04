@@ -467,3 +467,62 @@ export interface TranscriptionArtifactText {
   content: string;
   contentType: string | null;
 }
+
+export interface GroundedQuestionCitation {
+  videoId: string;
+  videoTitle: string | null;
+  transcriptionId: string;
+  chunkId: string;
+  startSeconds: number;
+  endSeconds: number;
+  content: string | null;
+}
+
+export interface GroundedQuestionCitationDto {
+  videoId?: string;
+  videoTitle?: string | null;
+  transcriptionId?: string;
+  chunkId?: string;
+  startSeconds?: number;
+  endSeconds?: number;
+  content?: string | null;
+}
+
+export interface GroundedQuestionAnswer {
+  question: string | null;
+  retrievalMode: string | null;
+  answer: string | null;
+  usedChunkCount: number;
+  citations: GroundedQuestionCitation[] | null;
+}
+
+export interface GroundedQuestionAnswerDto {
+  question?: string | null;
+  retrievalMode?: string | null;
+  answer?: string | null;
+  usedChunkCount?: number;
+  citations?: GroundedQuestionCitationDto[] | null;
+}
+
+export interface AskVideoQuestionRequest {
+  question: string | null;
+  language?: string | null;
+}
+
+export interface AskVideoQuestionRequestDto {
+  question?: string | null;
+  language?: string | null;
+}
+
+export interface AskQuestionAcrossVideosRequest {
+  question: string | null;
+  language?: string | null;
+  videoIds?: string[] | null;
+}
+
+export interface AskQuestionAcrossVideosRequestDto {
+  question?: string | null;
+  language?: string | null;
+  videoIds?: string[] | null;
+}
+

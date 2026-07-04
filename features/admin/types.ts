@@ -263,3 +263,86 @@ export interface AdminVideoProcessingJobDto {
   completedAt?: string | null;
   videoStatus?: string | null;
 }
+
+export interface SystemSecretStatus {
+  isConfigured: boolean;
+  maskedValue: string | null;
+}
+
+export interface SystemSecretStatusDto {
+  isConfigured?: boolean;
+  maskedValue?: string | null;
+}
+
+export interface AdminRagSettings {
+  enabled: boolean;
+  semanticSearchEnabled: boolean;
+  videoQuestionsEnabled: boolean;
+  crossVideoQuestionsEnabled: boolean;
+  embeddingProvider: string | null;
+  embeddingModel: string | null;
+  embeddingBatchSize: number;
+  retrievalDefaultMode: string | null;
+  semanticTopK: number;
+  fullTextTopK: number;
+  hybridSemanticWeight: number;
+  hybridLexicalWeight: number;
+  hybridMaxCandidates: number;
+  qaProvider: string | null;
+  qaMaxContextChunks: number;
+  qaMaxCitations: number;
+  qaTemperature: number;
+  qaMaxOutputTokens: number;
+  geminiApiKey: SystemSecretStatus;
+  grokApiKey: SystemSecretStatus;
+  groqApiKey: SystemSecretStatus;
+}
+
+export interface AdminRagSettingsDto {
+  enabled?: boolean;
+  semanticSearchEnabled?: boolean;
+  videoQuestionsEnabled?: boolean;
+  crossVideoQuestionsEnabled?: boolean;
+  embeddingProvider?: string | null;
+  embeddingModel?: string | null;
+  embeddingBatchSize?: number;
+  retrievalDefaultMode?: string | null;
+  semanticTopK?: number;
+  fullTextTopK?: number;
+  hybridSemanticWeight?: number;
+  hybridLexicalWeight?: number;
+  hybridMaxCandidates?: number;
+  qaProvider?: string | null;
+  qaMaxContextChunks?: number;
+  qaMaxCitations?: number;
+  qaTemperature?: number;
+  qaMaxOutputTokens?: number;
+  geminiApiKey?: SystemSecretStatusDto;
+  grokApiKey?: SystemSecretStatusDto;
+  groqApiKey?: SystemSecretStatusDto;
+}
+
+export interface UpdateAdminRagSettingsRequest {
+  enabled: boolean;
+  semanticSearchEnabled: boolean;
+  videoQuestionsEnabled: boolean;
+  crossVideoQuestionsEnabled: boolean;
+  embeddingProvider?: string | null;
+  embeddingModel?: string | null;
+  embeddingBatchSize: number;
+  retrievalDefaultMode?: string | null;
+  semanticTopK: number;
+  fullTextTopK: number;
+  hybridSemanticWeight: number;
+  hybridLexicalWeight: number;
+  hybridMaxCandidates: number;
+  qaProvider?: string | null;
+  qaMaxContextChunks: number;
+  qaMaxCitations: number;
+  qaTemperature: number;
+  qaMaxOutputTokens: number;
+  geminiApiKey?: string | null;
+  grokApiKey?: string | null;
+  groqApiKey?: string | null;
+}
+

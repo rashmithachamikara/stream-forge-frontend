@@ -35,8 +35,10 @@ import {
   Trash2,
   BarChart2,
   FileText,
+  Sparkles,
 } from 'lucide-react';
 import { Bookmark as BookmarkType } from '@/features/bookmarks/types';
+import { VideoAiPanel } from '@/features/videos/components/VideoAiPanel';
 import {
   ReactionSummary,
   ReactionType,
@@ -137,6 +139,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const [isPlaylistDialogOpen, setIsPlaylistDialogOpen] = useState(false);
   const [isPlaylistSaving, setIsPlaylistSaving] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
@@ -326,6 +329,19 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
       window.clearTimeout(timeoutId);
     };
   }, [handleTranscriptSearch, isTranscriptOpen, transcriptSearchQuery]);
+
+  // Seek to query parameter time t if present
+  useEffect(() => {
+    const tParam = searchParams.get('t');
+    if (tParam && video) {
+      const seconds = parseFloat(tParam);
+      if (!isNaN(seconds)) {
+        queueMicrotask(() => {
+          requestSeek(seconds);
+        });
+      }
+    }
+  }, [searchParams, video, requestSeek]);
 
   useEffect(() => {
     if (!playlistId) {
@@ -912,18 +928,31 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                       </DialogContent>
                     </Dialog>
                   )}
-                  {hasTranscriptions ? (
-                    <button
-                      onClick={() => setIsTranscriptOpen((current) => !current)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium cursor-pointer ${
-                        isTranscriptOpen ? `${selectedActionButtonClass} font-semibold` : ''
-                      } ${
-                        isTranscriptOpen ? '' : 'bg-transparent text-foreground'
-                      }`}
-                    >
-                      <FileText className="size-3.5" />
-                      Transcript
-                    </button>
+                   {hasTranscriptions ? (
+                    <>
+                      <button
+                        onClick={() => setIsTranscriptOpen((current) => !current)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium cursor-pointer ${
+                          isTranscriptOpen ? `${selectedActionButtonClass} font-semibold` : ''
+                        } ${
+                          isTranscriptOpen ? '' : 'bg-transparent text-foreground'
+                        }`}
+                      >
+                        <FileText className="size-3.5" />
+                        Transcript
+                      </button>
+                      <button
+                        onClick={() => setIsAiPanelOpen((current) => !current)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium cursor-pointer ${
+                          isAiPanelOpen ? `${selectedActionButtonClass} font-semibold` : ''
+                        } ${
+                          isAiPanelOpen ? '' : 'bg-transparent text-foreground'
+                        }`}
+                      >
+                        <Sparkles className="size-3.5" />
+                        Ask AI
+                      </button>
+                    </>
                   ) : null}
                   <button
                     disabled={isProcessing || isVideoDeleted}
@@ -989,6 +1018,16 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
           </div>
 
           <aside className="space-y-6">
+            {hasTranscriptions && isAiPanelOpen && (
+              <VideoAiPanel
+                videoId={video.id}
+                userId={user?.id}
+                isOpen={isAiPanelOpen}
+                onClose={() => setIsAiPanelOpen(false)}
+                onSeek={requestSeek}
+                shareToken={shareToken}
+              />
+            )}
             {hasTranscriptions && isTranscriptOpen && (
               <TranscriptPanel
                 transcriptions={transcriptions}

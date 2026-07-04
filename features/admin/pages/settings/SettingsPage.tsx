@@ -26,9 +26,10 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import { UpdateAdminTranscriptionSettingsRequest } from '@/features/admin/types';
+import { UpdateAdminTranscriptionSettingsRequest, AdminRagSettings, UpdateAdminRagSettingsRequest } from '@/features/admin/types';
 
 interface APIKey {
   id: string;
@@ -41,6 +42,7 @@ interface APIKey {
 
 const SECTIONS = [
   { id: 'ai', label: 'AI & Transcription', icon: Cpu },
+  { id: 'rag', label: 'RAG & LLM', icon: Brain },
   { id: 'api', label: 'API Keys', icon: KeyRound },
   { id: 'processing', label: 'Video Processing', icon: Video },
   { id: 'storage', label: 'Storage & CDN', icon: HardDrive },
@@ -81,6 +83,12 @@ export default function AdminSettingsPage() {
     useState<UpdateAdminTranscriptionSettingsRequest | null>(null);
   const [transcriptionSettingsError, setTranscriptionSettingsError] = useState<string | null>(null);
   const [isTranscriptionSettingsLoading, setIsTranscriptionSettingsLoading] = useState(true);
+
+  // RAG Settings State
+  const [ragSettings, setRagSettings] = useState<AdminRagSettings | null>(null);
+  const [savedRagSettings, setSavedRagSettings] = useState<AdminRagSettings | null>(null);
+  const [isRagSettingsLoading, setIsRagSettingsLoading] = useState(true);
+  const [ragSettingsError, setRagSettingsError] = useState<string | null>(null);
 
   // API Keys State
   const [apiKeys, setApiKeys] = useState<APIKey[]>([
@@ -186,6 +194,85 @@ export default function AdminSettingsPage() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRagSettings = async () => {
+      setIsRagSettingsLoading(true);
+      const response = await apiClient.getAdminRagSettings();
+
+      if (!isMounted) return;
+
+      if (response.success && response.data) {
+        setRagSettings(response.data);
+        setSavedRagSettings(response.data);
+        setRagSettingsError(null);
+      } else {
+        setRagSettingsError(response.error ?? 'Failed to load RAG settings');
+      }
+
+      setIsRagSettingsLoading(false);
+    };
+
+    void loadRagSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSaveRagSettings = async () => {
+    if (!ragSettings) {
+      return;
+    }
+
+    setSaveStatus('saving');
+    setRagSettingsError(null);
+
+    const payload: UpdateAdminRagSettingsRequest = {
+      enabled: ragSettings.enabled,
+      semanticSearchEnabled: ragSettings.semanticSearchEnabled,
+      videoQuestionsEnabled: ragSettings.videoQuestionsEnabled,
+      crossVideoQuestionsEnabled: ragSettings.crossVideoQuestionsEnabled,
+      embeddingProvider: ragSettings.embeddingProvider,
+      embeddingModel: ragSettings.embeddingModel,
+      embeddingBatchSize: ragSettings.embeddingBatchSize,
+      retrievalDefaultMode: ragSettings.retrievalDefaultMode,
+      semanticTopK: ragSettings.semanticTopK,
+      fullTextTopK: ragSettings.fullTextTopK,
+      hybridSemanticWeight: ragSettings.hybridSemanticWeight,
+      hybridLexicalWeight: ragSettings.hybridLexicalWeight,
+      hybridMaxCandidates: ragSettings.hybridMaxCandidates,
+      qaProvider: ragSettings.qaProvider,
+      qaMaxContextChunks: ragSettings.qaMaxContextChunks,
+      qaMaxCitations: ragSettings.qaMaxCitations,
+      qaTemperature: ragSettings.qaTemperature,
+      qaMaxOutputTokens: ragSettings.qaMaxOutputTokens,
+      geminiApiKey: ragSettings.geminiApiKey.maskedValue !== '••••••••••••••••' ? ragSettings.geminiApiKey.maskedValue : undefined,
+      grokApiKey: ragSettings.grokApiKey.maskedValue !== '••••••••••••••••' ? ragSettings.grokApiKey.maskedValue : undefined,
+      groqApiKey: ragSettings.groqApiKey.maskedValue !== '••••••••••••••••' ? ragSettings.groqApiKey.maskedValue : undefined,
+    };
+
+    const response = await apiClient.updateAdminRagSettings(payload);
+
+    setSaveStatus('idle');
+
+    if (response.success && response.data) {
+      setRagSettings(response.data);
+      setSavedRagSettings(response.data);
+      toast.success('RAG settings saved successfully');
+    } else {
+      toast.error(response.error ?? 'Failed to save RAG settings');
+    }
+  };
+
+  const hasPendingRagChanges = useMemo(() => {
+    if (!ragSettings || !savedRagSettings) {
+      return false;
+    }
+    return JSON.stringify(ragSettings) !== JSON.stringify(savedRagSettings);
+  }, [savedRagSettings, ragSettings]);
 
   const handleSaveSettings = async () => {
     if (!transcriptionSettings) {
@@ -295,6 +382,30 @@ export default function AdminSettingsPage() {
                 isTranscriptionSettingsLoading ||
                 !transcriptionSettings ||
                 !hasPendingTranscriptionChanges
+              }
+              variant="default"
+              className="gap-2"
+            >
+              {saveStatus === 'saving' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          ) : active === 'rag' ? (
+            <Button
+              onClick={() => void handleSaveRagSettings()}
+              disabled={
+                saveStatus === 'saving' ||
+                isRagSettingsLoading ||
+                !ragSettings ||
+                !hasPendingRagChanges
               }
               variant="default"
               className="gap-2"
@@ -620,6 +731,369 @@ export default function AdminSettingsPage() {
                           </div>
                         ) : null}
                       </>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
+            {active === 'rag' && (
+              <>
+                <Card className="bg-card border border-border rounded-lg p-5">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Brain className="w-4 h-4 text-primary shrink-0" />
+                      RAG & LLM Settings
+                    </CardTitle>
+                    <CardDescription className="text-[11px] text-muted-foreground mt-0.5">
+                      Configure Retrieval-Augmented Generation, vector embeddings, and LLM features.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 space-y-6">
+                    {ragSettingsError ? (
+                      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                        {ragSettingsError}
+                      </div>
+                    ) : null}
+
+                    {isRagSettingsLoading || !ragSettings ? (
+                      <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading RAG settings...
+                      </div>
+                    ) : (
+                      <div className="space-y-6 text-left">
+                        {/* Global Feature Toggles */}
+                        <div className="rounded-md border border-border bg-muted/20 p-4">
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-foreground">Global Features</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              Enable or disable RAG functionalities across the platform.
+                            </p>
+                          </div>
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <Label className="text-xs font-semibold text-foreground">Master RAG Switch</Label>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">Enable RAG indexing and assistant services.</p>
+                              </div>
+                              <Switch
+                                checked={ragSettings.enabled}
+                                onCheckedChange={(checked) => setRagSettings(current => current ? { ...current, enabled: checked } : current)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <Label className="text-xs font-semibold text-foreground">Semantic Search</Label>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">Allows conceptually searching transcription chunks.</p>
+                              </div>
+                              <Switch
+                                checked={ragSettings.semanticSearchEnabled}
+                                onCheckedChange={(checked) => setRagSettings(current => current ? { ...current, semanticSearchEnabled: checked } : current)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <Label className="text-xs font-semibold text-foreground">In-Video Questions</Label>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">Let users ask questions about individual video transcriptions.</p>
+                              </div>
+                              <Switch
+                                checked={ragSettings.videoQuestionsEnabled}
+                                onCheckedChange={(checked) => setRagSettings(current => current ? { ...current, videoQuestionsEnabled: checked } : current)}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <Label className="text-xs font-semibold text-foreground">Cross-Video Questions</Label>
+                                <p className="text-[11px] text-muted-foreground mt-0.5">Enable library-wide Q&A from the global drawer.</p>
+                              </div>
+                              <Switch
+                                checked={ragSettings.crossVideoQuestionsEnabled}
+                                onCheckedChange={(checked) => setRagSettings(current => current ? { ...current, crossVideoQuestionsEnabled: checked } : current)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Embedding settings */}
+                        <div className="rounded-md border border-border bg-muted/20 p-4">
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-foreground">Vector Embeddings</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Configure text vectorization models and batch sizes.</p>
+                          </div>
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Embedding Provider</Label>
+                              <Select
+                                value={ragSettings.embeddingProvider ?? 'gemini'}
+                                onValueChange={(val) => setRagSettings(current => current ? { ...current, embeddingProvider: val } : current)}
+                              >
+                                <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="gemini">Gemini</SelectItem>
+                                  <SelectItem value="groq">Groq</SelectItem>
+                                  <SelectItem value="grok">Grok</SelectItem>
+                                  <SelectItem value="openai">OpenAI</SelectItem>
+                                  <SelectItem value="local">Local</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Embedding Model</Label>
+                              <Input
+                                value={ragSettings.embeddingModel ?? ''}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, embeddingModel: e.target.value } : current)}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Batch Size</Label>
+                              <Input
+                                type="number"
+                                value={ragSettings.embeddingBatchSize}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, embeddingBatchSize: parseInt(e.target.value, 10) || 0 } : current)}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Search settings */}
+                        <div className="rounded-md border border-border bg-muted/20 p-4">
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-foreground">Retrieval & Search weights</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Tune weights and parameters for semantic and hybrid search modes.</p>
+                          </div>
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Default Retrieval Mode</Label>
+                              <Select
+                                value={ragSettings.retrievalDefaultMode ?? 'semantic'}
+                                onValueChange={(val) => setRagSettings(current => current ? { ...current, retrievalDefaultMode: val } : current)}
+                              >
+                                <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="semantic">Semantic</SelectItem>
+                                  <SelectItem value="hybrid">Hybrid</SelectItem>
+                                  <SelectItem value="lexical">Lexical (Keyword)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Semantic Top-K</Label>
+                              <Input
+                                type="number"
+                                value={ragSettings.semanticTopK}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, semanticTopK: parseInt(e.target.value, 10) || 0 } : current)}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Full-text Top-K</Label>
+                              <Input
+                                type="number"
+                                value={ragSettings.fullTextTopK}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, fullTextTopK: parseInt(e.target.value, 10) || 0 } : current)}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Hybrid Max Candidates</Label>
+                              <Input
+                                type="number"
+                                value={ragSettings.hybridMaxCandidates}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, hybridMaxCandidates: parseInt(e.target.value, 10) || 0 } : current)}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Hybrid Semantic Weight ({ragSettings.hybridSemanticWeight})</Label>
+                              <Input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={ragSettings.hybridSemanticWeight}
+                                onChange={(e) => setRagSettings(current => {
+                                  if (!current) return current;
+                                  const sem = parseFloat(e.target.value);
+                                  const lex = Math.round((1.0 - sem) * 100) / 100;
+                                  return { ...current, hybridSemanticWeight: sem, hybridLexicalWeight: lex };
+                                })}
+                                className="w-full h-8"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Hybrid Lexical Weight ({ragSettings.hybridLexicalWeight})</Label>
+                              <Input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={ragSettings.hybridLexicalWeight}
+                                onChange={(e) => setRagSettings(current => {
+                                  if (!current) return current;
+                                  const lex = parseFloat(e.target.value);
+                                  const sem = Math.round((1.0 - lex) * 100) / 100;
+                                  return { ...current, hybridLexicalWeight: lex, hybridSemanticWeight: sem };
+                                })}
+                                className="w-full h-8"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Generative AI settings */}
+                        <div className="rounded-md border border-border bg-muted/20 p-4">
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-foreground">Generative QA Settings</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Configure the conversational model parameters for answering questions.</p>
+                          </div>
+                          <div className="grid gap-4 lg:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">QA LLM Provider</Label>
+                              <Select
+                                value={ragSettings.qaProvider ?? 'gemini'}
+                                onValueChange={(val) => setRagSettings(current => current ? { ...current, qaProvider: val } : current)}
+                              >
+                                <SelectTrigger className="w-full text-xs cursor-pointer bg-muted border-0 focus:ring-1 focus:ring-ring">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="gemini">Gemini</SelectItem>
+                                  <SelectItem value="groq">Groq</SelectItem>
+                                  <SelectItem value="grok">Grok</SelectItem>
+                                  <SelectItem value="openai">OpenAI</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Max Context Chunks</Label>
+                              <Input
+                                type="number"
+                                value={ragSettings.qaMaxContextChunks}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, qaMaxContextChunks: parseInt(e.target.value, 10) || 0 } : current)}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Max Citations</Label>
+                              <Input
+                                type="number"
+                                value={ragSettings.qaMaxCitations}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, qaMaxCitations: parseInt(e.target.value, 10) || 0 } : current)}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Max Output Tokens</Label>
+                              <Input
+                                type="number"
+                                value={ragSettings.qaMaxOutputTokens}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, qaMaxOutputTokens: parseInt(e.target.value, 10) || 0 } : current)}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-semibold text-foreground">Temperature ({ragSettings.qaTemperature})</Label>
+                              <Input
+                                type="range"
+                                min="0"
+                                max="2"
+                                step="0.1"
+                                value={ragSettings.qaTemperature}
+                                onChange={(e) => setRagSettings(current => current ? { ...current, qaTemperature: parseFloat(e.target.value) } : current)}
+                                className="w-full h-8"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* API keys */}
+                        <div className="rounded-md border border-border bg-muted/20 p-4">
+                          <div className="mb-4">
+                            <p className="text-xs font-semibold text-foreground">Provider API Keys</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Enter credentials for external generative services. Configured keys are masked.</p>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between items-center">
+                                <Label className="text-xs font-semibold text-foreground">Gemini API Key</Label>
+                                {ragSettings.geminiApiKey.isConfigured && (
+                                  <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
+                                )}
+                              </div>
+                              <Input
+                                type="password"
+                                placeholder={ragSettings.geminiApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
+                                onChange={(e) => setRagSettings(current => {
+                                  if (!current) return current;
+                                  return {
+                                    ...current,
+                                    geminiApiKey: {
+                                      isConfigured: current.geminiApiKey.isConfigured,
+                                      maskedValue: e.target.value || (current.geminiApiKey.isConfigured ? '••••••••••••••••' : null)
+                                    }
+                                  };
+                                })}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between items-center">
+                                <Label className="text-xs font-semibold text-foreground">Groq API Key</Label>
+                                {ragSettings.groqApiKey.isConfigured && (
+                                  <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
+                                )}
+                              </div>
+                              <Input
+                                type="password"
+                                placeholder={ragSettings.groqApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
+                                onChange={(e) => setRagSettings(current => {
+                                  if (!current) return current;
+                                  return {
+                                    ...current,
+                                    groqApiKey: {
+                                      isConfigured: current.groqApiKey.isConfigured,
+                                      maskedValue: e.target.value || (current.groqApiKey.isConfigured ? '••••••••••••••••' : null)
+                                    }
+                                  };
+                                })}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between items-center">
+                                <Label className="text-xs font-semibold text-foreground">Grok API Key</Label>
+                                {ragSettings.grokApiKey.isConfigured && (
+                                  <Badge variant="secondary" className="text-[9px] px-1.5 font-mono">Configured</Badge>
+                                )}
+                              </div>
+                              <Input
+                                type="password"
+                                placeholder={ragSettings.grokApiKey.isConfigured ? '••••••••••••••••' : 'Enter API Key'}
+                                onChange={(e) => setRagSettings(current => {
+                                  if (!current) return current;
+                                  return {
+                                    ...current,
+                                    grokApiKey: {
+                                      isConfigured: current.grokApiKey.isConfigured,
+                                      maskedValue: e.target.value || (current.grokApiKey.isConfigured ? '••••••••••••••••' : null)
+                                    }
+                                  };
+                                })}
+                                className="text-xs h-9 bg-muted border-0 focus-visible:ring-1 focus-visible:ring-ring"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </CardContent>
                 </Card>

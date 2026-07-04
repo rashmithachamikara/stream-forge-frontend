@@ -45,6 +45,12 @@ import {
   VideoTranscriptionJob,
   VideoTranscriptionJobDto,
   VideoSummaryDto,
+  GroundedQuestionAnswer,
+  GroundedQuestionAnswerDto,
+  GroundedQuestionCitation,
+  GroundedQuestionCitationDto,
+  AskVideoQuestionRequest,
+  AskQuestionAcrossVideosRequest,
 } from '@/features/videos/types';
 import {
   ActiveViewers,
@@ -80,6 +86,11 @@ import {
   UserListFilters,
   UserProfile,
   UserProfileDto,
+  AdminRagSettings,
+  AdminRagSettingsDto,
+  SystemSecretStatus,
+  SystemSecretStatusDto,
+  UpdateAdminRagSettingsRequest,
 } from '@/features/admin/types';
 import {
   AddPlaylistVideoRequest,
@@ -353,6 +364,53 @@ const mapTranscriptSearchResult = (result: TranscriptSearchResultDto): Transcrip
   startSeconds: result.startSeconds ?? 0,
   endSeconds: result.endSeconds ?? 0,
   content: result.content ?? null,
+});
+
+const mapSystemSecretStatus = (status?: SystemSecretStatusDto | null): SystemSecretStatus => ({
+  isConfigured: status?.isConfigured ?? false,
+  maskedValue: status?.maskedValue ?? null,
+});
+
+const mapAdminRagSettings = (settings: AdminRagSettingsDto): AdminRagSettings => ({
+  enabled: settings.enabled ?? false,
+  semanticSearchEnabled: settings.semanticSearchEnabled ?? false,
+  videoQuestionsEnabled: settings.videoQuestionsEnabled ?? false,
+  crossVideoQuestionsEnabled: settings.crossVideoQuestionsEnabled ?? false,
+  embeddingProvider: settings.embeddingProvider ?? null,
+  embeddingModel: settings.embeddingModel ?? null,
+  embeddingBatchSize: settings.embeddingBatchSize ?? 0,
+  retrievalDefaultMode: settings.retrievalDefaultMode ?? null,
+  semanticTopK: settings.semanticTopK ?? 0,
+  fullTextTopK: settings.fullTextTopK ?? 0,
+  hybridSemanticWeight: settings.hybridSemanticWeight ?? 0.5,
+  hybridLexicalWeight: settings.hybridLexicalWeight ?? 0.5,
+  hybridMaxCandidates: settings.hybridMaxCandidates ?? 0,
+  qaProvider: settings.qaProvider ?? null,
+  qaMaxContextChunks: settings.qaMaxContextChunks ?? 0,
+  qaMaxCitations: settings.qaMaxCitations ?? 0,
+  qaTemperature: settings.qaTemperature ?? 0.0,
+  qaMaxOutputTokens: settings.qaMaxOutputTokens ?? 0,
+  geminiApiKey: mapSystemSecretStatus(settings.geminiApiKey),
+  grokApiKey: mapSystemSecretStatus(settings.grokApiKey),
+  groqApiKey: mapSystemSecretStatus(settings.groqApiKey),
+});
+
+const mapGroundedQuestionCitation = (citation: GroundedQuestionCitationDto): GroundedQuestionCitation => ({
+  videoId: citation.videoId ?? '',
+  videoTitle: citation.videoTitle ?? null,
+  transcriptionId: citation.transcriptionId ?? '',
+  chunkId: citation.chunkId ?? '',
+  startSeconds: citation.startSeconds ?? 0,
+  endSeconds: citation.endSeconds ?? 0,
+  content: citation.content ?? null,
+});
+
+const mapGroundedQuestionAnswer = (qa: GroundedQuestionAnswerDto): GroundedQuestionAnswer => ({
+  question: qa.question ?? null,
+  retrievalMode: qa.retrievalMode ?? null,
+  answer: qa.answer ?? null,
+  usedChunkCount: qa.usedChunkCount ?? 0,
+  citations: qa.citations ? qa.citations.map(mapGroundedQuestionCitation) : null,
 });
 
 const mapAdminTranscriptionSettings = (
@@ -1134,6 +1192,60 @@ class ApiClient {
     }
   }
 
+  async askVideoQuestion(
+    videoId: string,
+    payload: AskVideoQuestionRequest,
+    options: { shareToken?: string } = {}
+  ): Promise<ApiResponse<GroundedQuestionAnswer>> {
+    try {
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'shareToken', options.shareToken);
+      const queryStr = params.toString();
+
+      const response = await this.requestRaw<GroundedQuestionAnswerDto>(
+        `${API_V1_PREFIX}/videos/${videoId}/questions${queryStr ? `?${queryStr}` : ''}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }
+      );
+
+      return {
+        success: true,
+        data: mapGroundedQuestionAnswer(response),
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to get answer for video',
+      };
+    }
+  }
+
+  async askCrossVideoQuestion(
+    payload: AskQuestionAcrossVideosRequest
+  ): Promise<ApiResponse<GroundedQuestionAnswer>> {
+    try {
+      const response = await this.requestRaw<GroundedQuestionAnswerDto>(
+        `${API_V1_PREFIX}/questions`,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }
+      );
+
+      return {
+        success: true,
+        data: mapGroundedQuestionAnswer(response),
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to get answer across videos',
+      };
+    }
+  }
+
   async getVideoTranscriptionArtifactText(
     videoId: string,
     transcriptionId: string,
@@ -1405,6 +1517,48 @@ class ApiClient {
       return {
         success: false,
         error: 'Failed to update transcription settings',
+      };
+    }
+  }
+
+  async getAdminRagSettings(): Promise<ApiResponse<AdminRagSettings>> {
+    try {
+      const response = await this.requestRaw<AdminRagSettingsDto>(
+        `${API_V1_PREFIX}/admin/settings/rag`
+      );
+
+      return {
+        success: true,
+        data: mapAdminRagSettings(response),
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to fetch RAG settings',
+      };
+    }
+  }
+
+  async updateAdminRagSettings(
+    payload: UpdateAdminRagSettingsRequest
+  ): Promise<ApiResponse<AdminRagSettings>> {
+    try {
+      const response = await this.requestRaw<AdminRagSettingsDto>(
+        `${API_V1_PREFIX}/admin/settings/rag`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        }
+      );
+
+      return {
+        success: true,
+        data: mapAdminRagSettings(response),
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to update RAG settings',
       };
     }
   }
