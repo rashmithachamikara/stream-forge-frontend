@@ -10,7 +10,7 @@ WORKDIR /app/sdk/js-sdk
 COPY sdk/js-sdk/package*.json ./
 COPY sdk/js-sdk/tsconfig.json ./
 COPY sdk/js-sdk/src ./src
-RUN npm ci
+RUN npm install && npm run build
 
 # Copy the frontend dependencies
 WORKDIR /app
