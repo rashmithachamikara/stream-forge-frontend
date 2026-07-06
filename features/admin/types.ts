@@ -189,6 +189,8 @@ export interface UserListFilters {
   isActive?: boolean;
   page?: number;
   pageSize?: number;
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 export interface AdminTranscriptionSettings {

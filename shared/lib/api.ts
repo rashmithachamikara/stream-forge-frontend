@@ -943,6 +943,8 @@ class ApiClient {
       appendQueryParam(params, 'sort', filters.sort);
       appendQueryParam(params, 'page', filters.page ?? 1);
       appendQueryParam(params, 'pageSize', filters.pageSize ?? 24);
+      appendQueryParam(params, 'createdFrom', filters.createdFrom);
+      appendQueryParam(params, 'createdTo', filters.createdTo);
 
       const response = await this.requestRaw<PaginatedResponse<VideoSummaryDto>>(
         `${API_V1_PREFIX}/videos?${params.toString()}`
@@ -1478,6 +1480,8 @@ class ApiClient {
       appendQueryParam(params, 'isActive', filters.isActive);
       appendQueryParam(params, 'page', filters.page ?? 1);
       appendQueryParam(params, 'pageSize', filters.pageSize ?? 20);
+      appendQueryParam(params, 'createdFrom', filters.createdFrom);
+      appendQueryParam(params, 'createdTo', filters.createdTo);
 
       const response = await this.requestRaw<PaginatedResponse<UserProfileDto>>(
         `${API_V1_PREFIX}/users?${params.toString()}`

@@ -4444,6 +4444,16 @@
                     "schema":
                       { "type": "integer", "format": "int32", "default": 24 },
                   },
+                  {
+                    "name": "createdFrom",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "createdTo",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
                 ],
               "responses":
                 {
@@ -5608,6 +5618,16 @@
                     "in": "query",
                     "schema":
                       { "type": "integer", "format": "int32", "default": 24 },
+                  },
+                  {
+                    "name": "createdFrom",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
+                  },
+                  {
+                    "name": "createdTo",
+                    "in": "query",
+                    "schema": { "type": "string", "format": "date-time" },
                   },
                 ],
               "responses":

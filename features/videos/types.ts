@@ -115,6 +115,8 @@ export interface VideoListFilters {
   sort?: string;
   page?: number;
   pageSize?: number;
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 export interface VideoSummaryDto {

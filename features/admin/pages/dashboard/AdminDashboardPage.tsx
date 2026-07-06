@@ -56,6 +56,21 @@ const formatViews = (views: number) => {
   return String(views);
 };
 
+const computeTrend = (current: number, previous: number) => {
+  if (previous <= 0) {
+    if (current > 0) return { text: '▲ +100%', className: 'text-success' };
+    return { text: '0%', className: 'text-muted-foreground' };
+  }
+  const change = ((current - previous) / previous) * 100;
+  const rounded = Math.round(change);
+  if (rounded === 0) return { text: '0%', className: 'text-muted-foreground' };
+  const isPositive = rounded > 0;
+  const sign = isPositive ? '▲ +' : '▼ ';
+  const text = `${sign}${Math.abs(rounded)}%`;
+  const className = isPositive ? 'text-success' : 'text-destructive';
+  return { text, className };
+};
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState({
@@ -63,6 +78,17 @@ export default function AdminDashboard() {
     totalVideos: 0,
     totalViews: 0,
     totalWatchTime: 0,
+  });
+
+  const [trends, setTrends] = useState({
+    usersTrendText: '—',
+    usersTrendClass: 'text-muted-foreground',
+    videosTrendText: '—',
+    videosTrendClass: 'text-muted-foreground',
+    viewsTrendText: '—',
+    viewsTrendClass: 'text-muted-foreground',
+    watchTimeTrendText: '—',
+    watchTimeTrendClass: 'text-muted-foreground',
   });
 
   const [recentVideos, setRecentVideos] = useState<Video[]>([]);
@@ -73,12 +99,34 @@ export default function AdminDashboard() {
 
     const loadData = async () => {
       try {
-        const [usersRes, videosRes, analyticsRes, recentRes, procRes] = await Promise.all([
+        const now = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(now.getDate() - 60);
+
+        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
+
+        const [
+          usersRes,
+          videosRes,
+          analyticsRes,
+          recentRes,
+          procRes,
+          prevUsersRes,
+          prevVideosRes,
+          currentAnalyticsRes,
+          prevAnalyticsRes,
+        ] = await Promise.all([
           apiClient.getUsers({ page: 1, pageSize: 1 }),
           apiClient.getVideos({ page: 1, pageSize: 1 }),
           apiClient.getAdminAnalyticsSummary(),
           apiClient.getVideos({ sort: 'recentlyCreated', pageSize: 5 }),
           apiClient.getAdminVideoProcessingJobs({ Page: 1, PageSize: 5 }),
+          apiClient.getUsers({ page: 1, pageSize: 1, createdTo: thirtyDaysAgoStr }),
+          apiClient.getVideos({ page: 1, pageSize: 1, createdTo: thirtyDaysAgoStr }),
+          apiClient.getAdminAnalyticsSummary({ from: thirtyDaysAgo, to: now }),
+          apiClient.getAdminAnalyticsSummary({ from: sixtyDaysAgo, to: thirtyDaysAgo }),
         ]);
 
         if (!active) return;
@@ -105,6 +153,34 @@ export default function AdminDashboard() {
           totalVideos,
           totalViews,
           totalWatchTime,
+        });
+
+        // Compute Trends
+        let usersTrend = { text: '—', className: 'text-muted-foreground' };
+        let videosTrend = { text: '—', className: 'text-muted-foreground' };
+        let viewsTrend = { text: '—', className: 'text-muted-foreground' };
+        let watchTimeTrend = { text: '—', className: 'text-muted-foreground' };
+
+        if (usersRes.success && prevUsersRes.success) {
+          usersTrend = computeTrend(usersRes.data.totalCount, prevUsersRes.data.totalCount);
+        }
+        if (videosRes.success && prevVideosRes.success) {
+          videosTrend = computeTrend(videosRes.data.totalCount, prevVideosRes.data.totalCount);
+        }
+        if (currentAnalyticsRes.success && prevAnalyticsRes.success) {
+          viewsTrend = computeTrend(currentAnalyticsRes.data.totalViews ?? 0, prevAnalyticsRes.data.totalViews ?? 0);
+          watchTimeTrend = computeTrend(currentAnalyticsRes.data.totalWatchTime ?? 0, prevAnalyticsRes.data.totalWatchTime ?? 0);
+        }
+
+        setTrends({
+          usersTrendText: usersTrend.text,
+          usersTrendClass: usersTrend.className,
+          videosTrendText: videosTrend.text,
+          videosTrendClass: videosTrend.className,
+          viewsTrendText: viewsTrend.text,
+          viewsTrendClass: viewsTrend.className,
+          watchTimeTrendText: watchTimeTrend.text,
+          watchTimeTrendClass: watchTimeTrend.className,
         });
 
         // Populate Recent Videos
@@ -156,8 +232,8 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold font-mono mt-1">
               {stats.totalUsers}
             </div>
-            <div className="text-[11px] font-mono text-success mt-1">
-              ▲ +12%
+            <div className={`text-[11px] font-mono mt-1 ${trends.usersTrendClass}`}>
+              {trends.usersTrendText}
             </div>
           </div>
 
@@ -168,8 +244,8 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold font-mono mt-1">
               {stats.totalVideos}
             </div>
-            <div className="text-[11px] font-mono text-success mt-1">
-              ▲ +8%
+            <div className={`text-[11px] font-mono mt-1 ${trends.videosTrendClass}`}>
+              {trends.videosTrendText}
             </div>
           </div>
 
@@ -180,8 +256,8 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold font-mono mt-1">
               {formatViews(stats.totalViews)}
             </div>
-            <div className="text-[11px] font-mono text-success mt-1">
-              ▲ +23%
+            <div className={`text-[11px] font-mono mt-1 ${trends.viewsTrendClass}`}>
+              {trends.viewsTrendText}
             </div>
           </div>
 
@@ -192,8 +268,8 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold font-mono mt-1">
               {formatWatchHours(stats.totalWatchTime)}
             </div>
-            <div className="text-[11px] font-mono text-success mt-1">
-              ▲ +5%
+            <div className={`text-[11px] font-mono mt-1 ${trends.watchTimeTrendClass}`}>
+              {trends.watchTimeTrendText}
             </div>
           </div>
         </div>
