@@ -61,6 +61,7 @@ import {
   ChevronUp,
   Eye,
   FileText,
+  Info,
   Loader2,
   RefreshCcw,
   RotateCcw,
@@ -68,6 +69,11 @@ import {
   Video,
   Waves,
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 type ProcessingTab = 'video' | 'transcription';
 type VideoStatusFilter = AdminVideoJobStatus | 'all';
@@ -106,6 +112,69 @@ const formatDateTime = (value: Date | null) => {
   }
 
   return value.toLocaleString();
+};
+
+const formatMsDuration = (ms: number): string => {
+  if (ms < 0) ms = 0;
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const parts: string[] = [];
+  if (hours > 0) {
+    parts.push(`${hours}h`);
+  }
+  if (minutes > 0 || hours > 0) {
+    parts.push(`${minutes}m`);
+  }
+  parts.push(`${seconds}s`);
+
+  return parts.join(' ');
+};
+
+const getVideoJobProcessingDuration = (job: AdminVideoProcessingJob): string => {
+  if (job.startedAt) {
+    const end = job.completedAt || new Date();
+    const diffMs = end.getTime() - job.startedAt.getTime();
+    return formatMsDuration(diffMs);
+  }
+  if (job.completedAt) {
+    const diffMs = job.completedAt.getTime() - job.createdAt.getTime();
+    return formatMsDuration(diffMs);
+  }
+  if (job.status === 'Pending') {
+    return 'Pending';
+  }
+  if (job.status === 'Processing') {
+    const diffMs = new Date().getTime() - job.createdAt.getTime();
+    return formatMsDuration(diffMs);
+  }
+  return '—';
+};
+
+const getTranscriptionJobProcessingDuration = (job: VideoTranscriptionJob): string => {
+  const startedAt = job.liveStatus?.startedAt;
+  const completedAt = job.liveStatus?.completedAt;
+
+  if (startedAt) {
+    const end = completedAt || (job.status === 'Completed' || job.status === 'Failed' ? job.updatedAt : null) || new Date();
+    const diffMs = end.getTime() - startedAt.getTime();
+    return formatMsDuration(diffMs);
+  }
+  if (job.status === 'Completed' || job.status === 'Failed') {
+    const end = job.updatedAt || new Date();
+    const diffMs = end.getTime() - job.createdAt.getTime();
+    return formatMsDuration(diffMs);
+  }
+  if (job.status === 'Pending') {
+    return 'Pending';
+  }
+  if (job.status === 'Processing') {
+    const diffMs = new Date().getTime() - job.createdAt.getTime();
+    return formatMsDuration(diffMs);
+  }
+  return '—';
 };
 
 const formatJobStatus = (value: string | null) => value ?? 'Unknown';
@@ -664,6 +733,7 @@ export default function ProcessingPage() {
                       </button>
                     </TableHead>
                     <TableHead className="h-9 font-medium px-4">Status</TableHead>
+                    <TableHead className="h-9 font-medium px-4">Duration</TableHead>
                     <TableHead className="h-9 font-medium px-4">
                       <button
                         onClick={() => handleSortVideo('progress')}
@@ -696,6 +766,9 @@ export default function ProcessingPage() {
                         <TableCell>
                           <div className="h-5 w-16 bg-muted/50 rounded-full animate-pulse" />
                         </TableCell>
+                        <TableCell>
+                          <div className="h-3.5 w-12 bg-muted/40 rounded animate-pulse" />
+                        </TableCell>
                         <TableCell className="min-w-[150px]">
                           <div className="space-y-2 animate-pulse">
                             <div className="flex justify-between animate-pulse">
@@ -718,7 +791,7 @@ export default function ProcessingPage() {
                     ))
                   ) : videoJobs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="p-0">
+                      <TableCell colSpan={6} className="p-0">
                         <EmptyState
                           icon={Video}
                           title="No video jobs in this view"
@@ -765,6 +838,9 @@ export default function ProcessingPage() {
                             <Badge variant="outline" className={cn('font-mono', getStatusBadgeClass(job.status))}>
                               {formatJobStatus(job.status)}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-muted-foreground">
+                            {getVideoJobProcessingDuration(job)}
                           </TableCell>
                           <TableCell className="min-w-[150px]">
                             <div className="space-y-1.5">
@@ -1313,6 +1389,7 @@ export default function ProcessingPage() {
                     <p>Created · {formatDateTime(videoJobDetail.createdAt)}</p>
                     <p>Started · {formatDateTime(videoJobDetail.startedAt)}</p>
                     <p>Completed · {formatDateTime(videoJobDetail.completedAt)}</p>
+                    <p>Duration · {getVideoJobProcessingDuration(videoJobDetail)}</p>
                   </div>
                 </div>
               </div>
@@ -1380,6 +1457,7 @@ export default function ProcessingPage() {
                     <p>Job Key · <span className="text-foreground">{transcriptionJobDetail.jobKey ?? '—'}</span></p>
                     <p>Status · {transcriptionJobDetail.liveStatus?.status ?? transcriptionJobDetail.status ?? '—'}</p>
                     <p>Stage · {transcriptionJobDetail.liveStatus?.stage ?? '—'}</p>
+                    <p>Duration · {getTranscriptionJobProcessingDuration(transcriptionJobDetail)}</p>
                     <p>Created · {formatDateTime(transcriptionJobDetail.createdAt)}</p>
                     <p>Updated · {formatDateTime(transcriptionJobDetail.updatedAt ?? transcriptionJobDetail.createdAt)}</p>
                   </div>
@@ -1418,14 +1496,24 @@ export default function ProcessingPage() {
                           >
                             {formatJobStatus(artifact.status)}
                           </Badge>
+                          {artifact.failureReason ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button className="cursor-pointer text-destructive hover:text-destructive/80 focus:outline-none transition-colors inline-flex items-center">
+                                  <Info className="size-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs font-sans text-xs">
+                                {artifact.failureReason}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : null}
                         </div>
-                        {artifact.failureReason ? (
-                          <p className="text-xs text-destructive">{artifact.failureReason}</p>
-                        ) : null}
                       </div>
-                      <div className="space-y-1 font-mono text-[11px] text-muted-foreground md:text-right">
-                        <p>Created · {formatDateTime(artifact.createdAt)}</p>
-                        <p>Updated · {formatDateTime(artifact.updatedAt ?? artifact.createdAt)}</p>
+                      <div className="font-mono text-[11px] text-muted-foreground md:text-right">
+                        <p>
+                          Created · {formatDateTime(artifact.createdAt)} &nbsp;·&nbsp; Updated · {formatDateTime(artifact.updatedAt ?? artifact.createdAt)}
+                        </p>
                       </div>
                     </div>
                   ))}
