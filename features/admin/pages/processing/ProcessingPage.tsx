@@ -121,16 +121,15 @@ const formatMsDuration = (ms: number): string => {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
-  const parts: string[] = [];
-  if (hours > 0) {
-    parts.push(`${hours}h`);
-  }
-  if (minutes > 0 || hours > 0) {
-    parts.push(`${minutes}m`);
-  }
-  parts.push(`${seconds}s`);
+  const pad = (num: number) => String(num).padStart(2, '0');
 
-  return parts.join(' ');
+  if (hours > 0) {
+    return `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+  }
+  if (minutes > 0) {
+    return `${pad(minutes)}m ${pad(seconds)}s`;
+  }
+  return `${pad(seconds)}s`;
 };
 
 const getVideoJobProcessingDuration = (job: AdminVideoProcessingJob): string => {
@@ -733,7 +732,7 @@ export default function ProcessingPage() {
                       </button>
                     </TableHead>
                     <TableHead className="h-9 font-medium px-4">Status</TableHead>
-                    <TableHead className="h-9 font-medium px-4">Duration</TableHead>
+                    <TableHead className="h-9 font-medium px-4 text-right">Duration</TableHead>
                     <TableHead className="h-9 font-medium px-4">
                       <button
                         onClick={() => handleSortVideo('progress')}
@@ -839,7 +838,7 @@ export default function ProcessingPage() {
                               {formatJobStatus(job.status)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="font-mono text-muted-foreground">
+                          <TableCell className="font-mono text-xs text-muted-foreground text-right">
                             {getVideoJobProcessingDuration(job)}
                           </TableCell>
                           <TableCell className="min-w-[150px]">
