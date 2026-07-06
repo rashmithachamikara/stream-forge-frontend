@@ -191,6 +191,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const showBookmarksPanelRef = useRef(false);
   const handleAddBookmarkRef = useRef<() => void>(() => {});
 
+  const progressInputRef = useRef<HTMLInputElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const [bufferedRanges, setBufferedRanges] = useState<{ start: number; end: number }[]>([]);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -662,14 +666,78 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [isPlaying]);
 
+  const updateProgressDOM = useCallback((time: number) => {
+    const progressInput = progressInputRef.current;
+    if (progressInput) {
+      const dur = videoRef.current?.duration || duration || 1;
+      const percent = (time / dur) * 100;
+      progressInput.value = String(time);
+      progressInput.style.background = `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percent}%, transparent ${percent}%, transparent 100%)`;
+    }
+  }, [duration]);
+
+  const startProgressLoop = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    
+    const loop = () => {
+      if (videoRef.current) {
+        updateProgressDOM(videoRef.current.currentTime);
+      }
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  }, [updateProgressDOM]);
+
+  const stopProgressLoop = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (videoRef.current) {
+      updateProgressDOM(videoRef.current.currentTime);
+    }
+  }, [updateProgressDOM]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      startProgressLoop();
+    } else {
+      stopProgressLoop();
+    }
+    return () => stopProgressLoop();
+  }, [isPlaying, startProgressLoop, stopProgressLoop]);
+
+  useEffect(() => {
+    if (!rafRef.current) {
+      updateProgressDOM(currentTime);
+    }
+  }, [currentTime, updateProgressDOM]);
+
+  const handleProgress = useCallback(() => {
+    if (videoRef.current) {
+      const buffered = videoRef.current.buffered;
+      const ranges: { start: number; end: number }[] = [];
+      const dur = videoRef.current.duration || duration;
+      for (let i = 0; i < buffered.length; i++) {
+        const start = buffered.start(i);
+        const end = Math.min(buffered.end(i), dur);
+        if (start < end) {
+          ranges.push({ start, end });
+        }
+      }
+      setBufferedRanges(ranges);
+    }
+  }, [duration]);
+
   const handleProgressChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(event.target.value);
     if (videoRef.current) {
       videoRef.current.currentTime = newTime;
       setCurrentTime(newTime);
       lastPlaybackPositionRef.current = newTime;
+      updateProgressDOM(newTime);
     }
-  }, []);
+  }, [updateProgressDOM]);
 
   const handleMouseMove = useCallback(() => {
     setShowControls(true);
@@ -954,7 +1022,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         ref={videoRef}
         className="streamforge-video-player w-full max-h-full bg-black object-contain fullscreen:h-full cursor-pointer"
         onClick={togglePlay}
-        onTimeUpdate={handleTimeUpdate}
+        onTimeUpdate={() => {
+          handleTimeUpdate();
+          handleProgress();
+        }}
         onLoadedMetadata={() => {
           if (videoRef.current && Number.isFinite(videoRef.current.duration)) {
             setMediaDuration(videoRef.current.duration);
@@ -965,6 +1036,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             lastPlaybackPositionRef.current = startTime;
             lastSeekTimeRef.current = startTime;
           }
+          handleProgress();
         }}
         onCanPlay={() => setIsLoading(false)}
         onWaiting={() => setIsLoading(true)}
@@ -973,10 +1045,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setPlaybackError('Unable to load this video stream.');
           setIsLoading(false);
         }}
+        onProgress={handleProgress}
         onPlay={handlePlay}
         onPause={handlePause}
-        onSeeking={handleSeeking}
-        onSeeked={handleSeeked}
+        onSeeking={() => {
+          handleSeeking();
+          handleProgress();
+        }}
+        onSeeked={() => {
+          handleSeeked();
+          handleProgress();
+        }}
         onEnded={handleEnded}
       >
         {captions.map((caption) => (
@@ -1135,17 +1214,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       >
 
         {/* Progress Slider */}
-        <div className="flex items-center px-0.5">
+        <div className="relative flex items-center px-0.5 w-full h-[5px] group/timeline">
+          {/* Buffered ranges container */}
+          <div className="absolute left-0.5 right-0.5 top-1/2 -translate-y-1/2 h-[3px] group-hover/timeline:h-[5px] transition-all pointer-events-none overflow-hidden rounded-full bg-white/10">
+            {bufferedRanges.map((range, index) => (
+              <div
+                key={index}
+                className="absolute top-0 bottom-0 bg-white/25 rounded-full"
+                style={{
+                  left: `${(range.start / displayDuration) * 100}%`,
+                  width: `${((range.end - range.start) / displayDuration) * 100}%`,
+                }}
+              />
+            ))}
+          </div>
           <input
+            ref={progressInputRef}
             type="range"
             min="0"
             max={displayDuration}
             step="any"
-            value={currentTime}
             onChange={handleProgressChange}
-            className="h-[3px] hover:h-[5px] transition-all w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform"
+            className="h-[3px] hover:h-[5px] transition-all w-full cursor-pointer appearance-none rounded-full bg-transparent accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:hover:scale-125 [&::-webkit-slider-thumb]:transition-transform relative z-10"
             style={{
-              background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${progressPercent}%, rgba(255,255,255,0.25) ${progressPercent}%, rgba(255,255,255,0.25) 100%)`,
+              background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${progressPercent}%, transparent ${progressPercent}%, transparent 100%)`,
             }}
           />
         </div>
