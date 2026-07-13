@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { DashboardLayout } from '@/shared/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/shared/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ export default function EditorDashboard() {
   // Filtering and pagination
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<VideoStatus | 'all'>('all');
+  const [showDeletedOnly, setShowDeletedOnly] = useState(false);
   const [visibilityFilter, setVisibilityFilter] = useState<VideoListFilters['visibility'] | 'all'>('all');
   const [sortBy, setSortBy] = useState('recentlyCreated');
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,7 +106,7 @@ export default function EditorDashboard() {
 
     const filters: VideoListFilters = {
       search: searchTerm || undefined,
-      status: statusFilter === 'all' ? undefined : statusFilter,
+      status: showDeletedOnly ? 'Deleted' : (statusFilter === 'all' ? undefined : statusFilter),
       visibility: visibilityFilter === 'all' ? undefined : visibilityFilter,
       sort: sortBy,
       page: currentPage,
@@ -123,7 +125,7 @@ export default function EditorDashboard() {
     }
 
     setIsLoading(false);
-  }, [searchTerm, statusFilter, visibilityFilter, sortBy, currentPage]);
+  }, [searchTerm, statusFilter, showDeletedOnly, visibilityFilter, sortBy, currentPage]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -358,71 +360,90 @@ export default function EditorDashboard() {
 
           <div className="space-y-6">
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
-              <Input
-                placeholder="Search videos..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full sm:w-64"
-              />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap flex-1 min-w-0">
+                <Input
+                  placeholder="Search videos..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full sm:w-64"
+                />
 
-              <Select
-                value={statusFilter}
-                onValueChange={(v) => {
-                  setStatusFilter(v as VideoStatus | 'all');
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-44">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Uploading">Uploading</SelectItem>
-                  <SelectItem value="Processing">Processing</SelectItem>
-                  <SelectItem value="Ready">Ready</SelectItem>
-                  <SelectItem value="Failed">Failed</SelectItem>
-                </SelectContent>
-              </Select>
+                <Select
+                  disabled={showDeletedOnly}
+                  value={showDeletedOnly ? 'Deleted' : statusFilter}
+                  onValueChange={(v) => {
+                    setStatusFilter(v as VideoStatus | 'all');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="Uploading">Uploading</SelectItem>
+                    <SelectItem value="Processing">Processing</SelectItem>
+                    <SelectItem value="Ready">Ready</SelectItem>
+                    <SelectItem value="Failed">Failed</SelectItem>
+                    {showDeletedOnly && <SelectItem value="Deleted">Deleted</SelectItem>}
+                  </SelectContent>
+                </Select>
 
-              <Select
-                value={visibilityFilter}
-                onValueChange={(v) => {
-                  setVisibilityFilter(v as VideoListFilters['visibility'] | 'all');
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-44">
-                  <SelectValue placeholder="Filter by visibility" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Visibility</SelectItem>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                  <SelectItem value="internal">Internal</SelectItem>
-                </SelectContent>
-              </Select>
+                <Select
+                  value={visibilityFilter}
+                  onValueChange={(v) => {
+                    setVisibilityFilter(v as VideoListFilters['visibility'] | 'all');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue placeholder="Filter by visibility" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Visibility</SelectItem>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                    <SelectItem value="internal">Internal</SelectItem>
+                  </SelectContent>
+                </Select>
 
-              <Select
-                value={sortBy}
-                onValueChange={(v) => {
-                  setSortBy(v);
+                <Select
+                  value={sortBy}
+                  onValueChange={(v) => {
+                    setSortBy(v);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recentlyCreated">Recently Created</SelectItem>
+                    <SelectItem value="oldest">Oldest</SelectItem>
+                    <SelectItem value="title">Alphabetically</SelectItem>
+                    <SelectItem value="views">Most Viewed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeletedOnly((prev) => !prev);
                   setCurrentPage(1);
                 }}
+                className={cn(
+                  'text-xs font-semibold py-1.5 px-3 gap-1.5 shrink-0 ml-auto md:ml-0',
+                  showDeletedOnly && 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15'
+                )}
               >
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recentlyCreated">Recently Created</SelectItem>
-                  <SelectItem value="oldest">Oldest</SelectItem>
-                  <SelectItem value="title">Alphabetically</SelectItem>
-                  <SelectItem value="views">Most Viewed</SelectItem>
-                </SelectContent>
-              </Select>
+                <Trash2 className="size-3.5" />
+                {showDeletedOnly ? 'Show Active' : 'View Deleted'}
+              </Button>
             </div>
 
             {error && (
@@ -546,23 +567,23 @@ export default function EditorDashboard() {
               </div>
 
               <Tabs defaultValue="code" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 !border-0 !bg-muted !p-[3px]">
-                  <TabsTrigger value="code" className="text-xs">Code</TabsTrigger>
-                  <TabsTrigger value="configure" className="text-xs">Configure</TabsTrigger>
+                <TabsList className="w-full overflow-hidden">
+                  <TabsTrigger value="code" className="flex-1">Code</TabsTrigger>
+                  <TabsTrigger value="configure" className="flex-1">Configure</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="code" className="space-y-4 pt-4">
                   <div>
                     <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Embed Code</label>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-x-auto max-h-64 whitespace-pre-wrap break-all font-mono border border-border">
+                    <div className="relative overflow-hidden">
+                      <pre className="bg-muted p-4 rounded-lg text-xs overflow-hidden max-h-64 whitespace-pre-wrap break-all font-mono border border-border">
                         <code>{getEmbedCode(selectedVideo)}</code>
                       </pre>
                     </div>
                   </div>
                   <Button
                     onClick={copyToClipboard}
-                    className="w-full gap-2 bg-foreground text-background hover:opacity-90 text-xs font-semibold py-1.5 rounded-md"
+                    className="w-full gap-2 text-xs font-semibold py-1.5 rounded-md"
                     variant={copied ? 'secondary' : 'default'}
                   >
                     {copied ? (
