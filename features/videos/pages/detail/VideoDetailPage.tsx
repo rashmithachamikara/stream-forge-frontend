@@ -690,6 +690,33 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
   const canManageVideo = activeView !== 'viewer' && (user?.role === 'admin' || (user?.role === 'editor' && isOwner));
   const hasTranscriptions = transcriptions.length > 0;
 
+  const handleShare = useCallback(async () => {
+    if (!video) return;
+
+    const baseUrl = `${window.location.origin}/videos/${video.id}`;
+    let shareUrl = baseUrl;
+
+    if (video.visibility !== 'public' && shareToken) {
+      shareUrl = `${baseUrl}?shareToken=${shareToken}`;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+
+      if (video.visibility === 'public') {
+        toast.success('Video link copied to clipboard!');
+      } else if (shareToken) {
+        toast.success('Shared access link copied to clipboard!');
+      } else if (canManageVideo) {
+        toast.success('Link copied. You can generate secure access tokens on the Manage page.');
+      } else {
+        toast.success('Link copied. Note that only the authorized users can view this video.');
+      }
+    } catch {
+      toast.error('Failed to copy link to clipboard');
+    }
+  }, [video, shareToken, canManageVideo]);
+
   useEffect(() => {
     return () => {
       captionUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -752,6 +779,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                 autoPlay={isAutoplayLoaded && autoplay && !!playlistId}
                 requestedSeekTime={requestedSeekTime}
                 onPlaybackTimeChange={setCurrentPlaybackTime}
+                onShare={handleShare}
               />
             ) : (
               <div className="relative aspect-video w-full rounded-lg bg-card border border-border text-foreground flex flex-col items-center justify-center gap-4 p-6 text-center overflow-hidden">
@@ -955,6 +983,7 @@ export default function WatchVideoPage({ videoId }: { videoId: string }) {
                     </>
                   ) : null}
                   <button
+                    onClick={() => void handleShare()}
                     disabled={isProcessing || isVideoDeleted}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border hover:bg-accent transition-colors text-xs font-medium text-foreground bg-transparent cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >

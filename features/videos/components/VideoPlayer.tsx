@@ -48,6 +48,7 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   requestedSeekTime?: number | null;
   onPlaybackTimeChange?: (time: number) => void;
+  onShare?: () => void;
 }
 
 type QualityOption = {
@@ -166,6 +167,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   autoPlay,
   requestedSeekTime = null,
   onPlaybackTimeChange,
+  onShare,
 }) => {
   const searchParams = useSearchParams();
   const tParam = searchParams?.get('t');
@@ -1341,6 +1343,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
+                  onClick={onShare}
                   className="h-8 w-8 text-white/90 hover:text-white rounded flex items-center justify-center transition-colors cursor-pointer bg-transparent border-0"
                 >
                   <Share2 className="h-4 w-4" />
