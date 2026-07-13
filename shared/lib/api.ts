@@ -984,9 +984,14 @@ class ApiClient {
     }
   }
 
-  async getVideoById(id: string): Promise<ApiResponse<Video>> {
+  async getVideoById(id: string, options: { shareToken?: string } = {}): Promise<ApiResponse<Video>> {
     try {
-      const video = await this.requestRaw<VideoDetailDto>(`${API_V1_PREFIX}/videos/${id}`);
+      const params = new URLSearchParams();
+      appendQueryParam(params, 'shareToken', options.shareToken);
+
+      const queryString = params.toString();
+      const url = `${API_V1_PREFIX}/videos/${id}${queryString ? `?${queryString}` : ''}`;
+      const video = await this.requestRaw<VideoDetailDto>(url);
 
       return {
         success: true,
